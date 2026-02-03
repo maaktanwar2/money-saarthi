@@ -1,0 +1,16 @@
+# Render Blueprint - Backend Service Configuration
+services:
+  - type: web
+    name: money-saarthi-backend
+    env: python
+    region: singapore  # Close to India for better latency
+    plan: free  # Start with free, upgrade as needed
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: CORS_ORIGINS
+        value: "https://moneysaarthi-3bf1c.web.app,https://moneysaarthi.in"  # Firebase hosting
+    healthCheckPath: /api/health
+    autoDeploy: true

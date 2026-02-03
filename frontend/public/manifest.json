@@ -1,0 +1,40 @@
+{
+  "short_name": "Money Saarthi",
+  "name": "Money Saarthi - F&O Trading Companion",
+  "description": "Your trusted F&O Trading Companion for Indian Stock Market. Real-time scanners, strategies, and analysis tools.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#7c3aed",
+  "background_color": "#09090b",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "business", "utilities"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Money Saarthi Dashboard"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

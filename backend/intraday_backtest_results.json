@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-01-29T05:57:01.958221",
+  "timeframe": "5m",
+  "period": "1mo",
+  "candles": 1554,
+  "capital": 100000,
+  "lot_size": 50,
+  "results": {
+    "supertrend": {
+      "total_trades": 21,
+      "winning_trades": 7,
+      "losing_trades": 14,
+      "win_rate": 33.33,
+      "total_pnl": -8921.0,
+      "profit_factor": 0.81,
+      "sharpe_ratio": -1.03,
+      "max_drawdown": 21.77
+    },
+    "ema_crossover": {
+      "total_trades": 35,
+      "winning_trades": 8,
+      "losing_trades": 27,
+      "win_rate": 22.86,
+      "total_pnl": -21310.0,
+      "profit_factor": 0.61,
+      "sharpe_ratio": -2.47,
+      "max_drawdown": 34.35
+    },
+    "rsi_reversal": {
+      "total_trades": 42,
+      "winning_trades": 9,
+      "losing_trades": 33,
+      "win_rate": 21.43,
+      "total_pnl": -15110.0,
+      "profit_factor": 0.73,
+      "sharpe_ratio": -1.93,
+      "max_drawdown": 21.36
+    },
+    "bollinger_squeeze": {
+      "total_trades": 5,
+      "winning_trades": 5,
+      "losing_trades": 0,
+      "win_rate": 100.0,
+      "total_pnl": 8725.0,
+      "profit_factor": 999,
+      "sharpe_ratio": 53.66,
+      "max_drawdown": 0
+    }
+  },
+  "summary": {
+    "summary": [
+      {
+        "strategy": "supertrend",
+        "total_trades": 21,
+        "win_rate": 33.33,
+        "total_pnl": -8921.0,
+        "profit_factor": 0.81,
+        "max_drawdown": 21.77,
+        "sharpe_ratio": -1.03
+      },
+      {
+        "strategy": "ema_crossover",
+        "total_trades": 35,
+        "win_rate": 22.86,
+        "total_pnl": -21310.0,
+        "profit_factor": 0.61,
+        "max_drawdown": 34.35,
+        "sharpe_ratio": -2.47
+      },
+      {
+        "strategy": "rsi_reversal",
+        "total_trades": 42,
+        "win_rate": 21.43,
+        "total_pnl": -15110.0,
+        "profit_factor": 0.73,
+        "max_drawdown": 21.36,
+        "sharpe_ratio": -1.93
+      },
+      {
+        "strategy": "bollinger_squeeze",
+        "total_trades": 5,
+        "win_rate": 100.0,
+        "total_pnl": 8725.0,
+        "profit_factor": Infinity,
+        "max_drawdown": 0,
+        "sharpe_ratio": 53.66
+      }
+    ],
+    "best_strategy": "bollinger_squeeze",
+    "total_combined_pnl": -36616.0,
+    "average_win_rate": 44.41,
+    "recommendations": [
+      "\u274c supertrend: Low win rate - optimize parameters or avoid",
+      "\u274c ema_crossover: Low win rate - optimize parameters or avoid",
+      "\u274c rsi_reversal: Low win rate - optimize parameters or avoid",
+      "\u2705 bollinger_squeeze: High potential - 100.0% win rate, inf profit factor"
+    ]
+  }
+}

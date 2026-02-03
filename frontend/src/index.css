@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   🎨 MONEY SAARTHI - Professional Trading Platform
+   Design System v2.0 - Inspired by emergent.sh, Bloomberg Terminal
+   Dark Mode First • Glassmorphism • Fluid Motion
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ═══ CORE BRAND COLORS ═══ */
+    --brand-primary: 160 84% 39%;
+    --brand-secondary: 271 91% 65%;
+    --brand-tertiary: 199 89% 48%;
+    
+    /* ═══ SEMANTIC COLORS ═══ */
+    --bullish: 142 76% 36%;
+    --bearish: 0 84% 60%;
+    --neutral: 220 9% 46%;
+    --warning: 38 92% 50%;
+    
+    /* ═══ BACKGROUND SYSTEM ═══ */
+    --background: 240 10% 4%;
+    --background-secondary: 240 6% 8%;
+    --background-tertiary: 240 5% 12%;
+    
+    /* ═══ FOREGROUND SYSTEM ═══ */
+    --foreground: 0 0% 98%;
+    --foreground-secondary: 240 5% 65%;
+    --foreground-muted: 240 4% 46%;
+    
+    /* ═══ SURFACE COLORS ═══ */
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 4%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* ═══ INTERACTIVE STATES ═══ */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* ═══ BORDERS & RINGS ═══ */
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 160 84% 39%;
+    
+    /* ═══ RADIUS SYSTEM ═══ */
+    --radius: 0.75rem;
+    
+    /* ═══ CHART PALETTE ═══ */
+    --chart-1: 160 84% 39%;
+    --chart-2: 0 84% 60%;
+    --chart-3: 271 91% 65%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 38 92% 50%;
+    
+    /* ═══ LAYOUT ═══ */
+    --header-height: 64px;
+    --sidebar-width: 280px;
+    --sidebar-collapsed: 72px;
+    --bottom-nav-height: 72px;
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --background-secondary: 210 40% 98%;
+    --background-tertiary: 210 40% 96%;
+    --foreground: 222 84% 5%;
+    --foreground-secondary: 215 16% 47%;
+    --foreground-muted: 215 16% 57%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 5%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  ::selection { @apply bg-primary/30 text-foreground; }
+  *:focus-visible { @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background; }
+}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+/* ═══ GLASSMORPHISM ═══ */
+.glass { @apply bg-card/80 backdrop-blur-xl border border-white/[0.08]; }
+.glass-strong { @apply bg-card/90 backdrop-blur-2xl border border-white/[0.12]; }
+.glass-subtle { @apply bg-card/50 backdrop-blur-lg border border-white/[0.05]; }
+
+/* ═══ GLOW EFFECTS ═══ */
+.glow-sm { box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3); }
+.glow-md { box-shadow: 0 0 40px -10px hsl(var(--primary) / 0.4); }
+.glow-lg { box-shadow: 0 0 60px -15px hsl(var(--primary) / 0.5); }
+
+/* ═══ GRADIENTS ═══ */
+.gradient-primary { @apply bg-gradient-to-r from-emerald-500 to-teal-600; }
+.gradient-secondary { @apply bg-gradient-to-r from-violet-500 to-purple-600; }
+.gradient-bullish { @apply bg-gradient-to-r from-green-500 to-emerald-600; }
+.gradient-bearish { @apply bg-gradient-to-r from-red-500 to-rose-600; }
+.text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400; }
+
+/* ═══ TRADING COLORS ═══ */
+.text-bullish { @apply text-green-500; }
+.text-bearish { @apply text-red-500; }
+.bg-bullish-subtle { @apply bg-green-500/10; }
+.bg-bearish-subtle { @apply bg-red-500/10; }
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-33.33%); } }
+@keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+.animate-fade-up { animation: fade-up 0.4s ease-out; }
+.animate-scale-in { animation: scale-in 0.3s ease-out; }
+.animate-shimmer { animation: shimmer 2s infinite linear; }
+.animate-ticker { animation: ticker 60s linear infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s infinite ease-in-out; }
+
+/* ═══ SKELETON ═══ */
+.skeleton { @apply bg-gradient-to-r from-card via-card/50 to-card bg-[length:200%_100%] animate-shimmer rounded; }
+
+/* ═══ TICKER ═══ */
+.ticker-track { display: flex; width: max-content; }
+.ticker-track:hover { animation-play-state: paused; }
+
+/* ═══ STAT CARD ═══ */
+.stat-card { @apply glass rounded-xl p-4 transition-all duration-300 hover:bg-card/90 hover:border-white/[0.12]; }
+
+/* ═══ TOOL CARD ═══ */
+.tool-card { 
+  @apply glass rounded-2xl p-6 transition-all duration-300 cursor-pointer;
+}
+.tool-card:hover { 
+  transform: scale(1.02);
+  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+}
+
+/* ═══ LIGHT MODE ═══ */
+.light .glass { @apply bg-white/80 border-black/[0.08]; }
+.light .glass-strong { @apply bg-white/90 border-black/[0.12]; }
