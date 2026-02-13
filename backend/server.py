@@ -1702,6 +1702,7 @@ SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'maaktanwar@gmail.com')
 # UPI Payment Configuration
 UPI_NUMBER = os.environ.get('UPI_NUMBER', '9818856552')
 UPI_PAYEE_NAME = os.environ.get('UPI_PAYEE_NAME', 'mspay')
+UPI_ID = os.environ.get('UPI_ID', '9818856552-2@ybl')
 
 
 # ==================== MODELS ====================
@@ -3335,9 +3336,10 @@ async def get_upi_config():
     if settings and settings.get("value"):
         return {
             "upi_number": settings["value"].get("upi_number") or UPI_NUMBER,
-            "payee_name": settings["value"].get("payee_name") or UPI_PAYEE_NAME
+            "payee_name": settings["value"].get("payee_name") or UPI_PAYEE_NAME,
+            "upi_id": settings["value"].get("upi_id") or UPI_ID
         }
-    return {"upi_number": UPI_NUMBER, "payee_name": UPI_PAYEE_NAME}
+    return {"upi_number": UPI_NUMBER, "payee_name": UPI_PAYEE_NAME, "upi_id": UPI_ID}
 
 @api_router.get("/payment/upi-config")
 async def get_upi_config_endpoint():
@@ -4907,6 +4909,7 @@ async def get_theme_presets(admin: User = Depends(get_admin_user)):
 class UPISettings(BaseModel):
     upi_number: Optional[str] = None
     payee_name: Optional[str] = None
+    upi_id: Optional[str] = None
 
 @api_router.get("/admin/settings/payment")
 async def get_payment_settings(admin: User = Depends(get_admin_user)):
@@ -4930,6 +4933,8 @@ async def update_payment_settings(
         update_data["upi_number"] = settings.upi_number
     if settings.payee_name is not None:
         update_data["payee_name"] = settings.payee_name
+    if settings.upi_id is not None:
+        update_data["upi_id"] = settings.upi_id
     
     if update_data:
         existing = await db.settings.find_one({"key": "upi_config"}, {"_id": 0})

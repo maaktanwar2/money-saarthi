@@ -18,8 +18,7 @@ import {
   Star,
   ArrowRight,
   BadgeCheck,
-  Smartphone,
-  Copy,
+  QrCode,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -28,9 +27,9 @@ import {
 // PRICING PAGE - Subscription Plans
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// UPI Payment — simple pay-to-number flow
+// UPI Payment — QR code flow
 // UPI details fetched from backend (admin can change anytime)
-const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay' };
+const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay', upi_id: '9818856552-2@ybl' };
 
 // Plan configurations
 export const PLANS = {
@@ -143,7 +142,6 @@ export default function Pricing() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [transactionId, setTransactionId] = useState('');
-  const [copied, setCopied] = useState(false);
   const [upiConfig, setUpiConfig] = useState(DEFAULT_UPI);
 
   useEffect(() => {
@@ -183,11 +181,11 @@ export default function Pricing() {
     setTransactionId('');
   };
 
-  // Copy UPI number to clipboard
-  const copyUpiNumber = () => {
-    navigator.clipboard.writeText(upiConfig.upi_number);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Generate UPI QR code URL
+  const getQrUrl = (amount) => {
+    const upiId = upiConfig.upi_id || `${upiConfig.upi_number}@ybl`;
+    const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiConfig.payee_name)}&am=${amount}&cu=INR`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`;
   };
 
   // Submit UTR after manual payment
@@ -312,27 +310,24 @@ export default function Pricing() {
               /* UPI Payment Flow */
               <div className="p-6">
                 <div className="space-y-4">
-                  {/* Step 1: Pay to number */}
+                  {/* Step 1: Scan QR */}
                   <div className="bg-muted/50 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">1</div>
-                      <p className="font-semibold">Pay via UPI to this number</p>
+                      <p className="font-semibold">Scan QR code to pay {formatPrice(amount)}</p>
                     </div>
-                    <div className="flex items-center gap-3 p-4 bg-background rounded-xl border border-border">
-                      <Smartphone className="w-8 h-8 text-primary flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-2xl font-bold font-mono tracking-wider">{upiConfig.upi_number}</p>
-                        <p className="text-xs text-muted-foreground">Payee: {upiConfig.payee_name}</p>
-                      </div>
-                      <button
-                        onClick={copyUpiNumber}
-                        className="p-2 rounded-lg hover:bg-muted transition-colors"
-                      >
-                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-muted-foreground" />}
-                      </button>
+                    <div className="flex justify-center p-4 bg-white rounded-xl">
+                      <img
+                        src={getQrUrl(amount)}
+                        alt="UPI QR Code"
+                        className="w-56 h-56"
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Open PhonePe, Google Pay, Paytm or any UPI app and pay <strong>{formatPrice(amount)}</strong> to this number
+                    <p className="text-xs text-muted-foreground mt-3 text-center">
+                      Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code
+                    </p>
+                    <p className="text-xs text-muted-foreground text-center mt-1">
+                      UPI ID: <span className="font-mono font-semibold">{upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}</span>
                     </p>
                   </div>
 
