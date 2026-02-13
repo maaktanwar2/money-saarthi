@@ -297,13 +297,13 @@ const AlgoTrading = () => {
         }));
       }
       
-      // Fetch AI Strangle Bot Status
-      const strangleRes = await fetch(`${API_BASE_URL}/api/trade-algo/ai-strangle/status`);
+      // Fetch AI Delta Strangle Bot Status (QuantStrangle AI)
+      const strangleRes = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/status`);
       if (strangleRes.ok) {
         strangleData = await strangleRes.json();
         setStrangleBot(prev => ({
           ...prev,
-          running: strangleData.status === 'active',
+          running: strangleData.bot_status === 'running' || strangleData.status === 'active',
           status: strangleData
         }));
       }
@@ -314,7 +314,7 @@ const AlgoTrading = () => {
         deltaData = await deltaRes.json();
         setDeltaBot(prev => ({
           ...prev,
-          running: deltaData.running || deltaData.status === 'active',
+          running: deltaData.is_running || deltaData.running || deltaData.status === 'active',
           status: deltaData
         }));
       }
@@ -384,7 +384,6 @@ const AlgoTrading = () => {
     
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
-      const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
       const response = await fetch(`${API_BASE_URL}/api/trade-algo/vwap-bot/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -437,17 +436,21 @@ const AlgoTrading = () => {
   };
   
   const startStrangleBot = async () => {
+    const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
+    const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
+    const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
     const confirmed = window.confirm(
-      `⚠️ LIVE TRADING CONFIRMATION ⚠️\n\n` +
-      `You are about to start QuantStrangle AI Bot with REAL MONEY!\n\n` +
+      `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
+      `You are about to start QuantStrangle AI Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
       `Strategy: Delta-Neutral Short Strangle\n` +
       `• Underlying: ${strangleConfig.underlying}\n` +
       `• Number of Lots: ${strangleConfig.numLots}\n` +
       `• Entry Delta: ${strangleConfig.entryDelta} (sell at 15-16 delta)\n` +
       `• Adjustment Trigger: ${strangleConfig.adjustmentDelta} delta\n` +
       `• Profit Target: ${strangleConfig.profitTargetPct}%\n` +
-      `• Claude AI: ${strangleConfig.useAI ? 'ENABLED' : 'DISABLED'}\n\n` +
-      `This will place REAL options orders on your ${localStorage.getItem('ms_connected_broker') === 'upstox' ? 'Upstox' : 'Dhan'} account.\n\n` +
+      `• Claude AI: ${strangleConfig.useAI ? 'ENABLED' : 'DISABLED'}\n` +
+      `• Token Cost: 60 tokens\n\n` +
+      `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}\n\n` +
       `Are you sure you want to proceed?`
     );
     if (!confirmed) return;
@@ -458,7 +461,6 @@ const AlgoTrading = () => {
     
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
-      const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
       const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -497,7 +499,7 @@ const AlgoTrading = () => {
       const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ close_positions: true })
+        body: JSON.stringify({ user_id: 'default', close_positions: true })
       });
       const data = await response.json();
       if (data.status === 'success') {
@@ -544,13 +546,17 @@ const AlgoTrading = () => {
   };
   
   const startDeltaBot = async () => {
+    const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
+    const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
+    const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
     const confirmed = window.confirm(
-      `⚠️ LIVE TRADING CONFIRMATION ⚠️\n\n` +
-      `You are about to start Delta Neutral Bot with REAL MONEY!\n\n` +
+      `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
+      `You are about to start Delta Neutral Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
       `• Underlying: ${deltaConfig.underlying}\n` +
       `• Lot Size: ${deltaConfig.lotSize}\n` +
-      `• Max Delta Drift: ±${deltaConfig.maxDeltaDrift}\n\n` +
-      `This will place REAL options orders on your ${localStorage.getItem('ms_connected_broker') === 'upstox' ? 'Upstox' : 'Dhan'} account.\n\n` +
+      `• Max Delta Drift: ±${deltaConfig.maxDeltaDrift}\n` +
+      `• Token Cost: 40 tokens\n\n` +
+      `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}\n\n` +
       `Are you sure you want to proceed?`
     );
     if (!confirmed) return;
@@ -561,7 +567,6 @@ const AlgoTrading = () => {
     
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
-      const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
       const response = await fetch(`${API_BASE_URL}/api/trade-algo/delta-neutral/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -579,11 +584,11 @@ const AlgoTrading = () => {
         })
       });
       const data = await response.json();
-      if (data.success) {
+      if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: true }));
-        toast({ title: '🛡️ Bot Started', description: 'Delta Neutral Bot is now active' });
+        toast({ title: '🛡️ Bot Started', description: data.message || 'Delta Neutral Bot is now active' });
       } else {
-        toast({ title: 'Error', description: data.error || 'Failed to start bot', variant: 'destructive' });
+        toast({ title: 'Error', description: data.error || data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
       }
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -597,10 +602,10 @@ const AlgoTrading = () => {
       const response = await fetch(`${API_BASE_URL}/api/trade-algo/delta-neutral/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ user_id: 'default' })
       });
       const data = await response.json();
-      if (data.success) {
+      if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: false }));
         toast({ title: '⏹ Bot Stopped', description: 'Delta Neutral Bot stopped' });
       }
@@ -1283,6 +1288,7 @@ const AlgoTrading = () => {
         >
           <option value="NIFTY">NIFTY</option>
           <option value="BANKNIFTY">BANK NIFTY</option>
+          <option value="FINNIFTY">FIN NIFTY</option>
         </select>
       </div>
       <div>
@@ -1442,7 +1448,7 @@ const AlgoTrading = () => {
                 <div>
                   <h3 className="font-semibold">Broker Not Connected</h3>
                   <p className="text-sm text-muted-foreground">
-                    Connect your Dhan broker account above to enable live trading with AI bots.
+                    Connect your Dhan or Upstox broker account above to enable live trading with AI bots.
                   </p>
                 </div>
               </div>
