@@ -1,5 +1,5 @@
 # Services module for Money Saarthi v2.0
-# Contains Dhan API integration, scanners, and data services
+# Contains Dhan API integration, scanners, and caching
 
 from .dhan_market_data import DhanMarketDataService
 from .dhan_websocket import DhanWebSocketService

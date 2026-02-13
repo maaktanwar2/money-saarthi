@@ -1,0 +1,336 @@
+{
+  "strategy": "7 DTE Ratio Iron Butterfly",
+  "structure": {
+    "buy_wings": "1 lot at 500 OTM (PE & CE)",
+    "sell_body": "5 lots at 600 OTM (PE & CE)"
+  },
+  "period": "2024-01-01 to 2026-02-01",
+  "statistics": {
+    "total_trades": 108,
+    "winning_trades": 104,
+    "losing_trades": 4,
+    "win_rate": 96.3,
+    "total_pnl": 8308859.12,
+    "avg_pnl": 76933.88,
+    "avg_win": 80648.39,
+    "avg_loss": -19643.43,
+    "max_win": 129980.82,
+    "max_loss": -31941.76,
+    "profit_factor": 106.75,
+    "roi_percent": 3483.8,
+    "margin_required": 238500.0
+  },
+  "exit_analysis": {
+    "expiry_exits": 108,
+    "stop_loss_exits": 0
+  },
+  "monthly_pnl": {
+    "2024-01": {
+      "pnl": 314448.23,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-02": {
+      "pnl": 379497.62999999995,
+      "trades": 5,
+      "wins": 5
+    },
+    "2024-03": {
+      "pnl": 344793.1,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-04": {
+      "pnl": 320835.77999999997,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-05": {
+      "pnl": 412240.01,
+      "trades": 5,
+      "wins": 5
+    },
+    "2024-06": {
+      "pnl": 254094.38,
+      "trades": 4,
+      "wins": 3
+    },
+    "2024-07": {
+      "pnl": 198984.16999999998,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-08": {
+      "pnl": 346578.91000000003,
+      "trades": 5,
+      "wins": 5
+    },
+    "2024-09": {
+      "pnl": 395472.98,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-10": {
+      "pnl": 341911.36999999994,
+      "trades": 5,
+      "wins": 5
+    },
+    "2024-11": {
+      "pnl": 333092.48000000004,
+      "trades": 4,
+      "wins": 4
+    },
+    "2024-12": {
+      "pnl": 475641.80999999994,
+      "trades": 5,
+      "wins": 5
+    },
+    "2025-01": {
+      "pnl": 207508.74,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-02": {
+      "pnl": 227496.59000000003,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-03": {
+      "pnl": 237461.09999999998,
+      "trades": 4,
+      "wins": 3
+    },
+    "2025-04": {
+      "pnl": 301985.44,
+      "trades": 5,
+      "wins": 4
+    },
+    "2025-05": {
+      "pnl": 325032.86,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-06": {
+      "pnl": 369588.14,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-07": {
+      "pnl": 413829.87,
+      "trades": 5,
+      "wins": 5
+    },
+    "2025-08": {
+      "pnl": 404690.7,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-09": {
+      "pnl": 480353.46,
+      "trades": 5,
+      "wins": 5
+    },
+    "2025-10": {
+      "pnl": 170409.34,
+      "trades": 4,
+      "wins": 3
+    },
+    "2025-11": {
+      "pnl": 394292.47000000003,
+      "trades": 4,
+      "wins": 4
+    },
+    "2025-12": {
+      "pnl": 402866.06000000006,
+      "trades": 5,
+      "wins": 5
+    },
+    "2026-01": {
+      "pnl": 255753.5,
+      "trades": 3,
+      "wins": 3
+    }
+  },
+  "sample_trades": [
+    {
+      "entry_date": "2024-01-04",
+      "expiry_date": "2024-01-11",
+      "spot": 21050,
+      "buy_strikes": "20550/21550",
+      "sell_strikes": "20450/21650",
+      "pnl": 68171.21,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-01-11",
+      "expiry_date": "2024-01-18",
+      "spot": 21450,
+      "buy_strikes": "20950/21950",
+      "sell_strikes": "20850/22050",
+      "pnl": 55796.65,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-01-18",
+      "expiry_date": "2024-01-25",
+      "spot": 21800,
+      "buy_strikes": "21300/22300",
+      "sell_strikes": "21200/22400",
+      "pnl": 80108.21,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-01-25",
+      "expiry_date": "2024-02-01",
+      "spot": 21300,
+      "buy_strikes": "20800/21800",
+      "sell_strikes": "20700/21900",
+      "pnl": 110372.16,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-02-01",
+      "expiry_date": "2024-02-08",
+      "spot": 21150,
+      "buy_strikes": "20650/21650",
+      "sell_strikes": "20550/21750",
+      "pnl": 84170.4,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-02-08",
+      "expiry_date": "2024-02-15",
+      "spot": 21550,
+      "buy_strikes": "21050/22050",
+      "sell_strikes": "20950/22150",
+      "pnl": 80247.53,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-02-15",
+      "expiry_date": "2024-02-22",
+      "spot": 21500,
+      "buy_strikes": "21000/22000",
+      "sell_strikes": "20900/22100",
+      "pnl": 68084.74,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-02-22",
+      "expiry_date": "2024-02-29",
+      "spot": 22150,
+      "buy_strikes": "21650/22650",
+      "sell_strikes": "21550/22750",
+      "pnl": 84864.67,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-02-29",
+      "expiry_date": "2024-03-07",
+      "spot": 21350,
+      "buy_strikes": "20850/21850",
+      "sell_strikes": "20750/21950",
+      "pnl": 62130.29,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-03-07",
+      "expiry_date": "2024-03-14",
+      "spot": 21300,
+      "buy_strikes": "20800/21800",
+      "sell_strikes": "20700/21900",
+      "pnl": 90537.43,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-03-14",
+      "expiry_date": "2024-03-21",
+      "spot": 21800,
+      "buy_strikes": "21300/22300",
+      "sell_strikes": "21200/22400",
+      "pnl": 81269.51,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-03-21",
+      "expiry_date": "2024-03-28",
+      "spot": 21300,
+      "buy_strikes": "20800/21800",
+      "sell_strikes": "20700/21900",
+      "pnl": 105918.93,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-03-28",
+      "expiry_date": "2024-04-04",
+      "spot": 22100,
+      "buy_strikes": "21600/22600",
+      "sell_strikes": "21500/22700",
+      "pnl": 67067.23,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-04-04",
+      "expiry_date": "2024-04-11",
+      "spot": 21650,
+      "buy_strikes": "21150/22150",
+      "sell_strikes": "21050/22250",
+      "pnl": 82545.86,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-04-11",
+      "expiry_date": "2024-04-18",
+      "spot": 22200,
+      "buy_strikes": "21700/22700",
+      "sell_strikes": "21600/22800",
+      "pnl": 90299.15,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-04-18",
+      "expiry_date": "2024-04-25",
+      "spot": 21600,
+      "buy_strikes": "21100/22100",
+      "sell_strikes": "21000/22200",
+      "pnl": 77932.04,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-04-25",
+      "expiry_date": "2024-05-02",
+      "spot": 22150,
+      "buy_strikes": "21650/22650",
+      "sell_strikes": "21550/22750",
+      "pnl": 70058.73,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-05-02",
+      "expiry_date": "2024-05-09",
+      "spot": 22350,
+      "buy_strikes": "21850/22850",
+      "sell_strikes": "21750/22950",
+      "pnl": 114378.03,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-05-09",
+      "expiry_date": "2024-05-16",
+      "spot": 21900,
+      "buy_strikes": "21400/22400",
+      "sell_strikes": "21300/22500",
+      "pnl": 61205.27,
+      "exit_reason": "expiry"
+    },
+    {
+      "entry_date": "2024-05-16",
+      "expiry_date": "2024-05-23",
+      "spot": 22050,
+      "buy_strikes": "21550/22550",
+      "sell_strikes": "21450/22650",
+      "pnl": 78554.51,
+      "exit_reason": "expiry"
+    }
+  ]
+}

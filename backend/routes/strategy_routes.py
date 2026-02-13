@@ -102,25 +102,71 @@ async def get_strategy_status(is_admin: bool = Depends(verify_admin)):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     strategy = get_strategy()
-    return strategy.get_strategy_status()
+    return {
+        "success": True,
+        "status": strategy.get_strategy_status()
+    }
+
+
+class StartStrategyRequest(BaseModel):
+    """Request to start delta neutral strategy"""
+    access_token: str = Field(..., description="Broker access token")
+    broker: str = Field(default="dhan", description="dhan or upstox")
+    config: Optional[Dict] = Field(default=None, description="Strategy configuration")
 
 
 @router.post("/start")
-async def start_strategy(is_admin: bool = Depends(verify_admin)):
-    """Start the strategy monitoring"""
+async def start_strategy(
+    request: StartStrategyRequest = None,
+    is_admin: bool = Depends(verify_admin)
+):
+    """Start the delta neutral strategy with configuration"""
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     strategy = get_strategy()
     
     if strategy.is_running:
-        return {"status": "already_running", "message": "Strategy is already running"}
+        return {"success": True, "status": "already_running", "message": "Strategy is already running"}
+    
+    # Apply configuration if provided
+    if request and request.config:
+        config = request.config
+        if "underlying" in config:
+            strategy.underlying = config["underlying"]
+        if "max_delta_drift" in config:
+            strategy.max_delta_drift = config["max_delta_drift"]
+        if "lot_size" in config:
+            strategy.lot_size = config["lot_size"]
+        if "auto_adjust_interval" in config:
+            strategy.check_interval = config["auto_adjust_interval"]
+        if "max_loss_limit" in config:
+            strategy.max_loss_limit = config["max_loss_limit"]
+        if "target_profit" in config:
+            strategy.target_profit = config["target_profit"]
+    
+    # Store broker credentials
+    if request:
+        strategy.broker = request.broker
+        strategy.access_token = request.access_token
     
     # Start in background
     import asyncio
     asyncio.create_task(strategy.start())
     
-    return {"status": "started", "message": "Strategy monitoring started"}
+    logger.info(f"🚀 Delta Neutral Strategy started - Underlying: {strategy.underlying}, Lot: {strategy.lot_size}")
+    
+    return {
+        "success": True,
+        "status": "started",
+        "message": f"Delta Neutral strategy started for {strategy.underlying}",
+        "config": {
+            "underlying": strategy.underlying,
+            "lot_size": strategy.lot_size,
+            "max_delta_drift": getattr(strategy, 'max_delta_drift', 0.15),
+            "check_interval": getattr(strategy, 'check_interval', 60)
+        }
+    }
 
 
 @router.post("/stop")

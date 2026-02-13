@@ -387,24 +387,21 @@ async def generate_trade_signals(request: TradeSignalsRequest = Body(...)):
 
 async def _get_fno_stocks_data(filters: ScannerFilters) -> List[Dict]:
     """
-    Get FNO stocks data from UNIFIED DATA SERVICE (NSE India primary).
-    Fetches fresh data per request (no file cache persistence).
+    Get FNO stocks data from DHAN API (Primary data source).
+    Fetches fresh data per request.
     """
     try:
-        # Import the unified data service (NSE India primary)
-        from services.unified_data_service import get_unified_service
+        # Import the Dhan unified service
+        from services.dhan_unified_service import get_dhan_unified_service
         
-        unified_service = get_unified_service()
+        dhan_service = get_dhan_unified_service()
         
-        # Fetch fresh data if needed
-        await unified_service.fetch_all_stocks()
-        
-        # Get all stocks from unified service
-        stocks = unified_service.get_all_stocks()
-        logger.info(f"Scanner got {len(stocks)} stocks from NSE India (unified service)")
+        # Fetch FNO stocks data from Dhan
+        stocks = await dhan_service.get_fno_stocks_data()
+        logger.info(f"Scanner got {len(stocks)} stocks from Dhan API")
         
         if not stocks:
-            logger.warning("No stocks from unified service")
+            logger.warning("No stocks from Dhan API")
             return []
         
         # Apply filters
@@ -426,7 +423,7 @@ async def _get_fno_stocks_data(filters: ScannerFilters) -> List[Dict]:
             normalized = _normalize_stock_data(stock)
             filtered_stocks.append(normalized)
         
-        logger.info(f"After filters: {len(filtered_stocks)} stocks (source: NSE India)")
+        logger.info(f"After filters: {len(filtered_stocks)} stocks (source: Dhan API)")
         return filtered_stocks
             
     except Exception as e:
@@ -526,24 +523,24 @@ def _normalize_stock_data(stock: Dict) -> Dict:
 
 async def _get_option_chain_data(symbol: str, expiry: str = None) -> tuple:
     """
-    Get option chain data from NSE India API.
+    Get option chain data from Dhan API.
     Returns option chain dict and spot price.
     """
     try:
-        # Use unified service for option chain (NSE India)
-        from services.unified_data_service import get_unified_service
+        # Use Dhan unified service for option chain
+        from services.dhan_unified_service import get_dhan_unified_service
         
-        unified_service = get_unified_service()
+        dhan_service = get_dhan_unified_service()
         
-        # Fetch option chain from NSE India
-        option_chain = await unified_service.fetch_option_chain_from_nse(symbol)
+        # Fetch option chain from Dhan
+        option_chain = await dhan_service.get_option_chain(symbol, expiry)
         
-        if option_chain:
+        if option_chain.get("status") == "success":
             spot_price = option_chain.get('underlying_price', 0)
             return option_chain, spot_price
         
         # Fallback to basic index data if option chain fails
-        logger.warning(f"Option chain not available for {symbol}, using basic data")
+        logger.warning(f"Option chain not available for {symbol}: {option_chain.get('message')}")
         index_data = await _get_index_data(symbol)
         
         return {
@@ -560,67 +557,47 @@ async def _get_option_chain_data(symbol: str, expiry: str = None) -> tuple:
 
 async def _get_index_data(symbol: str) -> Dict:
     """
-    Get index data from NSE India API.
+    Get index data from Dhan API.
     """
     try:
-        # Use NSE India API for index data
-        from services.unified_data_service import get_unified_service
-        import httpx
+        # Use Dhan unified service for index data
+        from services.dhan_unified_service import get_dhan_unified_service
         
-        unified_service = get_unified_service()
+        dhan_service = get_dhan_unified_service()
         
-        # Map symbol to NSE index name
-        index_map = {
-            "NIFTY": "NIFTY 50",
-            "NIFTY50": "NIFTY 50",
-            "BANKNIFTY": "NIFTY BANK",
-            "FINNIFTY": "NIFTY FIN SERVICE"
-        }
+        # Fetch index data from Dhan
+        indices = await dhan_service.get_index_data([symbol])
         
-        nse_index = index_map.get(symbol.upper(), "NIFTY 50")
-        
-        # Fetch from NSE
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json',
-                'Referer': 'https://www.nseindia.com/'
+        if symbol.upper() in indices:
+            data = indices[symbol.upper()]
+            ltp = data.get("ltp", 0)
+            prev_close = data.get("close", ltp)
+            
+            return {
+                "symbol": symbol.upper(),
+                "ltp": round(ltp, 2),
+                "prev_close": round(prev_close, 2),
+                "open": round(data.get("open", ltp), 2),
+                "high": round(data.get("high", ltp), 2),
+                "low": round(data.get("low", ltp), 2),
+                "change": round(data.get("change", 0), 2),
+                "change_percent": round(data.get("change_percent", 0), 2),
+                "ema8": round(ltp * 0.995, 2),
+                "ema21": round(ltp * 0.99, 2),
+                "ema55": round(ltp * 0.98, 2),
+                "rsi": 50,
+                "data_source": "dhan"
             }
-            
-            # Get cookies first
-            await client.get("https://www.nseindia.com", headers=headers)
-            
-            # Fetch index data
-            response = await client.get(
-                f"https://www.nseindia.com/api/equity-stockIndices?index={nse_index}",
-                headers=headers
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                metadata = data.get("metadata", {})
-                
-                ltp = metadata.get("last", 0)
-                prev_close = metadata.get("previousClose", ltp)
-                
-                return {
-                    "symbol": symbol.upper(),
-                    "ltp": round(ltp, 2),
-                    "prev_close": round(prev_close, 2),
-                    "open": round(metadata.get("open", ltp), 2),
-                    "high": round(metadata.get("high", ltp), 2),
-                    "low": round(metadata.get("low", ltp), 2),
-                    "change": round(ltp - prev_close, 2),
-                    "change_percent": round(metadata.get("percChange", 0), 2),
-                    "ema8": round(ltp * 0.995, 2),
-                    "ema21": round(ltp * 0.99, 2),
-                    "ema55": round(ltp * 0.98, 2),
-                    "rsi": 50,
-                    "data_source": "nse_india"
-                }
         
-        # Fallback
-        return {"symbol": symbol.upper(), "ltp": 0, "ema8": 0, "ema21": 0, "ema55": 0, "rsi": 50}
+        # Index not found
+        return {
+            "symbol": symbol.upper(),
+            "ltp": 0,
+            "ema8": 0,
+            "ema21": 0,
+            "ema55": 0,
+            "rsi": 50
+        }
         
     except Exception as e:
         logger.error(f"Error getting index data for {symbol}: {e}")

@@ -16,6 +16,19 @@ import {
   getChangeColor, fetchAPI, getMarketSession 
 } from '../lib/utils';
 
+// Get user's first name from localStorage
+const getUserFirstName = () => {
+  try {
+    const stored = localStorage.getItem('ms_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      const name = user?.name || user?.displayName || '';
+      return name.split(' ')[0] || 'Trader';
+    }
+  } catch (e) {}
+  return 'Trader';
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARKET OVERVIEW SECTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -26,18 +39,26 @@ const MarketOverview = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await fetchAPI('/nse/indices');
-        if (data?.data) {
-          setIndices(data.data.slice(0, 6));
+        const response = await fetchAPI('/nse/indices');
+        // API returns {all_indices: [...], categorized: {...}}
+        const indicesArray = response?.all_indices || response?.data || [];
+        if (indicesArray && indicesArray.length > 0) {
+          // Get key indices: NIFTY 50, BANK NIFTY, MIDCAP 50, FIN SERVICE, INDIA VIX, SENSEX
+          const keySymbols = ['NIFTY 50', 'NIFTY BANK', 'NIFTY MIDCAP 50', 'NIFTY FIN SERVICE', 'INDIA VIX', 'SENSEX'];
+          const keyIndices = keySymbols.map(sym => 
+            indicesArray.find(idx => idx.symbol === sym || idx.name === sym)
+          ).filter(Boolean);
+          setIndices(keyIndices.length > 0 ? keyIndices : indicesArray.slice(0, 6));
         }
       } catch (error) {
+        console.error('Market Overview fetch error:', error);
         setIndices([
-          { name: 'NIFTY 50', lastPrice: 23850.5, change: 125.4, pChange: 0.53, open: 23700, high: 23900, low: 23650 },
-          { name: 'BANK NIFTY', lastPrice: 51250.2, change: -85.6, pChange: -0.17, open: 51300, high: 51400, low: 51100 },
-          { name: 'NIFTY IT', lastPrice: 35420.8, change: 280.5, pChange: 0.80, open: 35200, high: 35500, low: 35150 },
-          { name: 'NIFTY FIN', lastPrice: 22850.6, change: -45.2, pChange: -0.20, open: 22900, high: 22950, low: 22800 },
-          { name: 'MIDCAP 50', lastPrice: 14520.3, change: 89.7, pChange: 0.62, open: 14450, high: 14580, low: 14400 },
-          { name: 'NIFTY METAL', lastPrice: 8950.4, change: 156.8, pChange: 1.78, open: 8800, high: 8980, low: 8780 },
+          { symbol: 'NIFTY 50', name: 'NIFTY 50', last: 25727, change: 639, pChange: 2.55 },
+          { symbol: 'NIFTY BANK', name: 'NIFTY BANK', last: 60041, change: 1422, pChange: 2.43 },
+          { symbol: 'NIFTY MIDCAP 50', name: 'NIFTY MIDCAP 50', last: 17013, change: 464, pChange: 2.80 },
+          { symbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE', last: 27674, change: 875, pChange: 3.27 },
+          { symbol: 'INDIA VIX', name: 'INDIA VIX', last: 12.9, change: -0.97, pChange: -6.99 },
+          { symbol: 'SENSEX', name: 'SENSEX', last: 84500, change: 2100, pChange: 2.55 },
         ]);
       } finally {
         setLoading(false);
@@ -61,37 +82,50 @@ const MarketOverview = () => {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {indices.map((index, i) => (
-        <motion.div
-          key={index.name}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.05 }}
-        >
-          <Card className="p-4 hover:border-primary/30 transition-colors cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-medium truncate">
-                {index.name || index.indexSymbol}
-              </span>
-              <span className={cn(
-                'text-xs font-semibold',
-                (index.pChange || 0) >= 0 ? 'text-bullish' : 'text-bearish'
-              )}>
-                {(index.pChange || 0) >= 0 ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
-              </span>
-            </div>
-            <div className="text-xl font-bold">
-              {formatNumber(index.lastPrice || index.last, { decimals: 0 })}
-            </div>
-            <div className={cn(
-              'text-sm font-medium',
-              (index.pChange || 0) >= 0 ? 'text-bullish' : 'text-bearish'
+      {indices.map((index, i) => {
+        const isPositive = (index.pChange || 0) >= 0;
+        const price = index.last || index.lastPrice || 0;
+        const change = index.change || 0;
+        const pChange = index.pChange || 0;
+        
+        return (
+          <motion.div
+            key={index.symbol || index.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <Card className={cn(
+              "p-4 h-full transition-all duration-200 cursor-pointer",
+              "hover:shadow-lg hover:border-primary/40",
+              isPositive ? "hover:bg-bullish/5" : "hover:bg-bearish/5"
             )}>
-              {(index.change || 0) >= 0 ? '+' : ''}{formatNumber(index.change || 0, { decimals: 0 })} ({formatPercent(index.pChange || 0, { showSign: true })})
-            </div>
-          </Card>
-        </motion.div>
-      ))}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide truncate max-w-[80%]">
+                  {index.symbol || index.name}
+                </span>
+                <span className={cn(
+                  'p-1 rounded-full',
+                  isPositive ? 'bg-bullish/10 text-bullish' : 'bg-bearish/10 text-bearish'
+                )}>
+                  {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                </span>
+              </div>
+              <div className="text-2xl font-bold mb-1">
+                {price >= 1000 ? formatNumber(price, { decimals: 0 }) : price.toFixed(2)}
+              </div>
+              <div className={cn(
+                'text-sm font-semibold flex items-center gap-1',
+                isPositive ? 'text-bullish' : 'text-bearish'
+              )}>
+                <span>{isPositive ? '▲' : '▼'}</span>
+                <span>{Math.abs(change).toFixed(change >= 100 ? 0 : 2)}</span>
+                <span className="text-xs">({isPositive ? '+' : ''}{pChange.toFixed(2)}%)</span>
+              </div>
+            </Card>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };
@@ -219,38 +253,62 @@ const QuickTools = () => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOP GAINERS/LOSERS
+// TOP GAINERS/LOSERS - SIDE BY SIDE VIEW (REFINED - Only Strong Movers)
 // ═══════════════════════════════════════════════════════════════════════════════
 const TopMovers = () => {
   const [gainers, setGainers] = useState([]);
   const [losers, setLosers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('gainers');
+
+  // Refine function: Filter only strong, persistent movers
+  const refineMovers = (stocks, isGainer = true) => {
+    if (!Array.isArray(stocks)) return [];
+    
+    return stocks.filter(stock => {
+      const changePct = Math.abs(stock.change_pct ?? stock.pChange ?? 0);
+      const volumeRatio = stock.volume_ratio ?? 1;
+      const score = stock.score ?? stock.day_trading_score ?? 0;
+      
+      // Strong movers criteria:
+      // 1. Change >= 2% (significant move)
+      // 2. Volume ratio >= 1.3 (volume confirmation)
+      // 3. Score >= 50 (quality signal)
+      const isStrongMover = changePct >= 2 || volumeRatio >= 1.3 || score >= 50;
+      
+      // At least one strong indicator must be present
+      return isStrongMover;
+    }).slice(0, 5);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [gainersData, losersData] = await Promise.all([
-          fetchAPI('/scanners/day-gainers?limit=5'),
-          fetchAPI('/scanners/day-losers?limit=5'),
+          fetchAPI('/scanners/day-gainers?limit=15'), // Fetch more for filtering
+          fetchAPI('/scanners/day-losers?limit=15'),
         ]);
-        setGainers(gainersData?.data || gainersData || []);
-        setLosers(losersData?.data || losersData || []);
+        
+        const rawGainers = gainersData?.data || gainersData || [];
+        const rawLosers = losersData?.data || losersData || [];
+        
+        // Apply refinement filter
+        setGainers(refineMovers(rawGainers, true));
+        setLosers(refineMovers(rawLosers, false));
       } catch (error) {
-        // Fallback data
+        // Fallback data - strong movers only
         setGainers([
-          { symbol: 'TATAMOTORS', lastPrice: 985.50, pChange: 5.85 },
-          { symbol: 'ADANIENT', lastPrice: 2450.30, pChange: 4.52 },
-          { symbol: 'HINDALCO', lastPrice: 625.80, pChange: 3.89 },
-          { symbol: 'WIPRO', lastPrice: 458.25, pChange: 3.45 },
-          { symbol: 'JSWSTEEL', lastPrice: 892.60, pChange: 3.12 },
+          { symbol: 'TATAMOTORS', price: 985.50, change_pct: 5.85, volume_ratio: 2.1, score: 78 },
+          { symbol: 'ADANIENT', price: 2450.30, change_pct: 4.52, volume_ratio: 1.8, score: 72 },
+          { symbol: 'HINDALCO', price: 625.80, change_pct: 3.89, volume_ratio: 1.6, score: 68 },
+          { symbol: 'WIPRO', price: 458.25, change_pct: 3.45, volume_ratio: 1.5, score: 65 },
+          { symbol: 'JSWSTEEL', price: 892.60, change_pct: 3.12, volume_ratio: 1.4, score: 62 },
         ]);
         setLosers([
-          { symbol: 'HDFC', lastPrice: 1580.40, pChange: -2.85 },
-          { symbol: 'ICICIBANK', lastPrice: 1125.80, pChange: -2.12 },
-          { symbol: 'KOTAK', lastPrice: 1785.30, pChange: -1.89 },
-          { symbol: 'SBILIFE', lastPrice: 1420.60, pChange: -1.65 },
-          { symbol: 'AXISBANK', lastPrice: 1095.25, pChange: -1.42 },
+          { symbol: 'HDFC', price: 1580.40, change_pct: -2.85, volume_ratio: 1.9, score: 70 },
+          { symbol: 'ICICIBANK', price: 1125.80, change_pct: -2.12, volume_ratio: 1.7, score: 65 },
+          { symbol: 'KOTAK', price: 1785.30, change_pct: -2.05, volume_ratio: 1.5, score: 60 },
+          { symbol: 'SBILIFE', price: 1420.60, change_pct: -2.01, volume_ratio: 1.4, score: 58 },
+          { symbol: 'AXISBANK', price: 1095.25, change_pct: -1.95, volume_ratio: 1.3, score: 55 },
         ]);
       } finally {
         setLoading(false);
@@ -258,86 +316,146 @@ const TopMovers = () => {
     };
 
     fetchData();
+    const interval = setInterval(fetchData, 60000); // Refresh every minute
+    return () => clearInterval(interval);
   }, []);
 
-  const data = activeTab === 'gainers' ? gainers : losers;
+  const StockList = ({ stocks, type }) => (
+    <div className="space-y-2">
+      {stocks.slice(0, 5).map((stock, i) => {
+        // Get percentage change - API returns change_pct as number
+        const changePct = stock.change_pct ?? stock.pChange ?? 0;
+        const priceValue = stock.price || stock.lastPrice || stock.ltp || 0;
+        const volumeRatio = stock.volume_ratio ?? 1;
+        const score = stock.score ?? stock.day_trading_score ?? 0;
+        
+        // Strong mover indicator (volume confirmed)
+        const isStrong = volumeRatio >= 1.5 || score >= 60;
+        
+        return (
+          <motion.div
+            key={stock.symbol}
+            initial={{ opacity: 0, x: type === 'gainer' ? -10 : 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05 }}
+            onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
+            className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <span className={cn(
+                "text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full",
+                type === 'gainer' ? "bg-bullish/20 text-bullish" : "bg-bearish/20 text-bearish"
+              )}>
+                {i + 1}
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium group-hover:text-primary transition-colors">{stock.symbol}</p>
+                  {isStrong && (
+                    <span className={cn(
+                      "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                      type === 'gainer' ? "bg-bullish/20 text-bullish" : "bg-bearish/20 text-bearish"
+                    )}>
+                      🔥
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formatINR(priceValue)}
+                  {volumeRatio > 1.3 && (
+                    <span className="ml-1 text-[10px] opacity-70">Vol {volumeRatio.toFixed(1)}×</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className={cn(
+                'text-sm font-bold px-2 py-1 rounded-lg',
+                type === 'gainer' 
+                  ? 'text-bullish bg-bullish/10' 
+                  : 'text-bearish bg-bearish/10'
+              )}>
+                {changePct >= 0 ? '+' : ''}{Number(changePct).toFixed(2)}%
+              </span>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab('gainers')}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
-              activeTab === 'gainers' 
-                ? 'bg-bullish/15 text-bullish' 
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Top Gainers
-          </button>
-          <button
-            onClick={() => setActiveTab('losers')}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
-              activeTab === 'losers' 
-                ? 'bg-bearish/15 text-bearish' 
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Top Losers
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 skeleton rounded-lg" />
-            ))}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Top Gainers Card */}
+      <Card className="h-full border-bullish/20 bg-gradient-to-br from-bullish/5 to-transparent">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-bullish/20 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-bullish" />
+              </div>
+              <CardTitle className="text-lg text-bullish">Top Gainers</CardTitle>
+            </div>
+            <Badge variant="outline" className="bg-bullish/10 text-bullish border-bullish/30 text-xs">
+              🔥 Strong Only
+            </Badge>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {data.slice(0, 5).map((stock, i) => (
-              <motion.div
-                key={stock.symbol}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <div>
-                    <p className="font-medium">{stock.symbol}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatINR(stock.lastPrice || stock.ltp)}
-                    </p>
-                  </div>
-                </div>
-                <span className={cn(
-                  'text-sm font-semibold px-2 py-1 rounded-lg',
-                  activeTab === 'gainers' 
-                    ? 'text-bullish bg-bullish/10' 
-                    : 'text-bearish bg-bearish/10'
-                )}>
-                  {stock.pChange >= 0 ? '+' : ''}{formatPercent(stock.pChange)}
-                </span>
-              </motion.div>
-            ))}
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 skeleton rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <StockList stocks={gainers} type="gainer" />
+          )}
+          <Link 
+            to="/scanners?tab=gainers"
+            className="flex items-center justify-center gap-1 text-sm text-bullish mt-4 hover:underline font-medium"
+          >
+            View All Gainers
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Top Losers Card */}
+      <Card className="h-full border-bearish/20 bg-gradient-to-br from-bearish/5 to-transparent">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-bearish/20 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 text-bearish" />
+              </div>
+              <CardTitle className="text-lg text-bearish">Top Losers</CardTitle>
+            </div>
+            <Badge variant="outline" className="bg-bearish/10 text-bearish border-bearish/30 text-xs">
+              🔥 Strong Only
+            </Badge>
           </div>
-        )}
-        
-        <Link 
-          to={`/scanners?tab=${activeTab}`}
-          className="flex items-center justify-center gap-1 text-sm text-primary mt-4 hover:underline"
-        >
-          View all {activeTab}
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 skeleton rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <StockList stocks={losers} type="loser" />
+          )}
+          <Link 
+            to="/scanners?tab=losers"
+            className="flex items-center justify-center gap-1 text-sm text-bearish mt-4 hover:underline font-medium"
+          >
+            View All Losers
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
@@ -351,8 +469,21 @@ const FIIDIIData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await fetchAPI('/fii-dii');
-        setData(result);
+        const result = await fetchAPI('/fii-dii-data');
+        // API returns array like [{fii_net, dii_net, fii_buy, fii_sell, ...}]
+        const cashData = Array.isArray(result) ? result[0] : result;
+        setData({
+          fii: { 
+            buyValue: Number(cashData?.fii_buy) || 0, 
+            sellValue: Number(cashData?.fii_sell) || 0, 
+            netValue: Number(cashData?.fii_net) || 0 
+          },
+          dii: { 
+            buyValue: Number(cashData?.dii_buy) || 0, 
+            sellValue: Number(cashData?.dii_sell) || 0, 
+            netValue: Number(cashData?.dii_net) || 0 
+          },
+        });
       } catch (error) {
         setData({
           fii: { buyValue: 12500, sellValue: 11200, netValue: 1300 },
@@ -387,7 +518,7 @@ const FIIDIIData = () => {
               'text-2xl font-bold',
               (data?.fii?.netValue || 0) >= 0 ? 'text-bullish' : 'text-bearish'
             )}>
-              {formatINR((data?.fii?.netValue || 0) * 10000000, { compact: true })}
+              {(data?.fii?.netValue || 0) >= 0 ? '+' : ''}{(data?.fii?.netValue || 0).toFixed(0)} Cr
             </p>
             <p className="text-xs text-muted-foreground">Net Activity</p>
           </div>
@@ -402,7 +533,7 @@ const FIIDIIData = () => {
               'text-2xl font-bold',
               (data?.dii?.netValue || 0) >= 0 ? 'text-bullish' : 'text-bearish'
             )}>
-              {formatINR((data?.dii?.netValue || 0) * 10000000, { compact: true })}
+              {(data?.dii?.netValue || 0) >= 0 ? '+' : ''}{(data?.dii?.netValue || 0).toFixed(0)} Cr
             </p>
             <p className="text-xs text-muted-foreground">Net Activity</p>
           </div>
@@ -434,8 +565,8 @@ const Dashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold">Welcome back!</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-3xl font-bold">Welcome back</h1>
           <Badge 
             variant={marketSession.status === 'open' ? 'success' : 'secondary'}
             className="flex items-center gap-1"
@@ -447,14 +578,44 @@ const Dashboard = () => {
             {marketSession.label}
           </Badge>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-lg text-muted-foreground font-medium" style={{ color: '#D4A574' }}>
+          {getUserFirstName()}
+        </p>
+        <p className="text-muted-foreground mt-1">
           Here's what's happening in the market today
         </p>
+      </motion.div>
+
+      {/* Site Banner */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="mb-8"
+      >
+        <Card className="p-6 bg-gradient-to-r from-[#D4A574]/10 via-[#C9956C]/5 to-transparent border-[#D4A574]/20">
+          <div className="flex items-center gap-6">
+            <img src="/logo.png" alt="Money Saarthi" className="w-24 h-24 object-contain" />
+            <div>
+              <h2 className="text-3xl font-bold" style={{ color: '#D4A574' }}>Money Saarthi</h2>
+              <p className="text-muted-foreground text-sm">AI@Market Intelligence • Your trusted trading companion</p>
+            </div>
+          </div>
+        </Card>
       </motion.div>
 
       {/* Market Overview */}
       <Section title="Market Overview" className="mb-8">
         <MarketOverview />
+      </Section>
+
+      {/* Top Gainers & Losers Section - Moved up */}
+      <Section 
+        title="Top Movers" 
+        description="Today's top performing and declining F&O stocks"
+        className="mb-8"
+      >
+        <TopMovers />
       </Section>
 
       {/* Quick Tools */}
@@ -474,13 +635,8 @@ const Dashboard = () => {
         <QuickTools />
       </Section>
 
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Movers */}
-        <div className="lg:col-span-2">
-          <TopMovers />
-        </div>
-        
+      {/* Bottom Grid - FII/DII Data */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* FII/DII */}
         <div>
           <FIIDIIData />

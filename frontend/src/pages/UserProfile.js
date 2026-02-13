@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge, Tabs } from '../components/ui';
 import { formatINR } from '../lib/utils';
+import { Crown, Check, X, ArrowRight, Calendar, CreditCard, Shield, Sparkles } from 'lucide-react';
+import { getUserSubscription, hasProAccess, PLANS } from './Pricing';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // USER PROFILE PAGE
@@ -37,43 +40,24 @@ export const clearUserFromStorage = () => {
 };
 
 export default function UserProfile() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [subscription, setSubscription] = useState({ plan: 'free', status: 'inactive' });
 
   useEffect(() => {
-    // Load user from localStorage or set demo user
+    // Load user from localStorage
     const storedUser = getUserFromStorage();
     if (storedUser) {
       setUser(storedUser);
+      setSubscription(getUserSubscription());
     } else {
-      // Demo user for testing
-      const demoUser = {
-        id: '1',
-        name: 'Demo User',
-        email: 'demo@moneysaarthi.com',
-        phone: '+91 98765 43210',
-        avatar: null,
-        plan: 'free',
-        joinedAt: '2024-01-15',
-        isAdmin: false,
-        preferences: {
-          defaultIndex: 'NIFTY',
-          notifications: true,
-          darkMode: true
-        },
-        stats: {
-          totalTrades: 156,
-          winRate: 62.5,
-          totalPnL: 45000,
-          streak: 5
-        }
-      };
-      setUser(demoUser);
-      saveUserToStorage(demoUser);
+      // No user found, redirect to login
+      navigate('/login');
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogin = (email) => {
     const newUser = {
@@ -308,62 +292,167 @@ export default function UserProfile() {
 
             {/* Subscription Tab */}
             {activeTab === 'subscription' && (
-              <Card className="glass-card mt-6">
-                <CardHeader>
-                  <CardTitle>Subscription Plan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Current Plan */}
-                    <div className="p-6 rounded-xl border-2 border-primary bg-primary/5">
-                      <Badge className="mb-4">Current Plan</Badge>
-                      <h3 className="text-2xl font-bold mb-2">
-                        {user.plan === 'premium' ? 'Premium' : 'Free'}
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        {user.plan === 'premium' 
-                          ? 'Full access to all features and tools' 
-                          : 'Basic access with limited features'}
-                      </p>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                          <span className="text-profit">✓</span> Dashboard & Market Data
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="text-profit">✓</span> Basic Scanners
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className={user.plan === 'premium' ? 'text-profit' : 'text-muted-foreground'}>
-                            {user.plan === 'premium' ? '✓' : '✗'}
-                          </span> 
-                          AI Trade Signals
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className={user.plan === 'premium' ? 'text-profit' : 'text-muted-foreground'}>
-                            {user.plan === 'premium' ? '✓' : '✗'}
-                          </span> 
-                          Options Analytics
-                        </li>
-                      </ul>
+              <div className="space-y-6 mt-6">
+                {/* Current Subscription Status */}
+                <Card className={`glass-card border-2 ${hasProAccess() ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasProAccess() ? 'bg-primary/20' : 'bg-slate-500/20'}`}>
+                            <Crown className={`w-6 h-6 ${hasProAccess() ? 'text-primary' : 'text-slate-400'}`} />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold">
+                              {hasProAccess() ? 'Pro Plan' : 'Free Plan'}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {hasProAccess() 
+                                ? `${subscription.billingCycle === 'yearly' ? 'Annual' : 'Monthly'} subscription`
+                                : 'Limited access to features'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {hasProAccess() && subscription.expiresAt && (
+                          <div className="flex items-center gap-2 mt-4 text-sm">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">
+                              Renews on {new Date(subscription.expiresAt).toLocaleDateString('en-IN', { 
+                                day: 'numeric', 
+                                month: 'long', 
+                                year: 'numeric' 
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {hasProAccess() ? (
+                        <Badge variant="success" className="bg-green-500/20 text-green-500 border-green-500/30">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Button onClick={() => navigate('/pricing')} className="bg-gradient-to-r from-primary to-emerald-600">
+                          <Crown className="w-4 h-4 mr-2" />
+                          Upgrade to Pro
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Plan Comparison */}
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle>Plan Features</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Free Plan */}
+                      <div className={`p-5 rounded-xl border ${!hasProAccess() ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-lg font-bold">Free</span>
+                          {!hasProAccess() && <Badge variant="outline" className="text-xs">Current</Badge>}
+                        </div>
+                        <ul className="space-y-3">
+                          {PLANS.free.features.map((feature, i) => (
+                            <li key={i} className="flex items-center gap-2 text-sm">
+                              {feature.included ? (
+                                <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <X className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                              )}
+                              <span className={!feature.included ? 'text-muted-foreground' : ''}>{feature.name}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Pro Plan */}
+                      <div className={`p-5 rounded-xl border ${hasProAccess() ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Crown className="w-5 h-5 text-primary" />
+                          <span className="text-lg font-bold">Pro</span>
+                          {hasProAccess() && <Badge className="text-xs bg-primary">Current</Badge>}
+                        </div>
+                        <ul className="space-y-3">
+                          {PLANS.pro.features.map((feature, i) => (
+                            <li key={i} className="flex items-center gap-2 text-sm">
+                              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              {feature.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
-                    {/* Upgrade */}
-                    {user.plan !== 'premium' && (
-                      <div className="p-6 rounded-xl border border-border">
-                        <Badge variant="secondary" className="mb-4">Upgrade</Badge>
-                        <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Unlock all features and maximize your trading potential
-                        </p>
-                        <div className="text-3xl font-bold mb-4">
-                          ₹999<span className="text-lg text-muted-foreground">/month</span>
+                    {/* Pricing */}
+                    {!hasProAccess() && (
+                      <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-amber-500/10 border border-primary/20">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                          <div>
+                            <p className="font-medium flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                              Upgrade to Pro and unlock everything
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Starting at just ₹899/month or ₹4,999/year (save 53%)
+                            </p>
+                          </div>
+                          <Button onClick={() => navigate('/pricing')}>
+                            View Plans
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
                         </div>
-                        <Button className="w-full">Upgrade Now</Button>
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                {/* Payment History - Only for Pro users */}
+                {hasProAccess() && (
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
+                        Billing & Payment
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-background">
+                          <div>
+                            <div className="font-medium">Current Plan</div>
+                            <div className="text-sm text-muted-foreground">
+                              Pro - {subscription.billingCycle === 'yearly' ? '₹4,999/year' : '₹899/month'}
+                            </div>
+                          </div>
+                          <Button variant="outline" onClick={() => navigate('/pricing')}>Change Plan</Button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-background">
+                          <div>
+                            <div className="font-medium">Next Billing Date</div>
+                            <div className="text-sm text-muted-foreground">
+                              {subscription.expiresAt 
+                                ? new Date(subscription.expiresAt).toLocaleDateString('en-IN')
+                                : 'N/A'}
+                            </div>
+                          </div>
+                          <Badge variant="success">Auto-renew On</Badge>
+                        </div>
+
+                        <div className="pt-4 border-t border-border">
+                          <p className="text-sm text-muted-foreground">
+                            Need help? Contact support at support@moneysaarthi.com
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
 
             {/* Security Tab */}

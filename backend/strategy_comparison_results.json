@@ -1,0 +1,90 @@
+{
+  "analysis_date": "2026-02-06",
+  "data_period": "Jan 2024 - Jan 2025",
+  "strategies": [
+    {
+      "rank": 1,
+      "name": "Pure Ratio Spread (Buy 500, Sell 5x600)",
+      "trades": 55,
+      "wins": 53,
+      "win_rate": 96.4,
+      "total_pnl": 778325.0,
+      "avg_pnl": 14151.0,
+      "max_loss": -81432.0,
+      "margin": 225000,
+      "roi": 345.9
+    },
+    {
+      "rank": 2,
+      "name": "0-2 DTE Theta Decay (Sell 400 OTM Strangle)",
+      "trades": 55,
+      "wins": 54,
+      "win_rate": 98.2,
+      "total_pnl": 567336.0,
+      "avg_pnl": 10315.0,
+      "max_loss": -8616.0,
+      "margin": 90000,
+      "roi": 630.4
+    },
+    {
+      "rank": 3,
+      "name": "3 DTE Strangle (Sell 250 OTM)",
+      "trades": 55,
+      "wins": 53,
+      "win_rate": 96.4,
+      "total_pnl": 557699.0,
+      "avg_pnl": 10140.0,
+      "max_loss": -23067.0,
+      "margin": 90000,
+      "roi": 619.7
+    },
+    {
+      "rank": 4,
+      "name": "Jade Lizard (Sell Put + Call Spread)",
+      "trades": 55,
+      "wins": 47,
+      "win_rate": 85.5,
+      "total_pnl": 294906.0,
+      "avg_pnl": 5362.0,
+      "max_loss": -21509.0,
+      "margin": 90000,
+      "roi": 327.7
+    },
+    {
+      "rank": 5,
+      "name": "Post-Drop Mean Reversion (Bull Put Spread)",
+      "trades": 2,
+      "wins": 0,
+      "win_rate": 0.0,
+      "total_pnl": -7678.0,
+      "avg_pnl": -3839.0,
+      "max_loss": -7119.0,
+      "margin": 45000,
+      "roi": -17.1
+    },
+    {
+      "rank": 6,
+      "name": "Wide Iron Condor (Sell 300, Buy 400)",
+      "trades": 55,
+      "wins": 0,
+      "win_rate": 0.0,
+      "total_pnl": -128688.0,
+      "avg_pnl": -2340.0,
+      "max_loss": -7471.0,
+      "margin": 90000,
+      "roi": -143.0
+    },
+    {
+      "rank": 7,
+      "name": "ATM Straddle + 300 OTM Hedge",
+      "trades": 53,
+      "wins": 17,
+      "win_rate": 32.1,
+      "total_pnl": -244450.0,
+      "avg_pnl": -4612.0,
+      "max_loss": -16026.0,
+      "margin": 90000,
+      "roi": -271.6
+    }
+  ]
+}

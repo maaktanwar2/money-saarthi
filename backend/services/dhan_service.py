@@ -38,14 +38,15 @@ EXCHANGE_SEGMENTS = {
     "CDS": "NSE_CURRENCY"
 }
 
-# Common symbols to security ID mapping (update with actual IDs)
+# Common symbols to security ID mapping (Dhan security IDs)
+# Full list: https://api.dhan.co/files/SecurityList.csv
 SYMBOL_MAP = {
     # Index Options
     "NIFTY": {"exchange_segment": "NSE_FNO", "security_id": "26000"},
     "BANKNIFTY": {"exchange_segment": "NSE_FNO", "security_id": "26009"},
     "FINNIFTY": {"exchange_segment": "NSE_FNO", "security_id": "26037"},
     "MIDCPNIFTY": {"exchange_segment": "NSE_FNO", "security_id": "26074"},
-    # Equity
+    # Nifty 50 Stocks (F&O enabled)
     "RELIANCE": {"exchange_segment": "NSE_EQ", "security_id": "2885"},
     "TCS": {"exchange_segment": "NSE_EQ", "security_id": "11536"},
     "HDFCBANK": {"exchange_segment": "NSE_EQ", "security_id": "1333"},
@@ -56,6 +57,43 @@ SYMBOL_MAP = {
     "HINDUNILVR": {"exchange_segment": "NSE_EQ", "security_id": "1394"},
     "ITC": {"exchange_segment": "NSE_EQ", "security_id": "1660"},
     "LT": {"exchange_segment": "NSE_EQ", "security_id": "11483"},
+    "KOTAKBANK": {"exchange_segment": "NSE_EQ", "security_id": "1922"},
+    "AXISBANK": {"exchange_segment": "NSE_EQ", "security_id": "5900"},
+    "WIPRO": {"exchange_segment": "NSE_EQ", "security_id": "3787"},
+    "ASIANPAINT": {"exchange_segment": "NSE_EQ", "security_id": "236"},
+    "MARUTI": {"exchange_segment": "NSE_EQ", "security_id": "10999"},
+    "TITAN": {"exchange_segment": "NSE_EQ", "security_id": "3506"},
+    "BAJFINANCE": {"exchange_segment": "NSE_EQ", "security_id": "317"},
+    "HCLTECH": {"exchange_segment": "NSE_EQ", "security_id": "7229"},
+    "SUNPHARMA": {"exchange_segment": "NSE_EQ", "security_id": "3351"},
+    "TATAMOTORS": {"exchange_segment": "NSE_EQ", "security_id": "3456"},
+    "TATASTEEL": {"exchange_segment": "NSE_EQ", "security_id": "3499"},
+    "ULTRACEMCO": {"exchange_segment": "NSE_EQ", "security_id": "11532"},
+    "NTPC": {"exchange_segment": "NSE_EQ", "security_id": "11630"},
+    "POWERGRID": {"exchange_segment": "NSE_EQ", "security_id": "14977"},
+    "ONGC": {"exchange_segment": "NSE_EQ", "security_id": "2475"},
+    "COALINDIA": {"exchange_segment": "NSE_EQ", "security_id": "20374"},
+    "JSWSTEEL": {"exchange_segment": "NSE_EQ", "security_id": "11723"},
+    "TECHM": {"exchange_segment": "NSE_EQ", "security_id": "13538"},
+    "HINDALCO": {"exchange_segment": "NSE_EQ", "security_id": "1363"},
+    "DRREDDY": {"exchange_segment": "NSE_EQ", "security_id": "881"},
+    "CIPLA": {"exchange_segment": "NSE_EQ", "security_id": "694"},
+    "DIVISLAB": {"exchange_segment": "NSE_EQ", "security_id": "10940"},
+    "APOLLOHOSP": {"exchange_segment": "NSE_EQ", "security_id": "157"},
+    "EICHERMOT": {"exchange_segment": "NSE_EQ", "security_id": "910"},
+    "GRASIM": {"exchange_segment": "NSE_EQ", "security_id": "1232"},
+    "BAJAJFINSV": {"exchange_segment": "NSE_EQ", "security_id": "16675"},
+    "INDUSINDBK": {"exchange_segment": "NSE_EQ", "security_id": "5258"},
+    "HEROMOTOCO": {"exchange_segment": "NSE_EQ", "security_id": "1348"},
+    "ADANIENT": {"exchange_segment": "NSE_EQ", "security_id": "25"},
+    "ADANIPORTS": {"exchange_segment": "NSE_EQ", "security_id": "15083"},
+    "TATACONSUM": {"exchange_segment": "NSE_EQ", "security_id": "3432"},
+    "BPCL": {"exchange_segment": "NSE_EQ", "security_id": "526"},
+    "BRITANNIA": {"exchange_segment": "NSE_EQ", "security_id": "547"},
+    "NESTLEIND": {"exchange_segment": "NSE_EQ", "security_id": "17963"},
+    "SBILIFE": {"exchange_segment": "NSE_EQ", "security_id": "21808"},
+    "HDFCLIFE": {"exchange_segment": "NSE_EQ", "security_id": "467"},
+    "M&M": {"exchange_segment": "NSE_EQ", "security_id": "2031"},
 }
 
 class DhanAPIError(Exception):
@@ -227,7 +265,8 @@ class DhanService:
                     "theta": strike_data.get("CE_Theta", 0),
                     "vega": strike_data.get("CE_Vega", 0),
                     "bid": strike_data.get("CE_BidPrice", 0),
-                    "ask": strike_data.get("CE_AskPrice", 0)
+                    "ask": strike_data.get("CE_AskPrice", 0),
+                    "security_id": strike_data.get("CE_SecurityId") or strike_data.get("CE_SecId") or strike_data.get("CE_Scrip_Id")
                 },
                 "put": {
                     "oi": strike_data.get("PE_OI", 0),
@@ -240,7 +279,8 @@ class DhanService:
                     "theta": strike_data.get("PE_Theta", 0),
                     "vega": strike_data.get("PE_Vega", 0),
                     "bid": strike_data.get("PE_BidPrice", 0),
-                    "ask": strike_data.get("PE_AskPrice", 0)
+                    "ask": strike_data.get("PE_AskPrice", 0),
+                    "security_id": strike_data.get("PE_SecurityId") or strike_data.get("PE_SecId") or strike_data.get("PE_Scrip_Id")
                 }
             }
             
@@ -502,10 +542,460 @@ class DhanService:
         ]
         return await self.get_ohlc(instruments)
     
+    async def get_all_stocks_data(self) -> List[Dict]:
+        """
+        Get OHLC data for all F&O stocks for VWAP bot scanning
+        
+        Returns:
+            List of stock dicts with symbol, ltp, open, high, low, change_pct, volume_ratio
+        """
+        try:
+            instruments = [
+                {"exchange_segment": info["exchange_segment"], "security_id": info["security_id"]}
+                for symbol, info in SYMBOL_MAP.items()
+                if info["exchange_segment"] == "NSE_EQ"
+            ]
+            
+            if not instruments:
+                logger.warning("No equity instruments in SYMBOL_MAP")
+                return []
+            
+            # Get OHLC data from Dhan
+            ohlc_data = await self.get_ohlc(instruments)
+            
+            # Build reverse mapping: security_id -> symbol
+            id_to_symbol = {
+                info["security_id"]: symbol 
+                for symbol, info in SYMBOL_MAP.items() 
+                if info["exchange_segment"] == "NSE_EQ"
+            }
+            
+            stocks = []
+            for security_id, data in ohlc_data.items():
+                symbol = id_to_symbol.get(security_id, security_id)
+                ltp = data.get("ltp", 0)
+                open_price = data.get("open", ltp)
+                prev_close = data.get("close", ltp)  # Previous day close
+                
+                # Calculate change percent
+                change_pct = 0
+                if prev_close and prev_close > 0:
+                    change_pct = ((ltp - prev_close) / prev_close) * 100
+                
+                stocks.append({
+                    "symbol": symbol,
+                    "security_id": security_id,
+                    "ltp": ltp,
+                    "open": open_price,
+                    "high": data.get("high", ltp),
+                    "low": data.get("low", ltp),
+                    "prev_close": prev_close,
+                    "change": data.get("change", 0),
+                    "change_pct": round(change_pct, 2),
+                    "volume": data.get("volume", 0),
+                    "volume_ratio": 1.5,  # Dhan doesn't provide avg volume, assume good volume
+                    "data_source": "dhan"
+                })
+            
+            logger.info(f"📊 Dhan: Fetched {len(stocks)} stocks data")
+            return stocks
+            
+        except Exception as e:
+            logger.error(f"Error getting all stocks data: {e}")
+            return []
+    
     async def get_index_option_chain(self, index: str = "NIFTY", expiry: str = None) -> Dict:
         """Convenience method for index option chain"""
         return await self.get_option_chain(index, expiry)
     
+    # ========================================
+    # ACCOUNT & FUND ENDPOINTS
+    # ========================================
+    
+    async def get_fund_limits(self) -> Dict[str, Any]:
+        """
+        Get fund limits and margin available
+        Dhan API: GET /fundlimit
+        
+        Returns:
+            Fund limits with available margin, utilized, etc.
+        Note: Dhan API returns data directly (not in 'data' wrapper)
+        Note: Dhan has a typo - 'availabelBalance' not 'availableBalance'
+        """
+        try:
+            result = await self._make_request("GET", "/fundlimit", rate_limit_type="quote")
+            logger.info(f"Raw Dhan fundlimit response: {result}")
+            
+            # Dhan returns data directly without wrapper
+            available = result.get("availabelBalance", 0) or 0  # Note: Dhan typo
+            utilized = result.get("utilizedAmount", 0) or 0
+            collateral = result.get("collateralAmount", 0) or 0
+            withdrawable = result.get("withdrawableBalance", 0) or 0
+            sod_limit = result.get("sodLimit", 0) or 0
+            
+            logger.info(f"Fund limits parsed: available={available}, utilized={utilized}, collateral={collateral}")
+            
+            return {
+                "success": True,
+                "data": {
+                    "available_balance": available,
+                    "utilized_amount": utilized,
+                    "collateral": collateral,
+                    "withdrawable_balance": withdrawable,
+                    "sodLimit": sod_limit,
+                    "total_available": available + collateral,
+                    "client_id": result.get("dhanClientId", ""),
+                    "raw": result
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error fetching fund limits: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "data": {
+                    "available_balance": 0,
+                    "utilized_amount": 0,
+                    "total_available": 0
+                }
+            }
+    
+    async def get_positions(self) -> Dict[str, Any]:
+        """
+        Get current positions
+        Dhan API: GET /positions
+        
+        Returns:
+            List of open positions with P&L
+        Note: Dhan API returns array directly, not wrapped in 'data'
+        """
+        try:
+            result = await self._make_request("GET", "/positions", rate_limit_type="quote")
+            # Dhan returns array directly
+            positions = result if isinstance(result, list) else []
+            
+            total_pnl = sum(p.get("realizedProfit", 0) + p.get("unrealizedProfit", 0) for p in positions)
+            
+            logger.info(f"Positions fetched: count={len(positions)}, total_pnl={total_pnl}")
+            
+            return {
+                "success": True,
+                "data": {
+                    "positions": positions,
+                    "total_positions": len(positions),
+                    "total_pnl": total_pnl
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error fetching positions: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "data": {"positions": [], "total_positions": 0, "total_pnl": 0}
+            }
+    
+    async def get_holdings(self) -> Dict[str, Any]:
+        """
+        Get holdings (stocks in demat)
+        Dhan API: GET /holdings
+        
+        Returns:
+            List of holdings with current value
+        Note: Dhan API returns array directly, not wrapped in 'data'
+        """
+        try:
+            result = await self._make_request("GET", "/holdings", rate_limit_type="quote")
+            # Dhan returns array directly
+            holdings = result if isinstance(result, list) else []
+            
+            total_value = sum(h.get("totalQty", 0) * h.get("lastTradedPrice", 0) for h in holdings)
+            total_investment = sum(h.get("totalQty", 0) * h.get("avgCostPrice", 0) for h in holdings)
+            total_pnl = total_value - total_investment
+            
+            logger.info(f"Holdings fetched: count={len(holdings)}, total_value={total_value}")
+            
+            return {
+                "success": True,
+                "data": {
+                    "holdings": holdings,
+                    "total_holdings": len(holdings),
+                    "total_value": total_value,
+                    "total_investment": total_investment,
+                    "total_pnl": total_pnl,
+                    "pnl_percent": (total_pnl / total_investment * 100) if total_investment > 0 else 0
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error fetching holdings: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "data": {"holdings": [], "total_holdings": 0, "total_value": 0}
+            }
+    
+    async def get_account_summary(self) -> Dict[str, Any]:
+        """
+        Get complete account summary - funds, positions, holdings
+        
+        Returns:
+            Complete account overview
+        """
+        try:
+            # Fetch all data in parallel
+            funds, positions, holdings = await asyncio.gather(
+                self.get_fund_limits(),
+                self.get_positions(),
+                self.get_holdings(),
+                return_exceptions=True
+            )
+            
+            # Handle exceptions
+            if isinstance(funds, Exception):
+                funds = {"success": False, "data": {"available_balance": 0}}
+            if isinstance(positions, Exception):
+                positions = {"success": False, "data": {"positions": [], "total_pnl": 0}}
+            if isinstance(holdings, Exception):
+                holdings = {"success": False, "data": {"holdings": [], "total_value": 0}}
+            
+            return {
+                "success": True,
+                "data": {
+                    "funds": funds.get("data", {}),
+                    "positions": positions.get("data", {}),
+                    "holdings": holdings.get("data", {}),
+                    "summary": {
+                        "available_margin": funds.get("data", {}).get("available_balance", 0),
+                        "utilized_margin": funds.get("data", {}).get("utilized_amount", 0),
+                        "holdings_value": holdings.get("data", {}).get("total_value", 0),
+                        "positions_pnl": positions.get("data", {}).get("total_pnl", 0),
+                        "total_portfolio_value": (
+                            funds.get("data", {}).get("available_balance", 0) +
+                            holdings.get("data", {}).get("total_value", 0)
+                        )
+                    }
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error fetching account summary: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ========================================
+    # ORDER PLACEMENT ENDPOINTS
+    # ========================================
+    
+    async def place_order(
+        self,
+        security_id: str,
+        exchange_segment: str,
+        transaction_type: str,  # BUY or SELL
+        quantity: int,
+        order_type: str = "MARKET",  # MARKET, LIMIT, SL, SL-M
+        product_type: str = "INTRADAY",  # INTRADAY, CNC, MARGIN
+        price: float = 0,
+        trigger_price: float = 0,
+        validity: str = "DAY",
+        disclosed_quantity: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Place an order via Dhan API
+        
+        Args:
+            security_id: Dhan security ID
+            exchange_segment: NSE_EQ, NSE_FNO, BSE_EQ, etc.
+            transaction_type: BUY or SELL
+            quantity: Number of shares/lots
+            order_type: MARKET, LIMIT, SL, SL-M
+            product_type: INTRADAY, CNC, MARGIN
+            price: Limit price (for LIMIT orders)
+            trigger_price: Trigger price (for SL orders)
+            validity: DAY or IOC
+            disclosed_quantity: Disclosed quantity
+        
+        Returns:
+            Order result with order_id
+        """
+        await self._ensure_client()
+        
+        # Build order payload
+        order_data = {
+            "dhanClientId": "",  # API will auto-fill
+            "transactionType": transaction_type.upper(),
+            "exchangeSegment": exchange_segment,
+            "productType": product_type.upper(),
+            "orderType": order_type.upper(),
+            "validity": validity.upper(),
+            "securityId": str(security_id),
+            "quantity": int(quantity),
+            "disclosedQuantity": int(disclosed_quantity),
+            "price": float(price) if order_type.upper() == "LIMIT" else 0,
+            "triggerPrice": float(trigger_price) if order_type.upper() in ["SL", "SL-M"] else 0,
+            "afterMarketOrder": False,
+            "amoTime": "OPEN",
+            "boProfitValue": 0,
+            "boStopLossValue": 0
+        }
+        
+        logger.info(f"🔥 Placing order: {transaction_type} {quantity} x {security_id}")
+        
+        try:
+            result = await self._make_request("POST", "/orders", order_data)
+            
+            if result.get("orderId"):
+                logger.info(f"✅ Order placed: {result.get('orderId')}")
+                return {
+                    "success": True,
+                    "order_id": result.get("orderId"),
+                    "status": result.get("orderStatus", "PENDING"),
+                    "message": "Order placed successfully",
+                    "data": result
+                }
+            else:
+                error_msg = result.get("errorMessage") or result.get("message") or "Order failed"
+                logger.error(f"❌ Order failed: {error_msg}")
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "data": result
+                }
+        except Exception as e:
+            logger.error(f"❌ Order exception: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def modify_order(
+        self,
+        order_id: str,
+        order_type: str = "MARKET",
+        quantity: int = None,
+        price: float = None,
+        trigger_price: float = None,
+        validity: str = "DAY",
+        disclosed_quantity: int = 0
+    ) -> Dict[str, Any]:
+        """Modify an existing order"""
+        await self._ensure_client()
+        
+        modify_data = {
+            "dhanClientId": "",
+            "orderId": order_id,
+            "orderType": order_type.upper(),
+            "validity": validity.upper(),
+            "disclosedQuantity": disclosed_quantity
+        }
+        
+        if quantity:
+            modify_data["quantity"] = int(quantity)
+        if price:
+            modify_data["price"] = float(price)
+        if trigger_price:
+            modify_data["triggerPrice"] = float(trigger_price)
+        
+        try:
+            result = await self._make_request("PUT", f"/orders/{order_id}", modify_data)
+            return {
+                "success": True,
+                "order_id": order_id,
+                "message": "Order modified successfully",
+                "data": result
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def cancel_order(self, order_id: str) -> Dict[str, Any]:
+        """Cancel an existing order"""
+        await self._ensure_client()
+        
+        try:
+            # Dhan uses DELETE method for order cancellation
+            url = f"{self.base_url}/orders/{order_id}"
+            response = await self.client.delete(url, headers=self._get_headers())
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Order cancelled: {order_id}")
+                return {
+                    "success": True,
+                    "order_id": order_id,
+                    "message": "Order cancelled successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": response.text
+                }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def get_order_status(self, order_id: str) -> Dict[str, Any]:
+        """Get status of an order"""
+        await self._ensure_client()
+        
+        try:
+            url = f"{self.base_url}/orders/{order_id}"
+            response = await self.client.get(url, headers=self._get_headers())
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "success": True,
+                    "order_id": order_id,
+                    "status": data.get("orderStatus"),
+                    "filled_quantity": data.get("filledQty", 0),
+                    "pending_quantity": data.get("pendingQty", 0),
+                    "average_price": data.get("averagePrice", 0),
+                    "data": data
+                }
+            else:
+                return {"success": False, "error": response.text}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def get_order_list(self) -> Dict[str, Any]:
+        """Get list of all orders for today"""
+        await self._ensure_client()
+        
+        try:
+            url = f"{self.base_url}/orders"
+            response = await self.client.get(url, headers=self._get_headers())
+            
+            if response.status_code == 200:
+                data = response.json()
+                orders = data if isinstance(data, list) else data.get("data", [])
+                return {
+                    "success": True,
+                    "orders": orders,
+                    "count": len(orders)
+                }
+            else:
+                return {"success": False, "error": response.text, "orders": []}
+        except Exception as e:
+            return {"success": False, "error": str(e), "orders": []}
+    
+    async def get_trade_history(self) -> Dict[str, Any]:
+        """Get executed trades for today"""
+        await self._ensure_client()
+        
+        try:
+            url = f"{self.base_url}/trades"
+            response = await self.client.get(url, headers=self._get_headers())
+            
+            if response.status_code == 200:
+                data = response.json()
+                trades = data if isinstance(data, list) else data.get("data", [])
+                return {
+                    "success": True,
+                    "trades": trades,
+                    "count": len(trades)
+                }
+            else:
+                return {"success": False, "error": response.text, "trades": []}
+        except Exception as e:
+            return {"success": False, "error": str(e), "trades": []}
+
     async def close(self):
         """Close HTTP client"""
         if self.client:

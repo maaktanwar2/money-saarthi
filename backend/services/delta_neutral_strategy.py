@@ -225,6 +225,16 @@ class DeltaNeutralStrategy:
         self.active_broker = "dhan"  # Default broker
         self.broker_credentials = {}
         
+        # Frontend configurable parameters
+        self.underlying = "NIFTY"  # NIFTY, BANKNIFTY, FINNIFTY
+        self.max_delta_drift = 0.15
+        self.lot_size = 25  # NIFTY=25, BANKNIFTY=15, FINNIFTY=25
+        self.check_interval = 60  # seconds between delta checks
+        self.max_loss_limit = 5000  # Max loss before stopping
+        self.target_profit = 10000  # Target profit before stopping
+        self.broker = "dhan"  # Broker to use
+        self.access_token = ""  # Broker access token
+        
         # Strategy settings stored in memory (would be in DB in production)
         self.settings = {
             "capital": capital,
@@ -937,6 +947,15 @@ class DeltaNeutralStrategy:
                 "target_monthly_return": self.TARGET_MONTHLY_RETURN,
                 "max_loss_multiplier": self.MAX_LOSS_MULTIPLIER,
                 "profit_target_pct": self.PROFIT_TARGET_PCT
+            },
+            "config": {
+                "underlying": self.underlying,
+                "max_delta_drift": self.max_delta_drift,
+                "lot_size": self.lot_size,
+                "check_interval": self.check_interval,
+                "max_loss_limit": self.max_loss_limit,
+                "target_profit": self.target_profit,
+                "broker": self.broker
             }
         }
     

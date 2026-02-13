@@ -10,7 +10,11 @@
 
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://moneysaarthi-backend-517321998192.asia-south1.run.app';
+// Auto-detect local development
+const CLOUD_RUN_URL = 'https://moneysaarthi-backend-517321998192.asia-south1.run.app';
+const LOCAL_URL = 'http://localhost:8000';
+const API_BASE = process.env.REACT_APP_API_URL || 
+                 (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? LOCAL_URL : CLOUD_RUN_URL);
 
 // Request tracking for deduplication
 const pendingRequests = new Map();

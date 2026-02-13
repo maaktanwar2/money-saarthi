@@ -317,7 +317,12 @@ export const storage = {
  * API helper with error handling
  */
 export async function fetchAPI(endpoint, options = {}) {
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+  // Use Cloud Run for production, localhost for development
+  const isProduction = window.location.hostname !== 'localhost';
+  const API_BASE = process.env.REACT_APP_API_URL || 
+    (isProduction 
+      ? 'https://moneysaarthi-backend-517321998192.asia-south1.run.app/api' 
+      : 'http://localhost:8000/api');
   
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {

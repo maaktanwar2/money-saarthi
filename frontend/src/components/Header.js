@@ -18,15 +18,18 @@ const MarketTicker = () => {
     const fetchIndices = async () => {
       try {
         const data = await fetchAPI('/nse/indices');
-        if (data?.data) {
-          setIndices(data.data.slice(0, 5)); // Top 5 indices
+        const indicesArray = data?.all_indices || data?.data || [];
+        if (indicesArray.length > 0) {
+          setIndices(indicesArray.slice(0, 8)); // Top 8 indices for ticker
         }
       } catch (error) {
         // Use fallback data
         setIndices([
-          { name: 'NIFTY 50', last: 23850.5, change: 125.4, pChange: 0.53 },
-          { name: 'BANK NIFTY', last: 51250.2, change: -85.6, pChange: -0.17 },
-          { name: 'NIFTY IT', last: 35420.8, change: 280.5, pChange: 0.80 },
+          { symbol: 'NIFTY 50', last: 25727, change: 639, pChange: 2.55 },
+          { symbol: 'NIFTY BANK', last: 60041, change: 1422, pChange: 2.43 },
+          { symbol: 'NIFTY IT', last: 35420, change: 280, pChange: 0.80 },
+          { symbol: 'NIFTY MIDCAP 50', last: 17013, change: 464, pChange: 2.80 },
+          { symbol: 'INDIA VIX', last: 12.9, change: -0.97, pChange: -6.99 },
         ]);
       } finally {
         setLoading(false);
@@ -39,34 +42,55 @@ const MarketTicker = () => {
   }, []);
 
   if (loading) {
-    return <div className="h-8 w-96 skeleton rounded" />;
+    return <div className="h-6 w-full skeleton rounded" />;
   }
 
+  // Duplicate for seamless scroll
+  const tickerItems = [...indices, ...indices];
+
   return (
-    <div className="flex items-center gap-6 overflow-hidden">
-      {indices.map((index, i) => (
-        <motion.div
-          key={index.name}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex items-center gap-2 text-sm whitespace-nowrap"
-        >
-          <span className="text-muted-foreground">{index.name}</span>
-          <span className="font-semibold">{formatNumber(index.last || index.lastPrice, { decimals: 0 })}</span>
-          <span className={cn(
-            'flex items-center text-xs font-medium',
-            (index.change || index.pChange || 0) >= 0 ? 'text-bullish' : 'text-bearish'
-          )}>
-            {(index.change || index.pChange || 0) >= 0 ? (
-              <TrendingUp className="w-3 h-3 mr-0.5" />
-            ) : (
-              <TrendingDown className="w-3 h-3 mr-0.5" />
-            )}
-            {formatPercent(index.pChange || index.change)}
-          </span>
-        </motion.div>
-      ))}
+    <div className="relative overflow-hidden flex-1 mx-4">
+      <div className="ticker-wrapper">
+        <div className="ticker-content animate-ticker flex items-center gap-8">
+          {tickerItems.map((index, i) => (
+            <div
+              key={`${index.symbol || index.name}-${i}`}
+              className="flex items-center gap-2 text-sm whitespace-nowrap"
+            >
+              <span className="text-muted-foreground font-medium">{index.symbol || index.name}</span>
+              <span className="font-semibold">{formatNumber(index.last || index.lastPrice, { decimals: index.last < 100 ? 2 : 0 })}</span>
+              <span className={cn(
+                'flex items-center text-xs font-semibold px-1.5 py-0.5 rounded',
+                (index.pChange || 0) >= 0 ? 'text-bullish bg-bullish/10' : 'text-bearish bg-bearish/10'
+              )}>
+                {(index.pChange || 0) >= 0 ? (
+                  <TrendingUp className="w-3 h-3 mr-0.5" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 mr-0.5" />
+                )}
+                {(index.pChange || 0) >= 0 ? '+' : ''}{(index.pChange || 0).toFixed(2)}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* CSS for ticker animation */}
+      <style>{`
+        .ticker-wrapper {
+          overflow: hidden;
+        }
+        .animate-ticker {
+          animation: ticker 30s linear infinite;
+        }
+        .animate-ticker:hover {
+          animation-play-state: paused;
+        }
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 };
@@ -80,9 +104,9 @@ export const Header = ({ onMenuClick }) => {
 
   return (
     <header className="h-16 border-b border-white/[0.08] bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-      <div className="h-full flex items-center justify-between px-6 gap-4">
-        {/* Left: Mobile Menu + Market Ticker */}
-        <div className="flex items-center gap-4">
+      <div className="h-full flex items-center justify-between px-4 gap-2">
+        {/* Left: Mobile Menu + Market Status */}
+        <div className="flex items-center gap-3 shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -93,21 +117,25 @@ export const Header = ({ onMenuClick }) => {
           </Button>
           
           {/* Market Status */}
-          <div className="hidden sm:flex items-center gap-2">
-            <Activity className={cn('w-4 h-4', marketSession.color)} />
-            <span className={cn('text-xs font-medium', marketSession.color)}>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+            <span className={cn(
+              'w-2 h-2 rounded-full animate-pulse',
+              marketSession.status === 'open' ? 'bg-bullish' : 
+              marketSession.status === 'pre-market' ? 'bg-amber-500' : 'bg-muted-foreground'
+            )} />
+            <span className="text-xs font-semibold whitespace-nowrap">
               {marketSession.label}
             </span>
           </div>
-          
-          {/* Market Ticker */}
-          <div className="hidden md:block">
-            <MarketTicker />
-          </div>
+        </div>
+        
+        {/* Center: Running Ticker Banner */}
+        <div className="hidden md:flex flex-1 min-w-0">
+          <MarketTicker />
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Search */}
           <div className="relative">
             {searchOpen ? (

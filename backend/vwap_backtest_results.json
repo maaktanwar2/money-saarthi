@@ -1,0 +1,46 @@
+{
+  "config": {
+    "capital": 100000,
+    "risk_per_trade": 2.0,
+    "stop_loss_percent": 1.0,
+    "target_percent": 2.0,
+    "max_trades_per_day": 3
+  },
+  "results": {
+    "total_trades": 2,
+    "winning_trades": 1,
+    "losing_trades": 1,
+    "win_rate": 50.0,
+    "total_pnl": 9287.699999999993,
+    "total_pnl_percent": 9.287699999999994,
+    "profit_factor": 3.7149872840480467,
+    "sharpe_ratio": 9.390712666876203,
+    "max_drawdown": 3.4209000000000085
+  },
+  "trades": [
+    {
+      "entry_time": "2026-01-19 09:20:00",
+      "exit_time": "2026-01-20 09:20:00",
+      "direction": "LONG",
+      "entry_price": 3164.9,
+      "exit_price": 3110.6,
+      "pnl": -3420.9000000000115,
+      "pnl_percent": -1.7156940187683711,
+      "exit_reason": "STOP_LOSS"
+    },
+    {
+      "entry_time": "2026-02-03 09:20:00",
+      "exit_time": "2026-02-04 09:20:00",
+      "direction": "SHORT",
+      "entry_price": 3221.9,
+      "exit_price": 3006.5,
+      "pnl": 12708.600000000006,
+      "pnl_percent": 6.685496135820482,
+      "exit_reason": "TARGET"
+    }
+  ],
+  "daily_pnl": {
+    "2026-01-19": -3420.9000000000115,
+    "2026-02-03": 12708.600000000006
+  }
+}

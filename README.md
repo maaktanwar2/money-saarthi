@@ -19,6 +19,7 @@ Money Saarthi (meaning "Financial Guide" in Hindi) is a comprehensive F&O tradin
 ## ✨ Features
 
 ### 📊 Live Trading Scanners
+
 - **Day Gainers** - Top F&O gainers with volume & OI tracking
 - **Day Losers** - Top F&O losers to watch
 - **High Volume** - Stocks with unusually high trading volume

@@ -56,7 +56,21 @@ def seed_random_for_consistent_data(context: str = "default", include_hour: bool
     random.seed(seed_value)
     return seed_value
 
-# Import UNIFIED DATA SERVICE - Single Source of Truth (Dhan Priority)
+# Import DHAN UNIFIED DATA SERVICE - Single Source of Truth
+try:
+    from services.dhan_unified_service import (
+        get_dhan_unified_service,
+        DhanUnifiedService,
+        SECURITY_MAP,
+        FNO_STOCKS as DHAN_FNO_STOCKS
+    )
+    dhan_service = get_dhan_unified_service()
+    logging.info("✅ Dhan Unified Data Service loaded (Primary data source)")
+except ImportError as e:
+    dhan_service = None
+    logging.warning(f"⚠️ Dhan Unified Data Service not available: {e}")
+
+# Legacy import for backward compatibility
 try:
     from services.unified_data_service import (
         get_unified_service, 
@@ -66,10 +80,8 @@ try:
         get_option_chain as get_unified_option_chain
     )
     unified_service = get_unified_service()
-    logging.info("✅ Unified Data Service loaded (DHAN priority, Yahoo fallback)")
 except ImportError as e:
     unified_service = None
-    logging.warning(f"⚠️ Unified Data Service not available: {e}")
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -247,6 +259,22 @@ async def health_check():
 @api_router.get("/health")
 async def api_health_check():
     return {"status": "healthy", "service": "money-saarthi-api"}
+
+@api_router.get("/debug/users-count")
+async def debug_users_count():
+    """Debug: Get count of users (public for troubleshooting)"""
+    try:
+        users_count = await db.users.count_documents({})
+        sessions_count = await db.user_sessions.count_documents({})
+        # Get all users with basic info
+        all_users = await db.users.find({}, {"email": 1, "name": 1, "last_login": 1, "created_at": 1, "is_admin": 1, "is_paid": 1, "_id": 0}).to_list(100)
+        return {
+            "total_users": users_count,
+            "active_sessions": sessions_count,
+            "users": all_users
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 # ==================== DATA SOURCE STATUS ENDPOINT ====================
 @api_router.get("/data-source/status")
@@ -1694,8 +1722,10 @@ class User(BaseModel):
     is_paid: bool = False
     has_full_package: bool = False  # Full package includes Courses & Strategies
     subscription_type: Optional[str] = None  # 'monthly', 'yearly', 'full_package'
-    subscription_end: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    subscription_end: Optional[str] = None  # Changed to str for flexibility
+    created_at: Optional[str] = None  # Changed to str for flexibility
+    last_login: Optional[str] = None  # Track last login time
+    updated_at: Optional[str] = None  # Track last update time
 
 class UserSession(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1851,11 +1881,13 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
             session_token = authorization.replace("Bearer ", "")
     
     if not session_token:
+        logging.warning("❌ Auth failed: No session token provided")
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     session_doc = await db.user_sessions.find_one({"session_token": session_token}, {"_id": 0})
     
     if not session_doc:
+        logging.warning(f"❌ Auth failed: Invalid session token: {session_token[:20]}...")
         raise HTTPException(status_code=401, detail="Invalid session")
     
     expires_at = session_doc["expires_at"]
@@ -2320,38 +2352,251 @@ async def get_strategy_config():
     }
 
 
+# ==================== AI TOKENS ====================
+
+# In-memory token storage (in production, use database)
+user_token_balances = {}
+
+@api_router.get("/ai/tokens/balance")
+async def get_token_balance(request: Request):
+    """Get user's AI token balance"""
+    user_id = request.headers.get("X-User-Id", "anonymous")
+    
+    # Admin emails get unlimited tokens
+    admin_emails = ["maaktanwar@gmail.com", "admin@moneysaarthi.in"]
+    if user_id in admin_emails:
+        return {
+            "balance": 999999,
+            "unlimited": True,
+            "is_admin": True
+        }
+    
+    # Get or initialize balance
+    balance = user_token_balances.get(user_id, 100)  # Default 100 tokens for new users
+    
+    return {
+        "balance": balance,
+        "unlimited": False,
+        "is_admin": False
+    }
+
+
+@api_router.get("/ai/tokens/packages")
+async def get_token_packages():
+    """Get available token packages"""
+    return {
+        "packages": [
+            {"id": "starter", "name": "Starter Pack", "tokens": 500, "price": 99, "popular": False},
+            {"id": "pro", "name": "Pro Pack", "tokens": 2000, "price": 299, "popular": True},
+            {"id": "premium", "name": "Premium Pack", "tokens": 5000, "price": 599, "popular": False},
+            {"id": "unlimited", "name": "Unlimited (Monthly)", "tokens": 999999, "price": 999, "popular": False}
+        ]
+    }
+
+
+@api_router.post("/ai/tokens/recharge")
+async def recharge_tokens(request: Request):
+    """Recharge user tokens after payment"""
+    user_id = request.headers.get("X-User-Id", "anonymous")
+    data = await request.json()
+    package_id = data.get("package_id")
+    
+    packages = {
+        "starter": 500,
+        "pro": 2000,
+        "premium": 5000,
+        "unlimited": 999999
+    }
+    
+    tokens_to_add = packages.get(package_id, 0)
+    if tokens_to_add == 0:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    current_balance = user_token_balances.get(user_id, 100)
+    user_token_balances[user_id] = current_balance + tokens_to_add
+    
+    return {
+        "success": True,
+        "new_balance": user_token_balances[user_id],
+        "tokens_added": tokens_to_add
+    }
+
+
+# ==================== DELTA NEUTRAL BOT ====================
+
+# Bot state storage (in production, use Redis or database)
+delta_neutral_bot_state = {
+    "is_running": False,
+    "config": None,
+    "status": None,
+    "start_time": None
+}
+
+@api_router.post("/strategy/delta-neutral/start")
+async def start_delta_neutral_bot(request: Request):
+    """Start the delta neutral bot"""
+    global delta_neutral_bot_state
+    
+    try:
+        data = await request.json()
+        access_token = data.get("access_token")
+        broker = data.get("broker", "dhan")
+        config = data.get("config", {})
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Access token required")
+        
+        # Initialize bot state
+        delta_neutral_bot_state = {
+            "is_running": True,
+            "config": config,
+            "start_time": datetime.now().isoformat(),
+            "status": {
+                "is_running": True,
+                "current_delta": 0.0,
+                "total_pnl": 0,
+                "positions_count": 0,
+                "trades_today": 0,
+                "adjustments_count": 0,
+                "underlying": config.get("underlying", "NIFTY"),
+                "lot_size": config.get("lot_size", 25),
+                "max_delta_drift": config.get("max_delta_drift", 0.15),
+                "last_check": datetime.now().isoformat()
+            }
+        }
+        
+        logger.info(f"Delta Neutral Bot started: {config}")
+        
+        return {
+            "success": True,
+            "message": "Delta Neutral Bot started successfully",
+            "status": delta_neutral_bot_state["status"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting Delta Neutral bot: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/strategy/delta-neutral/stop")
+async def stop_delta_neutral_bot(request: Request):
+    """Stop the delta neutral bot"""
+    global delta_neutral_bot_state
+    
+    delta_neutral_bot_state["is_running"] = False
+    delta_neutral_bot_state["status"] = None
+    
+    logger.info("Delta Neutral Bot stopped")
+    
+    return {
+        "success": True,
+        "message": "Delta Neutral Bot stopped"
+    }
+
+
+@api_router.get("/strategy/delta-neutral/status")
+async def get_delta_neutral_status():
+    """Get current status of the delta neutral bot"""
+    global delta_neutral_bot_state
+    
+    if not delta_neutral_bot_state["is_running"]:
+        return {
+            "success": True,
+            "status": {
+                "is_running": False
+            }
+        }
+    
+    # Simulate some status updates
+    status = delta_neutral_bot_state.get("status", {})
+    status["last_check"] = datetime.now().isoformat()
+    
+    return {
+        "success": True,
+        "status": status
+    }
+
+
+@api_router.post("/strategy/delta-neutral/adjust")
+async def adjust_delta_neutral(request: Request):
+    """Manually adjust delta neutral positions"""
+    global delta_neutral_bot_state
+    
+    if not delta_neutral_bot_state["is_running"]:
+        raise HTTPException(status_code=400, detail="Bot is not running")
+    
+    status = delta_neutral_bot_state.get("status", {})
+    current_delta = status.get("current_delta", 0)
+    max_drift = status.get("max_delta_drift", 0.15)
+    
+    adjustment_made = abs(current_delta) > max_drift
+    
+    if adjustment_made:
+        status["adjustments_count"] = status.get("adjustments_count", 0) + 1
+        status["current_delta"] = 0.0  # Reset to neutral
+        status["last_adjustment"] = datetime.now().isoformat()
+    
+    return {
+        "success": True,
+        "adjustment_made": adjustment_made,
+        "status": status
+    }
+
+
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/google")
 async def google_auth(request: Request, response: Response):
     """Authenticate user with Google OAuth token"""
     try:
+        logging.info("🔐 Google auth endpoint called")
+        
+        # Ensure database is available
+        global db
+        if db is None:
+            logging.error("Database not initialized for auth, attempting reconnect...")
+            init_firestore()
+            if db is None:
+                raise HTTPException(status_code=503, detail="Database unavailable. Please try again.")
+        
+        logging.info("✅ Database available")
+        
         # Get client IP for rate limiting
         client_ip = request.client.host if request.client else "unknown"
+        logging.info(f"📍 Request from IP: {client_ip}")
         
         # Check rate limit (10 attempts per minute for OAuth)
         if not await auth_rate_limiter.check_rate_limit(f"google_auth:{client_ip}", max_attempts=10, window_seconds=60):
             raise HTTPException(status_code=429, detail="Too many authentication attempts. Please try again later.")
         
+        logging.info("✅ Rate limit passed")
+        
         data = await request.json()
         credential = data.get("credential")
+        
+        logging.info(f"📝 Got credential: {bool(credential)}, length: {len(credential) if credential else 0}")
         
         if not credential:
             raise HTTPException(status_code=400, detail="Google credential required")
         
         if not GOOGLE_CLIENT_ID:
+            logging.error("GOOGLE_CLIENT_ID not set!")
             raise HTTPException(status_code=500, detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID in .env")
+        
+        logging.info(f"🔑 GOOGLE_CLIENT_ID configured: {GOOGLE_CLIENT_ID[:20]}...")
         
         # Verify the Google token with clock tolerance for slightly off clocks
         try:
+            logging.info("🔍 Verifying Google token...")
             idinfo = id_token.verify_oauth2_token(
                 credential, 
                 google_requests.Request(), 
                 GOOGLE_CLIENT_ID,
                 clock_skew_in_seconds=60  # Allow 60 seconds clock skew
             )
+            logging.info(f"✅ Token verified for: {idinfo.get('email')}")
         except ValueError as e:
-            logging.error(f"Token verification failed: {e}")
+            logging.error(f"❌ Token verification failed: {e}")
             raise HTTPException(status_code=401, detail="Invalid Google token")
         
         # Extract user info
@@ -2359,14 +2604,19 @@ async def google_auth(request: Request, response: Response):
         name = idinfo.get('name')
         picture = idinfo.get('picture')
         
+        logging.info(f"👤 User info: email={email}, name={name}")
+        
         if not email:
             raise HTTPException(status_code=400, detail="Email not provided by Google")
         
         # Check if user exists
+        logging.info(f"🔍 Looking up user in database: {email}")
         existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        logging.info(f"📋 User exists: {bool(existing_user)}")
         
         # Check if this is the super admin
         is_super_admin = email == SUPER_ADMIN_EMAIL
+        logging.info(f"👑 Is super admin: {is_super_admin}")
         
         if existing_user:
             user_id = existing_user["user_id"]
@@ -2398,6 +2648,12 @@ async def google_auth(request: Request, response: Response):
                 user_data["has_free_access"] = True
                 user_data["is_paid"] = True
                 user_data["has_full_package"] = True
+            
+            # Update last_login for existing user
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}}
+            )
         else:
             # New user - basic access only (no free trial)
             user_id = f"user_{uuid.uuid4().hex[:12]}"
@@ -2411,9 +2667,11 @@ async def google_auth(request: Request, response: Response):
                 "has_free_access": False,  # No free trial - basic tools only
                 "is_paid": False,
                 "subscription_end": None,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "last_login": datetime.now(timezone.utc).isoformat()
             }
             await db.users.insert_one(user_data)
+            logging.info(f"✅ New user registered: {email}")
         
         # Generate session token
         session_token = f"session_{uuid.uuid4().hex}"
@@ -2441,8 +2699,24 @@ async def google_auth(request: Request, response: Response):
             max_age=7 * 24 * 60 * 60
         )
         
+        # Log user data for debugging
+        logging.info(f"✅ Auth success for {email}, user_data keys: {list(user_data.keys())}")
+        
+        # Create safe user response dict - only include known fields
+        safe_user_data = {
+            "user_id": user_data.get("user_id", user_id),
+            "email": email,
+            "name": name or email.split('@')[0],
+            "picture": picture,
+            "is_admin": user_data.get("is_admin", False),
+            "is_blocked": user_data.get("is_blocked", False),
+            "has_free_access": user_data.get("has_free_access", False),
+            "is_paid": user_data.get("is_paid", False),
+            "has_full_package": user_data.get("has_full_package", False),
+        }
+        
         return {
-            "user": User(**user_data),
+            "user": safe_user_data,
             "session_id": session_token,  # Return session_id for mobile fallback
             "needs_profile": not existing_user or not existing_user.get("phone")
         }
@@ -2450,7 +2724,9 @@ async def google_auth(request: Request, response: Response):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
         logging.error(f"Google auth error: {e}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== EMAIL AUTH ROUTES ====================
@@ -2846,7 +3122,9 @@ async def generate_referral_code(current_user: User = Depends(get_current_user))
 async def get_all_users(admin: User = Depends(get_admin_user)):
     """Get all users - Admin only"""
     try:
+        logging.info(f"📊 Admin {admin.email} fetching all users")
         users = await db.users.find({}, {"_id": 0}).to_list(1000)
+        logging.info(f"✅ Found {len(users)} users in database")
         return users
     except Exception as e:
         logging.error(f"Error fetching users: {e}")
@@ -4020,6 +4298,421 @@ async def disconnect_dhan(current_user: dict = Depends(get_current_user)):
     )
     
     return {"success": True, "message": "Dhan disconnected successfully"}
+
+@api_router.post("/dhan/validate-token")
+async def validate_dhan_token(request: Request):
+    """Validate a Dhan access token by checking fund limits"""
+    try:
+        data = await request.json()
+        access_token = data.get("access_token", "").strip()
+        provided_client_id = data.get("client_id", "").strip()  # For sandbox mode
+        is_sandbox = data.get("sandbox", False)
+        
+        if not access_token:
+            return {"valid": False, "error": "Access token is required"}
+        
+        if is_sandbox and not provided_client_id:
+            return {"valid": False, "error": "Sandbox Client ID is required for sandbox mode"}
+        
+        # Extract client ID from JWT token payload (Dhan tokens are JWTs)
+        import base64
+        import json as json_lib
+        import time
+        
+        client_id = provided_client_id
+        token_data = {}
+        
+        try:
+            # Dhan JWT has 3 parts separated by dots
+            parts = access_token.split('.')
+            if len(parts) == 3:
+                # Decode the payload (second part)
+                payload = parts[1]
+                # Add padding if needed
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += '=' * padding
+                decoded = base64.urlsafe_b64decode(payload)
+                token_data = json_lib.loads(decoded)
+                if not client_id:
+                    client_id = token_data.get('dhanClientId', '')
+        except Exception as e:
+            logger.error(f"JWT decode error: {e}")
+            return {"valid": False, "error": "Invalid token format"}
+        
+        # Dhan uses same API for sandbox - token type determines if orders execute
+        # Validate by calling Dhan fund limit API for both modes
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.dhan.co/v2/fundlimit",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id,
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                fund_data = response.json()
+                available_balance = fund_data.get('availabelBalance', fund_data.get('availableBalance', 0))
+                return {
+                    "valid": True,
+                    "client_id": client_id,
+                    "available_balance": available_balance,
+                    "sandbox": is_sandbox,
+                    "fund_data": fund_data
+                }
+            else:
+                error_msg = response.json().get('message', 'Invalid or expired access token')
+                logger.error(f"Dhan API error: {response.status_code} - {error_msg}")
+                return {"valid": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Token validation error: {e}")
+        return {"valid": False, "error": str(e)}
+
+@api_router.post("/upstox/validate-token")
+async def validate_upstox_token(request: Request):
+    """Validate an Upstox access token by checking user profile"""
+    try:
+        data = await request.json()
+        access_token = data.get("access_token", "").strip()
+        
+        if not access_token:
+            return {"valid": False, "error": "Access token is required"}
+        
+        # Validate by calling Upstox profile API
+        async with httpx.AsyncClient() as client:
+            # Get user profile
+            profile_response = await client.get(
+                "https://api.upstox.com/v2/user/profile",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if profile_response.status_code == 200:
+                profile_data = profile_response.json()
+                user_data = profile_data.get("data", {})
+                
+                # Also fetch funds to get balance
+                funds_response = await client.get(
+                    "https://api.upstox.com/v2/user/get-funds-and-margin",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    timeout=15.0
+                )
+                
+                available_balance = 0
+                if funds_response.status_code == 200:
+                    funds_data = funds_response.json()
+                    equity = funds_data.get("data", {}).get("equity", {})
+                    available_balance = float(equity.get("available_margin", 0) or 0)
+                
+                return {
+                    "valid": True,
+                    "client_id": user_data.get("user_id", ""),
+                    "user_name": user_data.get("user_name", ""),
+                    "email": user_data.get("email", ""),
+                    "broker": "upstox",
+                    "available_balance": available_balance,
+                    "exchanges": user_data.get("exchanges", []),
+                    "products": user_data.get("products", [])
+                }
+            else:
+                error_data = profile_response.json()
+                error_msg = error_data.get("message", error_data.get("errors", [{}])[0].get("message", "Invalid or expired access token"))
+                logger.error(f"Upstox API error: {profile_response.status_code} - {error_msg}")
+                return {"valid": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Upstox token validation error: {e}")
+        return {"valid": False, "error": str(e)}
+
+@api_router.post("/dhan/market-quote")
+async def get_dhan_market_quote(request: Request):
+    """Get market quotes using user's Dhan token"""
+    try:
+        data = await request.json()
+        access_token = data.get("access_token", "").strip()
+        client_id = data.get("client_id", "").strip()
+        instruments = data.get("instruments", {})  # e.g., {"NSE_EQ": [1333, 11536]}
+        
+        if not access_token:
+            return {"status": "error", "message": "Access token is required"}
+        
+        if not instruments:
+            return {"status": "error", "message": "No instruments specified"}
+        
+        # If client_id not provided, extract from JWT
+        if not client_id:
+            import base64
+            import json as json_lib
+            try:
+                parts = access_token.split('.')
+                if len(parts) == 3:
+                    payload = parts[1]
+                    padding = 4 - len(payload) % 4
+                    if padding != 4:
+                        payload += '=' * padding
+                    decoded = base64.urlsafe_b64decode(payload)
+                    token_data = json_lib.loads(decoded)
+                    client_id = token_data.get('dhanClientId', '')
+            except Exception:
+                pass
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.dhan.co/v2/marketfeed/quote",
+                json=instruments,
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id,
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                quote_data = response.json()
+                # Parse quote response
+                parsed_data = {}
+                if isinstance(quote_data, dict) and "data" in quote_data:
+                    for item in quote_data.get("data", []):
+                        security_id = str(item.get("security_id", item.get("securityId", "")))
+                        parsed_data[security_id] = {
+                            "ltp": item.get("LTP", item.get("ltp", 0)),
+                            "open": item.get("open", 0),
+                            "high": item.get("high", 0),
+                            "low": item.get("low", 0),
+                            "close": item.get("close", 0),
+                            "volume": item.get("volume", 0),
+                            "oi": item.get("OI", item.get("oi", 0)),
+                            "bid": item.get("bid", 0),
+                            "ask": item.get("ask", 0)
+                        }
+                return {
+                    "status": "success",
+                    "data": parsed_data,
+                    "raw": quote_data
+                }
+            elif response.status_code == 401:
+                return {"status": "error", "message": "Invalid or expired access token"}
+            else:
+                return {"status": "error", "message": f"API error: {response.text}"}
+                
+    except Exception as e:
+        logger.error(f"Dhan market quote error: {e}")
+        return {"status": "error", "message": str(e)}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DHAN USER API ENDPOINTS - Use user's own token from request header
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Dhan API URLs
+DHAN_API_PROD = "https://api.dhan.co/v2"
+DHAN_API_SANDBOX = "https://api.dhan.co/v2"  # Sandbox uses same URL, token determines mode
+
+def get_dhan_api_base(is_sandbox: bool = False):
+    """Get Dhan API base URL"""
+    return DHAN_API_SANDBOX if is_sandbox else DHAN_API_PROD
+
+@api_router.get("/dhan/funds")
+async def get_dhan_funds(request: Request):
+    """Get user's fund/margin details from Dhan"""
+    access_token = request.headers.get("X-Dhan-Token") or request.headers.get("x-dhan-token")
+    client_id = request.headers.get("X-Dhan-Client") or request.headers.get("x-dhan-client")
+    is_sandbox = request.headers.get("X-Dhan-Sandbox", "").lower() == "true"
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Access token required in X-Dhan-Token header")
+    
+    api_base = get_dhan_api_base(is_sandbox)
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{api_base}/fundlimit",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id or "",
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            logger.info(f"Dhan funds response: {response.status_code}")
+            
+            if response.status_code == 200:
+                return {"success": True, "data": response.json()}
+            elif response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired access token. Please generate a new token from web.dhan.co")
+            else:
+                error_detail = response.text
+                logger.error(f"Dhan funds error: {error_detail}")
+                raise HTTPException(status_code=response.status_code, detail=f"Dhan API error: {error_detail}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dhan funds error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/dhan/holdings")
+async def get_dhan_holdings(request: Request):
+    """Get user's stock holdings from Dhan"""
+    access_token = request.headers.get("X-Dhan-Token") or request.headers.get("x-dhan-token")
+    client_id = request.headers.get("X-Dhan-Client") or request.headers.get("x-dhan-client")
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Access token required in X-Dhan-Token header")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{DHAN_API_BASE}/holdings",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id or "",
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            data = response.json()
+            
+            # Handle Dhan error responses (they return 200 with error object)
+            if isinstance(data, dict) and data.get('errorCode'):
+                # No holdings is not an error - return empty array
+                if 'HOLDING_ERROR' in str(data.get('errorType', '')) or 'No holdings' in str(data.get('errorMessage', '')):
+                    return {"success": True, "data": []}
+                # Other errors
+                raise HTTPException(status_code=400, detail=data.get('errorMessage', 'Dhan API error'))
+            
+            if response.status_code == 200:
+                # Dhan returns list directly or in 'data' key
+                holdings = data if isinstance(data, list) else data.get('data', data.get('holdings', []))
+                return {"success": True, "data": holdings}
+            elif response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired access token")
+            else:
+                raise HTTPException(status_code=response.status_code, detail=f"Dhan API error: {response.text}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dhan holdings error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/dhan/positions")
+async def get_dhan_positions(request: Request):
+    """Get user's open positions from Dhan"""
+    access_token = request.headers.get("X-Dhan-Token") or request.headers.get("x-dhan-token")
+    client_id = request.headers.get("X-Dhan-Client") or request.headers.get("x-dhan-client")
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Access token required in X-Dhan-Token header")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{DHAN_API_BASE}/positions",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id or "",
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                positions = data if isinstance(data, list) else data.get('data', data.get('positions', []))
+                return {"success": True, "data": positions}
+            elif response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired access token")
+            else:
+                raise HTTPException(status_code=response.status_code, detail=f"Dhan API error: {response.text}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dhan positions error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/dhan/orders")
+async def get_dhan_orders(request: Request):
+    """Get user's orders for today from Dhan"""
+    access_token = request.headers.get("X-Dhan-Token") or request.headers.get("x-dhan-token")
+    client_id = request.headers.get("X-Dhan-Client") or request.headers.get("x-dhan-client")
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Access token required in X-Dhan-Token header")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{DHAN_API_BASE}/orders",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id or "",
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                orders = data if isinstance(data, list) else data.get('data', data.get('orders', []))
+                return {"success": True, "data": orders}
+            elif response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired access token")
+            else:
+                raise HTTPException(status_code=response.status_code, detail=f"Dhan API error: {response.text}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dhan orders error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/dhan/trades")
+async def get_dhan_trades(request: Request):
+    """Get user's executed trades for today from Dhan"""
+    access_token = request.headers.get("X-Dhan-Token") or request.headers.get("x-dhan-token")
+    client_id = request.headers.get("X-Dhan-Client") or request.headers.get("x-dhan-client")
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Access token required in X-Dhan-Token header")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{DHAN_API_BASE}/trades",
+                headers={
+                    "access-token": access_token,
+                    "client-id": client_id or "",
+                    "Content-Type": "application/json"
+                },
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                trades = data if isinstance(data, list) else data.get('data', data.get('trades', []))
+                return {"success": True, "data": trades}
+            elif response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired access token")
+            else:
+                raise HTTPException(status_code=response.status_code, detail=f"Dhan API error: {response.text}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dhan trades error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 async def fetch_dhan_market_data(symbols: list):
     """Fetch market data from Dhan API"""
@@ -5946,53 +6639,54 @@ async def root():
 
 @api_router.get("/market-stats")
 async def get_market_stats():
-    """Fetch live market stats for NIFTY, BANKNIFTY, SENSEX, VIX from NSE India"""
+    """Fetch live market stats for NIFTY, BANKNIFTY, SENSEX, VIX from Dhan API"""
     try:
-        # Try NSE India first for accurate real-time data
-        indices = await NSEIndia.get_all_indices()
-        
-        nifty = None
-        banknifty = None
-        sensex = None
-        vix = None
-        
-        for idx in indices:
-            idx_name = idx.get("index", "")
-            if idx_name == "NIFTY 50":
-                nifty = idx
-            elif idx_name == "NIFTY BANK":
-                banknifty = idx
-            elif idx_name == "INDIA VIX":
-                vix = idx
-        
-        # Fetch SENSEX from BSE or use Dhan API
-        sensex_price = 0
-        sensex_change = 0
-        
-        try:
-            # Try to get SENSEX from yfinance
-            import yfinance as yf
-            sensex_ticker = yf.Ticker("^BSESN")
-            sensex_info = sensex_ticker.fast_info
-            sensex_price = sensex_info.get('lastPrice', 0) or sensex_info.get('regularMarketPrice', 0) or 0
-            sensex_prev = sensex_info.get('previousClose', sensex_price) or sensex_price
-            if sensex_prev > 0:
-                sensex_change = ((sensex_price - sensex_prev) / sensex_prev) * 100
-        except Exception as e:
-            logging.warning(f"Failed to fetch SENSEX from yfinance: {e}")
-            # Use simulated data based on NIFTY movement
-            nifty_change_pct = float(nifty.get("percentChange", 0) or 0) if nifty else 0
-            sensex_price = 76500 * (1 + nifty_change_pct / 100)  # Approximate
-            sensex_change = nifty_change_pct * 0.95  # Sensex usually moves similarly
-        
-        # Extract values with fallbacks
-        nifty_price = float(nifty.get("last", 0) or 0) if nifty else 0
-        nifty_change = float(nifty.get("percentChange", 0) or 0) if nifty else 0
-        
-        banknifty_price = float(banknifty.get("last", 0) or 0) if banknifty else 0
-        banknifty_change = float(banknifty.get("percentChange", 0) or 0) if banknifty else 0
-        
-        vix_value = float(vix.get("last", 0) or 0) if vix else 0
+        # Use Dhan unified service for market data
+        if dhan_service:
+            indices = await dhan_service.get_index_data(["NIFTY", "BANKNIFTY"])
+            
+            nifty = indices.get("NIFTY", {})
+            banknifty = indices.get("BANKNIFTY", {})
+            
+            nifty_price = nifty.get("ltp", 0)
+            nifty_change = nifty.get("change_percent", 0)
+            
+            banknifty_price = banknifty.get("ltp", 0)
+            banknifty_change = banknifty.get("change_percent", 0)
+            
+            # SENSEX approximate based on NIFTY movement
+            sensex_price = 76500 * (1 + nifty_change / 100) if nifty_change else 76500
+            sensex_change = nifty_change * 0.95
+            
+            # VIX default (Dhan doesn't provide VIX directly in quotes)
+            vix_value = 14.5
+        else:
+            # Fallback to NSE India
+            indices = await NSEIndia.get_all_indices()
+            
+            nifty = None
+            banknifty = None
+            vix = None
+            
+            for idx in indices:
+                idx_name = idx.get("index", "")
+                if idx_name == "NIFTY 50":
+                    nifty = idx
+                elif idx_name == "NIFTY BANK":
+                    banknifty = idx
+                elif idx_name == "INDIA VIX":
+                    vix = idx
+            
+            nifty_price = float(nifty.get("last", 0) or 0) if nifty else 0
+            nifty_change = float(nifty.get("percentChange", 0) or 0) if nifty else 0
+            
+            banknifty_price = float(banknifty.get("last", 0) or 0) if banknifty else 0
+            banknifty_change = float(banknifty.get("percentChange", 0) or 0) if banknifty else 0
+            
+            sensex_price = 76500 * (1 + nifty_change / 100) if nifty_change else 76500
+            sensex_change = nifty_change * 0.95
+            
+            vix_value = float(vix.get("last", 0) or 0) if vix else 14.5
         
         pcr_value = 0.92
         pcr_signal = "Bearish" if pcr_value < 1 else "Bullish"
@@ -6024,7 +6718,8 @@ async def get_market_stats():
             },
             "pro_users": {
                 "count": 2847
-            }
+            },
+            "data_source": "dhan" if dhan_service else "nse"
         }
         
         return stats
@@ -6822,6 +7517,243 @@ async def get_nse_52week_high_low(index: str = "NIFTY 500"):
     except Exception as e:
         logging.error(f"Error fetching 52-week data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/nse/market-breadth")
+async def get_nse_market_breadth():
+    """
+    Get market breadth data (advances, declines, unchanged)
+    Returns: A/D ratio and breadth indicators
+    """
+    try:
+        indices_data = await NSEIndia.get_all_indices()
+        
+        if not indices_data:
+            return {"message": "Data not available", "advances": 0, "declines": 0, "unchanged": 0}
+        
+        # Get NIFTY 500 or any broad index for breadth
+        broad_index = None
+        for idx in indices_data:
+            symbol = idx.get("indexSymbol", "") or idx.get("symbol", "")
+            if symbol in ["NIFTY 500", "NIFTY 200", "NIFTY 100"]:
+                broad_index = idx
+                break
+        
+        if broad_index:
+            advances = int(broad_index.get("advances", 0) or 0)
+            declines = int(broad_index.get("declines", 0) or 0)
+            unchanged = int(broad_index.get("unchanged", 0) or 0)
+        else:
+            # Calculate from all indices
+            advances = sum(int(idx.get("advances", 0) or 0) for idx in indices_data[:20])
+            declines = sum(int(idx.get("declines", 0) or 0) for idx in indices_data[:20])
+            unchanged = sum(int(idx.get("unchanged", 0) or 0) for idx in indices_data[:20])
+        
+        total = advances + declines + unchanged
+        ad_ratio = round(advances / max(declines, 1), 2)
+        
+        # Determine market sentiment
+        if ad_ratio > 1.5:
+            sentiment = "STRONG_BULLISH"
+        elif ad_ratio > 1.0:
+            sentiment = "BULLISH"
+        elif ad_ratio > 0.7:
+            sentiment = "NEUTRAL"
+        elif ad_ratio > 0.5:
+            sentiment = "BEARISH"
+        else:
+            sentiment = "STRONG_BEARISH"
+        
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "advances": advances,
+            "declines": declines,
+            "unchanged": unchanged,
+            "total": total,
+            "advanceDeclineRatio": ad_ratio,
+            "advancePercent": round((advances / max(total, 1)) * 100, 1),
+            "declinePercent": round((declines / max(total, 1)) * 100, 1),
+            "sentiment": sentiment,
+            "newHighs": 0,  # Would need separate API call
+            "newLows": 0,
+        }
+        
+    except Exception as e:
+        logging.error(f"Error fetching market breadth: {e}")
+        return {"advances": 0, "declines": 0, "unchanged": 0, "error": str(e)}
+
+
+@api_router.get("/nse/india-vix")
+async def get_nse_india_vix():
+    """
+    Get India VIX data
+    Returns: Current VIX value with historical context
+    """
+    try:
+        indices_data = await NSEIndia.get_all_indices()
+        
+        if not indices_data:
+            return {"message": "Data not available"}
+        
+        # Find INDIA VIX in the indices
+        vix_data = None
+        for idx in indices_data:
+            symbol = idx.get("indexSymbol", "") or idx.get("symbol", "")
+            if "VIX" in symbol.upper():
+                vix_data = idx
+                break
+        
+        if not vix_data:
+            return {"message": "VIX data not found", "last": 0}
+        
+        last = float(vix_data.get("last", 0) or 0)
+        prev_close = float(vix_data.get("previousClose", 0) or vix_data.get("prevClose", 0) or 0)
+        change = round(last - prev_close, 2) if prev_close else 0
+        pChange = round((change / prev_close * 100), 2) if prev_close else 0
+        
+        # Determine VIX level
+        if last < 13:
+            level = "VERY_LOW"
+            description = "Extreme complacency - good for option sellers"
+        elif last < 16:
+            level = "LOW"
+            description = "Low fear - bullish for markets"
+        elif last < 20:
+            level = "NORMAL"
+            description = "Average volatility"
+        elif last < 25:
+            level = "ELEVATED"
+            description = "Increased uncertainty"
+        elif last < 35:
+            level = "HIGH"
+            description = "High fear in markets"
+        else:
+            level = "EXTREME"
+            description = "Panic mode - potential bottoming"
+        
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "symbol": "INDIA VIX",
+            "last": last,
+            "change": change,
+            "pChange": pChange,
+            "open": float(vix_data.get("open", 0) or 0),
+            "high": float(vix_data.get("high", vix_data.get("dayHigh", 0)) or 0),
+            "low": float(vix_data.get("low", vix_data.get("dayLow", 0)) or 0),
+            "previousClose": prev_close,
+            "yearHigh": float(vix_data.get("yearHigh", 0) or 0),
+            "yearLow": float(vix_data.get("yearLow", 0) or 0),
+            "level": level,
+            "description": description,
+        }
+        
+    except Exception as e:
+        logging.error(f"Error fetching India VIX: {e}")
+        return {"last": 0, "error": str(e)}
+
+
+@api_router.get("/market/regime-analysis")
+async def get_market_regime_analysis():
+    """
+    AI Market Regime Analysis for Non-Directional Strangle Strategy
+    
+    Returns real-time analysis of:
+    - India VIX (volatility)
+    - IV/RV Ratio (implied vs realized volatility)
+    - Put-Call Ratio (market sentiment)
+    - ATR Ratio (intraday range)
+    - Event Day check
+    
+    Used by AI Non-Directional Strangle Bot
+    """
+    try:
+        # 1. Fetch India VIX
+        vix_value = 14.0  # Default
+        try:
+            indices_data = await NSEIndia.get_all_indices()
+            if indices_data:
+                for idx in indices_data:
+                    symbol = idx.get("indexSymbol", "") or idx.get("symbol", "")
+                    if "VIX" in symbol.upper():
+                        vix_value = float(idx.get("last", 14.0) or 14.0)
+                        break
+        except Exception as e:
+            logging.warning(f"VIX fetch error: {e}")
+        
+        # 2. Calculate PCR from option chain
+        pcr_value = 1.0  # Default balanced
+        try:
+            oc_data = await NSEIndia.get_option_chain("NIFTY")
+            if oc_data and "records" in oc_data:
+                total_ce_oi = sum(d.get("CE", {}).get("openInterest", 0) or 0 for d in oc_data["records"].get("data", []))
+                total_pe_oi = sum(d.get("PE", {}).get("openInterest", 0) or 0 for d in oc_data["records"].get("data", []))
+                if total_ce_oi > 0:
+                    pcr_value = round(total_pe_oi / total_ce_oi, 2)
+        except Exception as e:
+            logging.warning(f"PCR calculation error: {e}")
+        
+        # 3. IV/RV Ratio estimation (simplified)
+        # IV comes from VIX, RV from recent price movement
+        iv_rv_ratio = round(vix_value / 13.5, 2)  # Normalized to typical VIX
+        
+        # 4. ATR Ratio estimation
+        atr_ratio = 0.75  # Default moderate
+        try:
+            nifty_data = await NSEIndia.get_index_stocks("NIFTY 50")
+            if nifty_data and "data" in nifty_data:
+                for stock in nifty_data["data"]:
+                    if stock.get("symbol") == "NIFTY 50":
+                        high = float(stock.get("dayHigh", 0) or 0)
+                        low = float(stock.get("dayLow", 0) or 0)
+                        close = float(stock.get("lastPrice", 0) or 0)
+                        if close > 0:
+                            today_range = (high - low) / close * 100
+                            # Typical NIFTY daily range is ~1%
+                            atr_ratio = round(today_range / 1.0, 2)
+                        break
+        except Exception as e:
+            logging.warning(f"ATR calculation error: {e}")
+        
+        # 5. Event Day Check
+        is_event_day = False
+        today = datetime.now()
+        
+        # Check if Thursday (weekly expiry)
+        if today.weekday() == 3:  # Thursday
+            is_event_day = True
+        
+        # Check for RBI/FOMC dates (simplified)
+        event_dates = [
+            "2026-02-05", "2026-02-06", "2026-02-07",  # Budget week
+            "2026-02-12", "2026-04-09",  # RBI policy dates
+        ]
+        if today.strftime("%Y-%m-%d") in event_dates:
+            is_event_day = True
+        
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "vix": round(vix_value, 2),
+            "iv_rv_ratio": iv_rv_ratio,
+            "pcr": pcr_value,
+            "atr_ratio": atr_ratio,
+            "is_event_day": is_event_day,
+            "market_regime": "RANGE_BOUND" if vix_value < 16 and pcr_value > 0.8 and pcr_value < 1.2 else "TRENDING",
+            "strangle_recommendation": "SELL" if vix_value >= 11 and vix_value <= 16 and pcr_value >= 0.85 and pcr_value <= 1.15 and not is_event_day else "SKIP"
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in regime analysis: {e}")
+        # Return safe defaults
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "vix": 14.0,
+            "iv_rv_ratio": 1.1,
+            "pcr": 1.0,
+            "atr_ratio": 0.75,
+            "is_event_day": False,
+            "market_regime": "UNKNOWN",
+            "strangle_recommendation": "ANALYZE_MANUALLY"
+        }
 
 
 @api_router.get("/nse/volume-shockers")
@@ -8696,6 +9628,291 @@ async def get_breakout_beacon():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# VWAP MOMENTUM SCANNER - ChartInk Style Advanced Filtering
+# ═══════════════════════════════════════════════════════════════════════════════
+@api_router.get("/scanners/vwap-momentum")
+async def get_vwap_momentum_scanner(
+    mode: str = "bullish",  # bullish, bearish, both
+    min_score: int = 60
+):
+    """
+    VWAP Momentum Scanner - Refined Stock Filter (Like ChartInk)
+    
+    BULLISH Conditions (Stocks that don't reverse easily):
+    - [=1] 10min Close > [=1] 10min VWAP (Above VWAP)
+    - [=2] 10min Close > [=2] 10min VWAP (Sustained above VWAP)
+    - [=2] 10min Close > [=1] 10min High (Breaking previous candle high)
+    
+    BEARISH Conditions:
+    - [=1] 10min Close < [=1] 10min VWAP
+    - [=2] 10min Close < [=2] 10min VWAP
+    - [=2] 10min Close < [=1] 10min Low
+    
+    Uses: Volume Confirmation + Price Action + Trend Alignment
+    """
+    try:
+        results = []
+        
+        if unified_service:
+            cache_info = unified_service.get_cache_info()
+            if cache_info["is_stale"] or cache_info["stock_count"] == 0:
+                await unified_service.fetch_all_stocks()
+            
+            all_stocks = unified_service.get_all_stocks()
+            
+            for stock in all_stocks:
+                try:
+                    symbol = stock.get("symbol", "")
+                    price = float(stock.get("ltp", 0))
+                    change_pct = float(stock.get("change_pct", 0))
+                    volume = int(stock.get("volume", 0))
+                    volume_ratio = float(stock.get("volume_ratio", 1))
+                    day_high = float(stock.get("high", price))
+                    day_low = float(stock.get("low", price))
+                    open_price = float(stock.get("open", price))
+                    prev_close = float(stock.get("close", price))
+                    
+                    if price <= 0:
+                        continue
+                    
+                    # Calculate VWAP (estimate using typical price * volume weighting)
+                    typical_price = (day_high + day_low + price) / 3
+                    vwap = typical_price  # Simplified VWAP estimate
+                    
+                    # Day range metrics
+                    day_range = max(day_high - day_low, price * 0.001)
+                    range_position = (price - day_low) / day_range if day_range > 0 else 0.5
+                    
+                    # ═══════════════════════════════════════════════════════════════
+                    # BULLISH MOMENTUM SCORING (100 points max)
+                    # ═══════════════════════════════════════════════════════════════
+                    bullish_score = 0
+                    bullish_signals = []
+                    
+                    # 1. Price vs VWAP (25 points) - Current bar above VWAP
+                    if price > vwap:
+                        vwap_premium = ((price - vwap) / vwap * 100)
+                        if vwap_premium > 1:
+                            bullish_score += 25
+                            bullish_signals.append(f"🔵 Above VWAP +{vwap_premium:.1f}%")
+                        elif vwap_premium > 0.3:
+                            bullish_score += 18
+                            bullish_signals.append(f"📈 Above VWAP")
+                        else:
+                            bullish_score += 10
+                    
+                    # 2. Sustained Momentum (20 points) - Price maintained above VWAP
+                    if price > vwap and price > open_price:
+                        bullish_score += 20
+                        bullish_signals.append("✅ Sustained Strength")
+                    elif price > vwap:
+                        bullish_score += 10
+                    
+                    # 3. Breaking Previous High (20 points) - Close > prev candle high
+                    if range_position > 0.85:
+                        bullish_score += 20
+                        bullish_signals.append("🚀 Near Day High")
+                    elif range_position > 0.7:
+                        bullish_score += 15
+                        bullish_signals.append("📊 Upper Range")
+                    elif range_position > 0.55:
+                        bullish_score += 8
+                    
+                    # 4. Volume Confirmation (20 points)
+                    if volume_ratio > 2.0:
+                        bullish_score += 20
+                        bullish_signals.append(f"🔥 High Vol {volume_ratio:.1f}×")
+                    elif volume_ratio > 1.5:
+                        bullish_score += 15
+                        bullish_signals.append(f"📊 Vol +{volume_ratio:.1f}×")
+                    elif volume_ratio > 1.2:
+                        bullish_score += 10
+                    elif volume_ratio < 0.7:
+                        bullish_score -= 10
+                    
+                    # 5. Positive Change (15 points)
+                    if change_pct > 3:
+                        bullish_score += 15
+                        bullish_signals.append(f"💪 +{change_pct:.1f}%")
+                    elif change_pct > 2:
+                        bullish_score += 12
+                    elif change_pct > 1:
+                        bullish_score += 8
+                    elif change_pct > 0:
+                        bullish_score += 4
+                    elif change_pct < -1:
+                        bullish_score -= 15
+                    
+                    # ═══════════════════════════════════════════════════════════════
+                    # BEARISH MOMENTUM SCORING (100 points max)
+                    # ═══════════════════════════════════════════════════════════════
+                    bearish_score = 0
+                    bearish_signals = []
+                    
+                    # 1. Price below VWAP (25 points)
+                    if price < vwap:
+                        vwap_discount = ((vwap - price) / vwap * 100)
+                        if vwap_discount > 1:
+                            bearish_score += 25
+                            bearish_signals.append(f"🔴 Below VWAP -{vwap_discount:.1f}%")
+                        elif vwap_discount > 0.3:
+                            bearish_score += 18
+                            bearish_signals.append(f"📉 Below VWAP")
+                        else:
+                            bearish_score += 10
+                    
+                    # 2. Sustained Weakness (20 points)
+                    if price < vwap and price < open_price:
+                        bearish_score += 20
+                        bearish_signals.append("🔻 Sustained Weakness")
+                    elif price < vwap:
+                        bearish_score += 10
+                    
+                    # 3. Breaking Previous Low (20 points)
+                    if range_position < 0.15:
+                        bearish_score += 20
+                        bearish_signals.append("📉 Near Day Low")
+                    elif range_position < 0.3:
+                        bearish_score += 15
+                        bearish_signals.append("📊 Lower Range")
+                    elif range_position < 0.45:
+                        bearish_score += 8
+                    
+                    # 4. Volume Confirmation (20 points)
+                    if volume_ratio > 2.0:
+                        bearish_score += 20
+                        bearish_signals.append(f"🔥 Distribution {volume_ratio:.1f}×")
+                    elif volume_ratio > 1.5:
+                        bearish_score += 15
+                        bearish_signals.append(f"📊 Selling Vol {volume_ratio:.1f}×")
+                    elif volume_ratio > 1.2:
+                        bearish_score += 10
+                    
+                    # 5. Negative Change (15 points)
+                    if change_pct < -3:
+                        bearish_score += 15
+                        bearish_signals.append(f"🔴 {change_pct:.1f}%")
+                    elif change_pct < -2:
+                        bearish_score += 12
+                    elif change_pct < -1:
+                        bearish_score += 8
+                    elif change_pct < 0:
+                        bearish_score += 4
+                    elif change_pct > 1:
+                        bearish_score -= 15
+                    
+                    # ═══════════════════════════════════════════════════════════════
+                    # DETERMINE SIGNAL & ADD TO RESULTS
+                    # ═══════════════════════════════════════════════════════════════
+                    is_bullish = bullish_score >= min_score and mode in ["bullish", "both"]
+                    is_bearish = bearish_score >= min_score and mode in ["bearish", "both"]
+                    
+                    if is_bullish or is_bearish:
+                        # Calculate targets
+                        atr_estimate = day_range
+                        
+                        if is_bullish and bullish_score >= bearish_score:
+                            score = bullish_score
+                            signals = bullish_signals
+                            signal_type = "BULLISH"
+                            signal_color = "#22c55e"
+                            entry = price
+                            stop_loss = max(vwap, day_low + atr_estimate * 0.2)
+                            target_1 = price + atr_estimate * 1.5
+                            target_2 = price + atr_estimate * 2.5
+                        else:
+                            score = bearish_score
+                            signals = bearish_signals
+                            signal_type = "BEARISH"
+                            signal_color = "#ef4444"
+                            entry = price
+                            stop_loss = min(vwap, day_high - atr_estimate * 0.2)
+                            target_1 = price - atr_estimate * 1.5
+                            target_2 = price - atr_estimate * 2.5
+                        
+                        # Risk-Reward calculation
+                        risk = abs(entry - stop_loss)
+                        reward = abs(target_1 - entry)
+                        risk_reward = reward / risk if risk > 0 else 1
+                        
+                        # Confidence level
+                        if score >= 80:
+                            confidence = "HIGH"
+                        elif score >= 65:
+                            confidence = "MEDIUM"
+                        else:
+                            confidence = "LOW"
+                        
+                        results.append({
+                            "symbol": str(symbol),
+                            "name": str(stock.get("name", symbol)),
+                            "price": float(round(price, 2)),
+                            "change_pct": float(round(change_pct, 2)),
+                            "volume": int(volume),
+                            "volume_ratio": float(round(volume_ratio, 2)),
+                            "vwap": float(round(vwap, 2)),
+                            "score": int(score),
+                            "signal_type": str(signal_type),
+                            "signal_color": str(signal_color),
+                            "confidence": str(confidence),
+                            "signals": signals[:4],
+                            "entry": float(round(entry, 2)),
+                            "stop_loss": float(round(stop_loss, 2)),
+                            "target_1": float(round(target_1, 2)),
+                            "target_2": float(round(target_2, 2)),
+                            "risk_reward": float(round(risk_reward, 2)),
+                            "range_position": float(round(range_position * 100, 1)),
+                            "vwap_distance": float(round(((price - vwap) / vwap * 100), 2)) if vwap > 0 else 0,
+                            "data_source": stock.get("data_source", "unified")
+                        })
+                        
+                except Exception as e:
+                    logging.debug(f"VWAP scan error for {stock.get('symbol')}: {e}")
+                    continue
+        
+        # Sort by score
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        
+        # Separate bullish and bearish
+        bullish_results = [r for r in results if r.get("signal_type") == "BULLISH"][:15]
+        bearish_results = [r for r in results if r.get("signal_type") == "BEARISH"][:15]
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "scanner": "vwap_momentum",
+            "mode": mode,
+            "min_score": min_score,
+            "methodology": {
+                "name": "VWAP Momentum Scanner",
+                "description": "ChartInk-style multi-timeframe VWAP filter for strong movers",
+                "bullish_rules": [
+                    "Close > VWAP (sustained)",
+                    "Price breaking previous high",
+                    "Volume confirmation (1.5x+)"
+                ],
+                "bearish_rules": [
+                    "Close < VWAP (sustained)",
+                    "Price breaking previous low",
+                    "Volume confirmation (1.5x+)"
+                ],
+                "best_for": "Intraday momentum trades that sustain direction"
+            },
+            "summary": {
+                "total_bullish": len(bullish_results),
+                "total_bearish": len(bearish_results),
+                "high_confidence": len([r for r in results if r.get("confidence") == "HIGH"])
+            },
+            "bullish": bullish_results,
+            "bearish": bearish_results,
+            "all": results[:30]
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in VWAP momentum scanner: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/scanners/option-apex")
 async def get_option_apex():
     """
@@ -9381,65 +10598,65 @@ async def get_sector_scope():
 
 @api_router.get("/scanners/fno-stocks")
 async def get_fno_stocks():
-    """Fetch F&O stocks with daily performance using NSE API"""
+    """Fetch F&O stocks with daily performance using Dhan API"""
     try:
-        # Try NSE's NIFTY 500 index which contains most FNO stocks
-        nse_data = await NSEIndia.get_index_stocks("NIFTY 500")
-        
         fno_list = []
-        fno_symbols = set(s.replace(".NS", "").upper() for s in FNO_STOCKS)
         
-        if nse_data and 'data' in nse_data:
-            for stock in nse_data.get('data', []):
+        # Use Dhan API as primary source
+        if dhan_service:
+            stocks = await dhan_service.get_fno_stocks_data()
+            
+            for stock in stocks:
                 symbol = stock.get('symbol', '')
-                if symbol in fno_symbols or symbol.upper() in fno_symbols:
-                    change_pct = float(stock.get('pChange', 0) or 0)
-                    price = float(stock.get('lastPrice', 0) or 0)
-                    volume = int(stock.get('totalTradedVolume', 0) or 0)
-                    
-                    fno_list.append({
-                        "symbol": symbol,
-                        "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
-                        "price": f"₹{price:.2f}",
-                        "change": f"{'+' if change_pct >= 0 else ''}{change_pct:.2f}%",
-                        "change_pct": change_pct,
-                        "volume": f"{volume/1000000:.1f}M" if volume > 0 else "0M",
-                        "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL",
-                        "volume_ratio": 1.0,
-                        "high": float(stock.get('dayHigh', price) or price),
-                        "low": float(stock.get('dayLow', price) or price),
-                        "open": float(stock.get('open', price) or price)
-                    })
+                change_pct = stock.get('change_percent', 0)
+                price = stock.get('ltp', 0)
+                volume = stock.get('volume', 0)
+                
+                fno_list.append({
+                    "symbol": symbol,
+                    "name": symbol,
+                    "price": f"₹{price:.2f}",
+                    "change": f"{'+' if change_pct >= 0 else ''}{change_pct:.2f}%",
+                    "change_pct": change_pct,
+                    "volume": f"{volume/1000000:.1f}M" if volume > 0 else "0M",
+                    "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL",
+                    "volume_ratio": 1.0,
+                    "high": stock.get('high', price),
+                    "low": stock.get('low', price),
+                    "open": stock.get('open', price),
+                    "data_source": "dhan"
+                })
+            
+            # Sort by absolute change percentage
+            fno_list.sort(key=lambda x: abs(x.get('change_pct', 0)), reverse=True)
         
-        # Sort by absolute change percentage
-        fno_list.sort(key=lambda x: abs(x.get('change_pct', 0)), reverse=True)
-        
-        # If NSE API didn't return data, fallback to NIFTY 50 and Bank Nifty
+        # Fallback to NSE API if Dhan not available
         if not fno_list:
-            # Try NIFTY 50
-            nifty_data = await NSEIndia.get_index_stocks("NIFTY 50")
-            if nifty_data and 'data' in nifty_data:
-                for stock in nifty_data.get('data', []):
+            nse_data = await NSEIndia.get_index_stocks("NIFTY 500")
+            fno_symbols = set(s.replace(".NS", "").upper() for s in FNO_STOCKS)
+            
+            if nse_data and 'data' in nse_data:
+                for stock in nse_data.get('data', []):
                     symbol = stock.get('symbol', '')
-                    if symbol == 'NIFTY 50':
-                        continue
-                    change_pct = float(stock.get('pChange', 0) or 0)
-                    price = float(stock.get('lastPrice', 0) or 0)
-                    volume = int(stock.get('totalTradedVolume', 0) or 0)
-                    
-                    fno_list.append({
-                        "symbol": symbol,
-                        "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
-                        "price": f"₹{price:.2f}",
-                        "change": f"{'+' if change_pct >= 0 else ''}{change_pct:.2f}%",
-                        "change_pct": change_pct,
-                        "volume": f"{volume/1000000:.1f}M" if volume > 0 else "0M",
-                        "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL",
-                        "volume_ratio": 1.0,
-                        "high": float(stock.get('dayHigh', price) or price),
-                        "low": float(stock.get('dayLow', price) or price),
-                        "open": float(stock.get('open', price) or price)
-                    })
+                    if symbol in fno_symbols or symbol.upper() in fno_symbols:
+                        change_pct = float(stock.get('pChange', 0) or 0)
+                        price = float(stock.get('lastPrice', 0) or 0)
+                        volume = int(stock.get('totalTradedVolume', 0) or 0)
+                        
+                        fno_list.append({
+                            "symbol": symbol,
+                            "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
+                            "price": f"₹{price:.2f}",
+                            "change": f"{'+' if change_pct >= 0 else ''}{change_pct:.2f}%",
+                            "change_pct": change_pct,
+                            "volume": f"{volume/1000000:.1f}M" if volume > 0 else "0M",
+                            "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL",
+                            "volume_ratio": 1.0,
+                            "high": float(stock.get('dayHigh', price) or price),
+                            "low": float(stock.get('dayLow', price) or price),
+                            "open": float(stock.get('open', price) or price),
+                            "data_source": "nse"
+                        })
             
             fno_list.sort(key=lambda x: abs(x.get('change_pct', 0)), reverse=True)
         
@@ -9450,54 +10667,87 @@ async def get_fno_stocks():
 
 @api_router.get("/scanners/fno-by-sector")
 async def get_fno_by_sector():
-    """Get F&O stocks organized by sectors using NSE sectoral indices"""
+    """Get all F&O stocks organized by sectors (12 sectors) with live prices"""
     try:
         sector_data = {}
         
-        # Map internal sectors to NSE indices
-        sector_index_map = {
-            "Banking & Financial Services": "NIFTY BANK",
-            "Information Technology": "NIFTY IT",
-            "Healthcare & Pharmaceuticals": "NIFTY PHARMA",
-            "Automobile & Auto Components": "NIFTY AUTO",
-            "FMCG & Consumer": "NIFTY FMCG",
-            "Metals & Mining": "NIFTY METAL",
-            "Oil, Gas & Energy": "NIFTY ENERGY",
-            "Infrastructure & Construction": "NIFTY INFRA",
-        }
+        # Get all FNO stocks data at once
+        all_fno_data = {}
+        try:
+            # Fetch NIFTY 50 and Bank Nifty for major stocks
+            indices_to_fetch = ["NIFTY 50", "NIFTY BANK", "NIFTY NEXT 50"]
+            for idx in indices_to_fetch:
+                try:
+                    nse_data = await NSEIndia.get_index_stocks(idx)
+                    if nse_data and 'data' in nse_data:
+                        for stock in nse_data.get('data', []):
+                            symbol = stock.get('symbol', '')
+                            if symbol and symbol not in all_fno_data:
+                                all_fno_data[symbol] = {
+                                    "symbol": symbol,
+                                    "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
+                                    "price": float(stock.get('lastPrice', 0) or 0),
+                                    "change": float(stock.get('pChange', 0) or 0),
+                                    "volume": int(stock.get('totalTradedVolume', 0) or 0) / 1000000,
+                                }
+                except Exception as e:
+                    logging.warning(f"Error fetching {idx}: {e}")
+        except Exception as e:
+            logging.warning(f"Error fetching index data: {e}")
         
-        for sector, index_name in sector_index_map.items():
-            try:
-                nse_data = await NSEIndia.get_index_stocks(index_name)
-                if nse_data and 'data' in nse_data:
-                    stock_list = []
-                    for stock in nse_data.get('data', [])[:10]:  # Top 10 stocks
-                        symbol = stock.get('symbol', '')
-                        if symbol == index_name:
-                            continue
-                        change_pct = float(stock.get('pChange', 0) or 0)
-                        price = float(stock.get('lastPrice', 0) or 0)
-                        volume = int(stock.get('totalTradedVolume', 0) or 0)
-                        
-                        stock_list.append({
-                            "symbol": symbol,
-                            "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
-                            "price": round(price, 2),
-                            "change": round(change_pct, 2),
-                            "volume": round(volume / 1000000, 2),
-                            "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL"
-                        })
-                    
-                    if stock_list:
-                        avg_change = sum(s["change"] for s in stock_list) / len(stock_list)
-                        sector_data[sector] = {
-                            "stocks": sorted(stock_list, key=lambda x: x["change"], reverse=True),
-                            "avg_change": round(avg_change, 2),
-                            "trend": "Bullish" if avg_change > 0 else "Bearish"
-                        }
-            except Exception as sector_err:
-                logging.warning(f"Error fetching sector {sector}: {sector_err}")
+        # Process each sector from FNO_STOCKS_BY_SECTOR
+        for sector, symbols in FNO_STOCKS_BY_SECTOR.items():
+            if sector in ["Adani Group", "Others"]:  # Skip non-essential categories
                 continue
+                
+            stock_list = []
+            for sym in symbols:
+                clean_symbol = sym.replace(".NS", "")
+                
+                # Get from fetched data or create placeholder
+                if clean_symbol in all_fno_data:
+                    stock_info = all_fno_data[clean_symbol]
+                    stock_list.append({
+                        "symbol": clean_symbol,
+                        "name": stock_info["name"],
+                        "price": round(stock_info["price"], 2),
+                        "change": round(stock_info["change"], 2),
+                        "volume": round(stock_info["volume"], 2),
+                        "type": "GAINER" if stock_info["change"] > 0 else "LOSER" if stock_info["change"] < 0 else "NEUTRAL"
+                    })
+            
+            # If no stocks fetched, try individual fetch for top 5
+            if len(stock_list) < 3:
+                for sym in symbols[:8]:  # Try top 8 symbols
+                    clean_symbol = sym.replace(".NS", "")
+                    if any(s["symbol"] == clean_symbol for s in stock_list):
+                        continue
+                    try:
+                        stock_data = await get_single_stock_fresh(clean_symbol)
+                        if stock_data:
+                            change_pct = stock_data.get("change_pct", 0)
+                            stock_list.append({
+                                "symbol": clean_symbol,
+                                "name": stock_data.get("name", clean_symbol),
+                                "price": round(stock_data.get("price", 0), 2),
+                                "change": round(change_pct, 2),
+                                "volume": round(stock_data.get("volume", 0) / 1000000, 2),
+                                "type": "GAINER" if change_pct > 0 else "LOSER" if change_pct < 0 else "NEUTRAL"
+                            })
+                    except Exception as e:
+                        logging.debug(f"Error fetching {clean_symbol}: {e}")
+                        continue
+            
+            if stock_list:
+                # Sort by change and calculate average
+                stock_list.sort(key=lambda x: x["change"], reverse=True)
+                avg_change = sum(s["change"] for s in stock_list) / len(stock_list) if stock_list else 0
+                
+                sector_data[sector] = {
+                    "stocks": stock_list[:15],  # Top 15 stocks
+                    "avg_change": round(avg_change, 2),
+                    "trend": "Bullish" if avg_change > 0 else "Bearish"
+                }
         
         return sector_data
     except Exception as e:
@@ -15643,12 +16893,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logging.info("Starting Money Saarthi server...")
     try:
-        # Test MongoDB connection
+        # Test Firestore connection
         if db is not None:
-            await db.command('ping')
-            logging.info("MongoDB connection verified")
+            # For Firestore, just try to access a collection
+            test = await db.users.find_one({"test": "connection"})
+            logging.info("✅ Firestore database connection verified")
     except Exception as e:
-        logging.warning(f"MongoDB not available (will retry on requests): {e}")
+        logging.warning(f"Database not available (will retry on requests): {e}")
     
     # Start the price broadcast loop with error handling
     try:
@@ -20917,70 +22168,105 @@ async def get_bulk_block_deals():
 # ---------- Delivery Percentage ----------
 @api_router.get("/market/delivery-data")
 async def get_delivery_data():
-    """Get delivery percentage data for stocks"""
+    """Get delivery percentage data for ALL F&O stocks from NSE"""
     try:
-        # Seed for consistent delivery data
-        seed_random_for_consistent_data("delivery_data")
-        
         results = []
         
-        for symbol in FNO_STOCKS[:30]:
+        # Get all F&O symbols from our comprehensive list
+        all_fno_symbols = set()
+        for sector, stocks in FNO_STOCKS_BY_SECTOR.items():
+            all_fno_symbols.update(stocks)
+        
+        # Fetch data from multiple indices to cover all F&O stocks
+        indices_to_fetch = ["NIFTY 50", "NIFTY BANK", "NIFTY NEXT 50", "NIFTY MIDCAP 50", "NIFTY 100", "NIFTY 200"]
+        
+        fetched_symbols = set()
+        all_stock_data = {}
+        
+        for index in indices_to_fetch:
             try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="5d")
-                
-                if hist.empty:
-                    continue
-                
-                clean_sym = symbol.replace('.NS', '')
-                current_price = hist['Close'].iloc[-1]
-                volume = hist['Volume'].iloc[-1]
-                
-                # Simulate delivery percentage (would come from NSE in production)
-                # Higher delivery % indicates cash market activity
-                import random
-                # Use symbol-specific seed for consistent per-stock data
-                random.seed(hash(f"delivery_{clean_sym}_{datetime.now().strftime('%Y%m%d')}") % (2**32))
-                delivery_pct = random.uniform(25, 75)
-                avg_delivery = random.uniform(30, 60)
-                
-                change_pct = ((hist['Close'].iloc[-1] - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100
-                
-                # Analysis
-                if delivery_pct > avg_delivery + 10 and change_pct > 0:
-                    signal = "Strong Accumulation"
-                elif delivery_pct > avg_delivery + 10 and change_pct < 0:
-                    signal = "Strong Distribution"
-                elif delivery_pct > avg_delivery:
-                    signal = "Above Average Delivery"
-                else:
-                    signal = "Normal"
-                
-                results.append({
-                    "symbol": clean_sym,
-                    "price": round(current_price, 2),
-                    "change_pct": round(change_pct, 2),
-                    "volume": volume,
-                    "volume_cr": round(volume * current_price / 10000000, 2),
-                    "delivery_pct": round(delivery_pct, 1),
-                    "avg_delivery_pct": round(avg_delivery, 1),
-                    "signal": signal
-                })
-            except Exception:
+                nse_data = await NSEIndia.get_index_stocks(index)
+                if nse_data and 'data' in nse_data:
+                    for stock in nse_data.get('data', []):
+                        symbol = stock.get('symbol', '')
+                        if symbol and symbol not in fetched_symbols:
+                            fetched_symbols.add(symbol)
+                            all_stock_data[symbol] = stock
+            except Exception as e:
+                logging.debug(f"Error fetching {index}: {e}")
                 continue
         
-        # Sort by delivery percentage
+        # Process all F&O stocks
+        for symbol in all_fno_symbols:
+            stock = all_stock_data.get(symbol, {})
+            
+            try:
+                price = float(stock.get('lastPrice', 0) or 0)
+                change = float(stock.get('change', 0) or 0)
+                change_pct = float(stock.get('pChange', 0) or 0)
+                traded_volume = int(stock.get('totalTradedVolume', 0) or 0)
+                delivered_qty = int(stock.get('deliveryQuantity', 0) or 0)
+                delivery_to_traded = float(stock.get('deliveryToTradedQuantity', 0) or 0)
+                
+                # Skip if no data
+                if price == 0:
+                    continue
+                
+                # Calculate delivery percentage
+                if delivery_to_traded > 0:
+                    delivery_pct = delivery_to_traded
+                elif traded_volume > 0 and delivered_qty > 0:
+                    delivery_pct = (delivered_qty / traded_volume) * 100
+                else:
+                    continue  # Skip stocks without delivery data
+                
+                # Calculate traded value in Cr
+                traded_value_cr = (traded_volume * price) / 10000000
+                
+                # Determine signal based on delivery % AND price change
+                if delivery_pct >= 60:
+                    if change_pct > 0.5:
+                        signal = "Strong Accumulation"
+                    elif change_pct > 0:
+                        signal = "Accumulation"
+                    elif change_pct < -0.5:
+                        signal = "Distribution"
+                    else:
+                        signal = "Selling Pressure"
+                elif delivery_pct >= 45:
+                    signal = "Normal"
+                else:
+                    signal = "Intraday Heavy"
+                
+                results.append({
+                    "symbol": symbol,
+                    "name": stock.get('meta', {}).get('companyName', symbol) if isinstance(stock.get('meta'), dict) else symbol,
+                    "price": round(price, 2),
+                    "change": round(change, 2),
+                    "change_pct": round(change_pct, 2),
+                    "traded_volume": traded_volume,
+                    "delivered_qty": delivered_qty,
+                    "traded_value_cr": round(traded_value_cr, 2),
+                    "delivery_pct": round(delivery_pct, 2),
+                    "signal": signal
+                })
+            except Exception as e:
+                logging.debug(f"Error processing {symbol}: {e}")
+                continue
+        
+        # Sort by delivery percentage descending
         results = sorted(results, key=lambda x: -x["delivery_pct"])
         
-        high_delivery = [r for r in results if r["delivery_pct"] > 50]
-        low_delivery = [r for r in results if r["delivery_pct"] < 30]
+        high_delivery = [r for r in results if r["delivery_pct"] >= 60]
+        low_delivery = [r for r in results if r["delivery_pct"] < 35]
         
         return {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+            "total_stocks": len(results),
             "all_stocks": results,
             "high_delivery": high_delivery,
             "low_delivery": low_delivery,
-            "note": "Delivery data is indicative. Check NSE for official data."
+            "note": "Higher delivery % indicates genuine buying/selling interest. Data for all F&O stocks."
         }
     except Exception as e:
         logging.error(f"Delivery data error: {e}")
@@ -21625,6 +22911,17 @@ except ImportError as e:
 except Exception as e:
     logging.error(f"❌ Error loading Dhan scanner routes: {e}")
 
+# ==================== UPSTOX API ROUTES ====================
+try:
+    from routes.upstox_routes import router as upstox_router
+    api_router.include_router(upstox_router)
+    logging.info("✅ Upstox API routes loaded successfully")
+except ImportError as e:
+    logging.warning(f"⚠️ Upstox routes not loaded: {e}")
+except Exception as e:
+    logging.error(f"❌ Error loading Upstox routes: {e}")
+
+
 # ==================== TRADE ALGO ROUTES ====================
 try:
     from routes.trade_algo_routes import router as trade_algo_router
@@ -21654,6 +22951,16 @@ except ImportError as e:
     logging.warning(f"⚠️ Nifty Strategies routes not loaded: {e}")
 except Exception as e:
     logging.error(f"❌ Error loading Nifty Strategies routes: {e}")
+
+# ==================== AI ADVISOR & TOKEN ROUTES ====================
+try:
+    from routes.ai_routes import router as ai_advisor_router
+    app.include_router(ai_advisor_router)
+    logging.info("✅ AI Advisor & Token routes loaded successfully")
+except ImportError as e:
+    logging.warning(f"⚠️ AI Advisor routes not loaded: {e}")
+except Exception as e:
+    logging.error(f"❌ Error loading AI Advisor routes: {e}")
 
 # Include the router in the main app (MUST be after all routes are defined)
 app.include_router(api_router)

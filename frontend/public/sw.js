@@ -2,7 +2,7 @@
 
 // Service Worker for Money Saarthi Push Notifications
 
-const CACHE_NAME = 'money-saarthi-v1';
+const CACHE_NAME = 'money-saarthi-v2';  // Updated version to force cache refresh
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -10,10 +10,17 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event
+// Activate event - clear old caches
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 // Push event - handle incoming push notifications

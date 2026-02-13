@@ -26,7 +26,7 @@ const MarketSentiment = () => {
     const fetchSentiment = async () => {
       try {
         const [fiiDii, breadth, vix] = await Promise.all([
-          fetchAPI('/fii-dii'),
+          fetchAPI('/fii-dii-data'),
           fetchAPI('/nse/market-breadth'),
           fetchAPI('/nse/india-vix'),
         ]);
