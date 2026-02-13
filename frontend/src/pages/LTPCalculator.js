@@ -140,6 +140,8 @@ export default function LTPCalculator() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const refreshTimerRef = useRef(null);
   const [spotChange, setSpotChange] = useState(0);
+  const [ltpLevels, setLtpLevels] = useState(null);
+  const [levelsLoading, setLevelsLoading] = useState(false);
 
   // ── COA State ──
   const [supportStrength, setSupportStrength] = useState('Strong');
@@ -163,9 +165,10 @@ export default function LTPCalculator() {
     setLoading(true);
     setError(null);
     try {
-      const [chainRes, tickerRes] = await Promise.allSettled([
+      const [chainRes, tickerRes, levelsRes] = await Promise.allSettled([
         fetchAPI(`/nse/option-chain/${symbol}`),
         fetchAPI('/ticker-data'),
+        fetchAPI(`/ltp/levels/${symbol}`),
       ]);
 
       // Process ticker data for spot change %
@@ -196,6 +199,15 @@ export default function LTPCalculator() {
         setLastUpdated(new Date());
       } else {
         throw new Error(chainRes.reason?.message || 'Failed to fetch option chain');
+      }
+
+      // Process LTP levels from backend (real OI-based EOS/EOR/Diversions)
+      if (levelsRes.status === 'fulfilled' && levelsRes.value) {
+        const lv = levelsRes.value;
+        setLtpLevels(lv);
+        // Auto-fill COA inputs from real OI data
+        if (lv.EOS) setSupportLevel(String(lv.EOS));
+        if (lv.EOR) setResistanceLevel(String(lv.EOR));
       }
     } catch (err) {
       console.error('Option chain fetch error:', err);
@@ -236,12 +248,25 @@ export default function LTPCalculator() {
     return { callStrike, putStrike, maxCallOI, maxPutOI };
   }, [optionChainData]);
 
-  // Auto-fill COA support/resistance from max OI strikes
-  useEffect(() => {
-    if (maxOI.putStrike && !supportLevel) setSupportLevel(String(maxOI.putStrike));
-    if (maxOI.callStrike && !resistanceLevel) setResistanceLevel(String(maxOI.callStrike));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxOI.putStrike, maxOI.callStrike]);
+  // Effective levels: prefer backend API levels, fallback to frontend coaLevels
+  const effectiveLevels = useMemo(() => {
+    if (ltpLevels && ltpLevels.EOS && ltpLevels.EOR && ltpLevels.spot) {
+      return {
+        EOS: ltpLevels.EOS,
+        EOR: ltpLevels.EOR,
+        diversions: ltpLevels.diversions || [],
+        priceMin: ltpLevels.price_min || Math.min(ltpLevels.EOS, ltpLevels.EOR) - 300,
+        priceMax: ltpLevels.price_max || Math.max(ltpLevels.EOS, ltpLevels.EOR) + 300,
+        eosExt: ltpLevels.eos_ext,
+        eorExt: ltpLevels.eor_ext,
+        maxCallOI: ltpLevels.max_call_oi,
+        maxPutOI: ltpLevels.max_put_oi,
+        source: 'api',
+      };
+    }
+    if (coaLevels) return { ...coaLevels, source: 'manual' };
+    return null;
+  }, [ltpLevels, coaLevels]);
 
   const oiChartData = useMemo(() => {
     return optionChainData.map(row => ({
@@ -926,6 +951,58 @@ export default function LTPCalculator() {
                   <div className="text-xs text-blue-400/70">Support to Resistance</div>
                 </Card>
               </div>
+
+              {/* Live LTP Levels in Option Chain tab */}
+              {effectiveLevels && (
+                <Card className="glass-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      📍 OI-Based Level Map
+                      <Badge className="bg-orange-500/20 text-orange-400">Max OI Support / Resistance / CMP</Badge>
+                      {effectiveLevels.source === 'api' && <Badge className="bg-green-500/20 text-green-400 text-[10px]">🟢 Live</Badge>}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
+                        <div className="text-[10px] text-green-400/70">Support (Max Put OI)</div>
+                        <div className="text-sm font-bold text-green-400">{effectiveLevels.EOS.toLocaleString()}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+                        <div className="text-[10px] text-red-400/70">Resistance (Max Call OI)</div>
+                        <div className="text-sm font-bold text-red-400">{effectiveLevels.EOR.toLocaleString()}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-center">
+                        <div className="text-[10px] text-orange-400/70">CMP</div>
+                        <div className="text-sm font-bold text-orange-400">{spotPrice.toLocaleString()}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+                        <div className="text-[10px] text-yellow-400/70">Diversions</div>
+                        <div className="text-sm font-bold text-yellow-400">{effectiveLevels.diversions.length} levels</div>
+                      </div>
+                    </div>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={[
+                          { idx: 0, price: effectiveLevels.priceMin },
+                          { idx: 1, price: effectiveLevels.priceMax },
+                        ]}>
+                          <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="3 3" horizontal={false} />
+                          <XAxis dataKey="idx" hide />
+                          <YAxis domain={[effectiveLevels.priceMin, effectiveLevels.priceMax]} tick={{ fill: CHART_COLORS.text, fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} width={55} />
+                          <ReferenceLine y={spotPrice} stroke={CHART_COLORS.spot} strokeWidth={2.5} strokeDasharray="6 3" label={{ value: `CMP ${spotPrice.toFixed(0)}`, position: 'right', fill: CHART_COLORS.spot, fontSize: 11, fontWeight: 700 }} />
+                          <ReferenceLine y={effectiveLevels.EOS} stroke="#22c55e" strokeWidth={2} label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }} />
+                          <ReferenceLine y={effectiveLevels.EOR} stroke="#ef4444" strokeWidth={2} label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }} />
+                          {effectiveLevels.diversions.map((level, idx) => (
+                            <ReferenceLine key={idx} y={level} stroke="#eab308" strokeDasharray="4 4" strokeWidth={1.2} label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: '#eab308', fontSize: 10 }} />
+                          ))}
+                          <Line type="monotone" dataKey="price" stroke="transparent" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           )}
 
@@ -1129,29 +1206,78 @@ export default function LTPCalculator() {
               </div>
 
               {/* ── Live LTP Levels Chart ── */}
-              {coaLevels && (
+              {effectiveLevels && (
                 <Card className="glass-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-sm">
                       📍 Live LTP Levels
                       <Badge className="bg-orange-500/20 text-orange-400">EOS / EOR / Diversions / CMP</Badge>
+                      {effectiveLevels.source === 'api' && <Badge className="bg-green-500/20 text-green-400 text-[10px]">🟢 NSE Live OI</Badge>}
+                      {effectiveLevels.source === 'manual' && <Badge className="bg-yellow-500/20 text-yellow-400 text-[10px]">Manual</Badge>}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
+                    {/* OI-based level summary */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
+                        <div className="text-[10px] text-green-400/70">EOS (Support)</div>
+                        <div className="text-sm font-bold text-green-400">{effectiveLevels.EOS.toLocaleString()}</div>
+                        {effectiveLevels.maxPutOI && <div className="text-[9px] text-green-400/50">Put OI: {(effectiveLevels.maxPutOI / 100000).toFixed(1)}L</div>}
+                      </div>
+                      <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+                        <div className="text-[10px] text-red-400/70">EOR (Resistance)</div>
+                        <div className="text-sm font-bold text-red-400">{effectiveLevels.EOR.toLocaleString()}</div>
+                        {effectiveLevels.maxCallOI && <div className="text-[9px] text-red-400/50">Call OI: {(effectiveLevels.maxCallOI / 100000).toFixed(1)}L</div>}
+                      </div>
+                      <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-center">
+                        <div className="text-[10px] text-orange-400/70">CMP (Spot)</div>
+                        <div className="text-sm font-bold text-orange-400">{spotPrice.toLocaleString()}</div>
+                        <div className="text-[9px] text-orange-400/50">{spotPrice > effectiveLevels.EOS && spotPrice < effectiveLevels.EOR ? 'In Range ✅' : spotPrice >= effectiveLevels.EOR ? 'Near Resistance ⚠️' : 'Near Support ⚠️'}</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+                        <div className="text-[10px] text-yellow-400/70">Diversions</div>
+                        <div className="text-sm font-bold text-yellow-400">{effectiveLevels.diversions.length}</div>
+                        <div className="text-[9px] text-yellow-400/50">D1–D{effectiveLevels.diversions.length}</div>
+                      </div>
+                    </div>
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={[
-                          { idx: 0, price: coaLevels.priceMin },
-                          { idx: 1, price: coaLevels.priceMax },
+                          { idx: 0, price: effectiveLevels.priceMin },
+                          { idx: 1, price: effectiveLevels.priceMax },
                         ]}>
                           <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="3 3" horizontal={false} />
                           <XAxis dataKey="idx" hide />
                           <YAxis
-                            domain={[coaLevels.priceMin, coaLevels.priceMax]}
+                            domain={[effectiveLevels.priceMin, effectiveLevels.priceMax]}
                             tick={{ fill: CHART_COLORS.text, fontSize: 10 }}
                             tickFormatter={(v) => v.toFixed(0)}
                             width={55}
                           />
+
+                          {/* EOS Extended */}
+                          {effectiveLevels.eosExt && (
+                            <ReferenceLine
+                              y={effectiveLevels.eosExt}
+                              stroke="#22c55e"
+                              strokeDasharray="8 4"
+                              strokeWidth={1}
+                              strokeOpacity={0.5}
+                              label={{ value: `EOS-1 ${effectiveLevels.eosExt}`, position: 'left', fill: '#22c55e', fontSize: 9, fillOpacity: 0.6 }}
+                            />
+                          )}
+
+                          {/* EOR Extended */}
+                          {effectiveLevels.eorExt && (
+                            <ReferenceLine
+                              y={effectiveLevels.eorExt}
+                              stroke="#ef4444"
+                              strokeDasharray="8 4"
+                              strokeWidth={1}
+                              strokeOpacity={0.5}
+                              label={{ value: `EOR+1 ${effectiveLevels.eorExt}`, position: 'left', fill: '#ef4444', fontSize: 9, fillOpacity: 0.6 }}
+                            />
+                          )}
 
                           {/* CMP (Current Market Price) */}
                           <ReferenceLine
@@ -1164,22 +1290,22 @@ export default function LTPCalculator() {
 
                           {/* EOS (Support) */}
                           <ReferenceLine
-                            y={coaLevels.EOS}
+                            y={effectiveLevels.EOS}
                             stroke="#22c55e"
                             strokeWidth={2}
-                            label={{ value: `EOS ${coaLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }}
+                            label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }}
                           />
 
                           {/* EOR (Resistance) */}
                           <ReferenceLine
-                            y={coaLevels.EOR}
+                            y={effectiveLevels.EOR}
                             stroke="#ef4444"
                             strokeWidth={2}
-                            label={{ value: `EOR ${coaLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }}
+                            label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }}
                           />
 
                           {/* Diversions: D1, D2, D3... */}
-                          {coaLevels.diversions.map((level, idx) => (
+                          {effectiveLevels.diversions.map((level, idx) => (
                             <ReferenceLine
                               key={idx}
                               y={level}
@@ -1213,6 +1339,12 @@ export default function LTPCalculator() {
                         <div className="w-5 h-0.5 bg-orange-500 rounded" style={{ borderTop: '2px dashed #f97316' }} />
                         <span className="text-orange-400">CMP (Spot)</span>
                       </div>
+                      {effectiveLevels.eosExt && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-0.5 bg-green-500/40 rounded" />
+                          <span className="text-green-400/60">EOS-1 / EOR+1 (Extensions)</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
