@@ -119,7 +119,7 @@ const TokenPackageCard = ({ pkg, isPopular, isSelected, onSelect }) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAYMENT MODAL (Simple UPI)
 // ═══════════════════════════════════════════════════════════════════════════════
-const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay', upi_id: '9818856552-2@ybl' };
+const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay', upi_id: 'gpay-11206998739@okbizaxis' };
 
 const PaymentModal = ({ pkg, onClose, onSuccess }) => {
   const [transactionId, setTransactionId] = useState('');

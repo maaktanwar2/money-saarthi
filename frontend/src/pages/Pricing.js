@@ -29,7 +29,7 @@ import {
 
 // UPI Payment — QR code flow
 // UPI details fetched from backend (admin can change anytime)
-const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay', upi_id: '9818856552-2@ybl' };
+const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay', upi_id: 'gpay-11206998739@okbizaxis' };
 
 // Plan configurations
 export const PLANS = {

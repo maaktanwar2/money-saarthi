@@ -1702,7 +1702,7 @@ SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'maaktanwar@gmail.com')
 # UPI Payment Configuration
 UPI_NUMBER = os.environ.get('UPI_NUMBER', '9818856552')
 UPI_PAYEE_NAME = os.environ.get('UPI_PAYEE_NAME', 'mspay')
-UPI_ID = os.environ.get('UPI_ID', '9818856552-2@ybl')
+UPI_ID = os.environ.get('UPI_ID', 'gpay-11206998739@okbizaxis')
 
 
 # ==================== MODELS ====================
