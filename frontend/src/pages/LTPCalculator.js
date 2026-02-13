@@ -257,26 +257,6 @@ export default function LTPCalculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxOI.putStrike, maxOI.callStrike, ltpLevels]);
 
-  // Effective levels: prefer backend API levels, fallback to frontend coaLevels
-  const effectiveLevels = useMemo(() => {
-    if (ltpLevels && ltpLevels.EOS && ltpLevels.EOR) {
-      return {
-        EOS: ltpLevels.EOS,
-        EOR: ltpLevels.EOR,
-        diversions: ltpLevels.diversions || [],
-        priceMin: ltpLevels.price_min || Math.min(ltpLevels.EOS, ltpLevels.EOR) - 300,
-        priceMax: ltpLevels.price_max || Math.max(ltpLevels.EOS, ltpLevels.EOR) + 300,
-        eosExt: ltpLevels.eos_ext,
-        eorExt: ltpLevels.eor_ext,
-        maxCallOI: ltpLevels.max_call_oi,
-        maxPutOI: ltpLevels.max_put_oi,
-        source: ltpLevels.source === 'nse_live' ? 'api' : 'simulated',
-      };
-    }
-    if (coaLevels) return { ...coaLevels, source: 'manual' };
-    return null;
-  }, [ltpLevels, coaLevels]);
-
   const oiChartData = useMemo(() => {
     return optionChainData.map(row => ({
       strike: row.strike,
@@ -385,6 +365,26 @@ export default function LTPCalculator() {
       priceMax: max + 3 * strikeStep,
     };
   }, [supportLevel, resistanceLevel, spotPrice, strikeStep]);
+
+  // Effective levels: prefer backend API levels, fallback to frontend coaLevels
+  const effectiveLevels = useMemo(() => {
+    if (ltpLevels && ltpLevels.EOS && ltpLevels.EOR) {
+      return {
+        EOS: ltpLevels.EOS,
+        EOR: ltpLevels.EOR,
+        diversions: ltpLevels.diversions || [],
+        priceMin: ltpLevels.price_min || Math.min(ltpLevels.EOS, ltpLevels.EOR) - 300,
+        priceMax: ltpLevels.price_max || Math.max(ltpLevels.EOS, ltpLevels.EOR) + 300,
+        eosExt: ltpLevels.eos_ext,
+        eorExt: ltpLevels.eor_ext,
+        maxCallOI: ltpLevels.max_call_oi,
+        maxPutOI: ltpLevels.max_put_oi,
+        source: ltpLevels.source === 'nse_live' ? 'api' : 'simulated',
+      };
+    }
+    if (coaLevels) return { ...coaLevels, source: 'manual' };
+    return null;
+  }, [ltpLevels, coaLevels]);
 
   // ════════════════════════════════════════════════
   // TRADE FINDER
