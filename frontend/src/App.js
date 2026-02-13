@@ -335,7 +335,6 @@ const LogoPreview = lazy(() => import('./pages/LogoPreview'));
 
 // User & Admin pages
 const UserProfile = lazy(() => import('./pages/UserProfile'));
-const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Login = lazy(() => import('./pages/Login'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 
@@ -404,12 +403,10 @@ function AppRouter() {
         {/* Settings */}
         <Route path="/settings" element={<SubscriptionRoute><Settings /></SubscriptionRoute>} />
         
-        {/* User Profile */}
+        {/* User Profile & Admin (merged) */}
         <Route path="/profile" element={<SubscriptionRoute><UserProfile /></SubscriptionRoute>} />
         <Route path="/user" element={<Navigate to="/profile" replace />} />
-        
-        {/* Admin Panel - Only accessible by admins (subscription check includes admin bypass) */}
-        <Route path="/admin" element={<SubscriptionRoute><AdminPanel /></SubscriptionRoute>} />
+        <Route path="/admin" element={<Navigate to="/profile" replace />} />
         
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />

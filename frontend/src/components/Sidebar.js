@@ -367,37 +367,6 @@ export const Sidebar = () => {
 
       {/* Bottom Section */}
       <div className="border-t border-white/[0.08] py-4 px-3 space-y-1">
-        {/* Admin Panel Link - Only visible for admins */}
-        {isAdmin && (
-          <NavLink
-            to="/admin"
-            className={cn(
-              'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-              'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
-            )}
-          >
-            <Crown className="w-5 h-5 flex-shrink-0" />
-            <AnimatePresence>
-              {!collapsed && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                >
-                  Admin Panel
-                </motion.span>
-              )}
-            </AnimatePresence>
-            {collapsed && (
-              <div className="absolute left-full ml-2 px-3 py-2 bg-card border border-border rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 whitespace-nowrap shadow-xl">
-                <p className="font-medium text-sm">Admin Panel</p>
-                <p className="text-xs text-muted-foreground">Super Admin Controls</p>
-              </div>
-            )}
-          </NavLink>
-        )}
-        
         {BOTTOM_ITEMS.map((item) => (
           <NavItem key={item.id} item={item} collapsed={collapsed} />
         ))}
