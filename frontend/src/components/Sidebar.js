@@ -296,7 +296,7 @@ export const Sidebar = () => {
           <img 
             src="/logo.png" 
             alt="Money Saarthi" 
-            className="w-10 h-10 object-contain"
+            className="w-12 h-12 object-contain"
             style={{ background: 'transparent' }}
           />
           <AnimatePresence>

@@ -373,9 +373,7 @@ export default function Login() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
+            <img src="/logo.png" alt="Money Saarthi" className="w-14 h-14 object-contain" />
             <div>
               <h1 className="text-2xl font-bold">Money Saarthi</h1>
               <p className="text-sm text-muted-foreground">Pro Trading Platform</p>
@@ -437,9 +435,7 @@ export default function Login() {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <img src="/logo.png" alt="Money Saarthi" className="w-12 h-12 object-contain" />
             <h1 className="text-xl font-bold">Money Saarthi</h1>
           </div>
 
