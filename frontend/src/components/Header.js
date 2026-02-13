@@ -1,9 +1,10 @@
 // Header Component - Top navigation bar with market info
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, Bell, Sun, Moon, User, Menu,
-  TrendingUp, TrendingDown, Activity
+  TrendingUp, TrendingDown, Activity, LogOut
 } from 'lucide-react';
 import { cn, formatNumber, formatPercent, getMarketSession, fetchAPI } from '../lib/utils';
 import { Button, Input, Badge } from './ui';
@@ -98,9 +99,25 @@ const MarketTicker = () => {
 // Main Header Component
 export const Header = ({ onMenuClick }) => {
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const marketSession = getMarketSession();
+
+  // Get user info
+  const user = (() => {
+    try { return JSON.parse(localStorage.getItem('ms_user') || '{}'); } catch { return {}; }
+  })();
+  const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const photoURL = user.photoURL || user.picture || null;
+
+  const handleLogout = () => {
+    localStorage.removeItem('ms_user');
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    window.location.href = '/login';
+  };
 
   return (
     <header className="h-16 border-b border-white/[0.08] bg-background/80 backdrop-blur-xl sticky top-0 z-30">
@@ -135,13 +152,13 @@ export const Header = ({ onMenuClick }) => {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Search */}
           <div className="relative">
             {searchOpen ? (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 300, opacity: 1 }}
+                animate={{ width: 280, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 className="absolute right-0 top-1/2 -translate-y-1/2"
               >
@@ -149,50 +166,99 @@ export const Header = ({ onMenuClick }) => {
                   placeholder="Search stocks, tools..."
                   autoFocus
                   onBlur={() => setSearchOpen(false)}
-                  className="pr-10"
+                  className="pr-10 h-9 rounded-xl bg-secondary/80 border-white/10"
                 />
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </motion.div>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
                 onClick={() => setSearchOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
               >
-                <Search className="w-5 h-5" />
-              </Button>
+                <Search className="w-[18px] h-[18px]" />
+              </button>
             )}
           </div>
 
           {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
           >
             {theme === 'dark' ? (
-              <Sun className="w-5 h-5" />
+              <Sun className="w-[18px] h-[18px]" />
             ) : (
-              <Moon className="w-5 h-5" />
+              <Moon className="w-[18px] h-[18px]" />
             )}
-          </Button>
+          </button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
+          <button className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative">
+            <Bell className="w-[18px] h-[18px]" />
             {notifications > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-red-500/30">
                 {notifications}
               </span>
             )}
-          </Button>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-white/10 mx-1.5" />
 
           {/* User Menu */}
-          <Button variant="ghost" size="icon" className="ml-2">
-            <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
-            </div>
-          </Button>
+          <div className="relative">
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-xl hover:bg-white/[0.06] transition-all"
+            >
+              {photoURL ? (
+                <img src={photoURL} alt="" className="w-8 h-8 rounded-lg object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <span className="text-xs font-bold text-white">{initials}</span>
+                </div>
+              )}
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-medium leading-tight truncate max-w-[100px]">{user.name || 'User'}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  {user.subscription?.plan === 'pro' ? '⭐ Pro' : 'Free'}
+                </p>
+              </div>
+            </button>
+
+            {/* Dropdown */}
+            {userMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className="absolute right-0 mt-2 w-56 z-50 rounded-xl border border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+                >
+                  <div className="p-3 border-b border-white/[0.06]">
+                    <p className="text-sm font-semibold truncate">{user.name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
+                  </div>
+                  <div className="p-1.5">
+                    <button
+                      onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/[0.06] transition-colors"
+                    >
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      Profile
+                    </button>
+                    <button
+                      onClick={() => { setUserMenuOpen(false); handleLogout(); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
