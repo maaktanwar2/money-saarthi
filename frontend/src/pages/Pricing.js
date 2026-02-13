@@ -5,7 +5,7 @@ import { PageLayout } from '../components/PageLayout';
 import { Card, CardContent, Button, Badge } from '../components/ui';
 import { cn } from '../lib/utils';
 import { addTransaction, updateUser } from '../services/adminService';
-import API from '../config/api';
+import { fetchWithAuth } from '../config/api';
 import { 
   Check, 
   X, 
@@ -153,8 +153,8 @@ export default function Pricing() {
       setCurrentPlan(storedUser.subscription.plan);
     }
     // Fetch UPI config from backend
-    API.get('/payment/upi-config').then(res => {
-      if (res.data?.upi_number) setUpiConfig(res.data);
+    fetchWithAuth('/payment/upi-config').then(res => res.json()).then(data => {
+      if (data?.upi_number) setUpiConfig(data);
     }).catch(() => {});
   }, []);
 
@@ -202,10 +202,13 @@ export default function Pricing() {
 
     try {
       // Submit to backend for admin verification
-      await API.post('/payment/upi/submit', {
-        plan_id: billingCycle === 'yearly' ? 'yearly' : 'monthly',
-        utr_number: transactionId.trim(),
-        amount,
+      await fetchWithAuth('/payment/upi/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          plan_id: billingCycle === 'yearly' ? 'yearly' : 'monthly',
+          utr_number: transactionId.trim(),
+          amount,
+        }),
       });
     } catch {
       // Even if backend fails, record locally

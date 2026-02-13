@@ -23,7 +23,7 @@ import {
   rechargeTokens,
   getTokenHistory
 } from '../services/tokenService';
-import API from '../config/api';
+import { fetchWithAuth } from '../config/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOKEN PACKAGE CARD
@@ -129,8 +129,8 @@ const PaymentModal = ({ pkg, onClose, onSuccess }) => {
   const [upiConfig, setUpiConfig] = useState(DEFAULT_UPI);
 
   useEffect(() => {
-    API.get('/payment/upi-config').then(res => {
-      if (res.data?.upi_number) setUpiConfig(res.data);
+    fetchWithAuth('/payment/upi-config').then(res => res.json()).then(data => {
+      if (data?.upi_number) setUpiConfig(data);
     }).catch(() => {});
   }, []);
 
