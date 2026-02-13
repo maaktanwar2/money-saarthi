@@ -740,6 +740,29 @@ export default function UserProfile() {
                   ))}
                 </div>
 
+                {/* Bot Token Costs */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">🤖 Algo Bot Costs</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { name: 'VWAP Momentum', tokens: 15, color: 'text-blue-500', bg: 'bg-blue-500/15', desc: 'Basic bot' },
+                      { name: 'Delta Neutral', tokens: 40, color: 'text-emerald-500', bg: 'bg-emerald-500/15', desc: 'Auto Hedging' },
+                      { name: 'QuantStrangle AI', tokens: 60, color: 'text-purple-500', bg: 'bg-purple-500/15', desc: 'AI + Auto Hedging' },
+                    ].map(item => (
+                      <Card key={item.name} className="text-center">
+                        <CardContent className="p-4">
+                          <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mx-auto mb-3 ${item.color}`}>
+                            <Brain className="w-5 h-5" />
+                          </div>
+                          <p className="text-sm font-medium mb-1">{item.name}</p>
+                          <p className="text-xs text-muted-foreground mb-2">{item.desc}</p>
+                          <Badge variant="secondary" className={item.color}>{item.tokens} tokens</Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Token Packages */}
                 <div>
                   <h2 className="text-xl font-bold mb-6">Choose a Package</h2>

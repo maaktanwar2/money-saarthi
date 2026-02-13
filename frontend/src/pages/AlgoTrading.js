@@ -42,6 +42,8 @@ const BOT_CONFIGS = {
     riskLevel: 'Medium',
     winRate: '68%',
     avgReturn: '+2.1%',
+    tokenAction: 'bot_start',
+    tokenCost: 15,
   },
   strangle: {
     id: 'strangle',
@@ -55,6 +57,8 @@ const BOT_CONFIGS = {
     winRate: '72%',
     avgReturn: '+1.8%',
     isPremium: true,
+    tokenAction: 'bot_start_ai_hedging',
+    tokenCost: 60,
   },
   delta: {
     id: 'delta',
@@ -67,6 +71,8 @@ const BOT_CONFIGS = {
     riskLevel: 'Low-Medium',
     winRate: '78%',
     avgReturn: '+1.5%',
+    tokenAction: 'bot_start_hedging',
+    tokenCost: 40,
   }
 };
 
@@ -137,7 +143,6 @@ const AlgoTrading = () => {
   // Token State
   const [tokenBalance, setTokenBalance] = useState(0);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  const BOT_TOKEN_COST = 15;
   
   // ─────────────────────────────────────────────────────────────────────────────
   // CHECK BROKER CONNECTION ON MOUNT
@@ -170,19 +175,19 @@ const AlgoTrading = () => {
     } catch (e) { /* ignore */ }
   };
   
-  const deductBotTokens = async () => {
+  const deductBotTokens = async (action = 'bot_start', cost = 15) => {
     try {
       const userId = JSON.parse(localStorage.getItem('ms_user') || '{}').email || 'anonymous';
       const res = await fetchAPI('/ai/tokens/use', {
         method: 'POST',
         headers: { 'X-User-Id': userId },
-        body: JSON.stringify({ action: 'bot_start' })
+        body: JSON.stringify({ action })
       });
       if (res.success) {
         setTokenBalance(res.remaining_balance);
         return true;
       } else {
-        toast({ title: 'Insufficient Tokens', description: `You need ${BOT_TOKEN_COST} tokens to start a bot. Current balance: ${res.available || tokenBalance}`, variant: 'destructive' });
+        toast({ title: 'Insufficient Tokens', description: `You need ${cost} tokens to start this bot. Current balance: ${res.available || tokenBalance}. Go to Profile → AI Tokens to recharge.`, variant: 'destructive' });
         return false;
       }
     } catch (e) {
@@ -373,8 +378,8 @@ const AlgoTrading = () => {
     );
     if (!confirmed) return;
     
-    // Check & deduct tokens
-    const hasTokens = await deductBotTokens();
+    // Check & deduct tokens (VWAP = basic, 15 tokens)
+    const hasTokens = await deductBotTokens(BOT_CONFIGS.vwap.tokenAction, BOT_CONFIGS.vwap.tokenCost);
     if (!hasTokens) return;
     
     setVwapBot(prev => ({ ...prev, loading: true }));
@@ -446,6 +451,10 @@ const AlgoTrading = () => {
       `Are you sure you want to proceed?`
     );
     if (!confirmed) return;
+    
+    // Check & deduct tokens (QuantStrangle AI = 60 tokens)
+    const hasTokens = await deductBotTokens(BOT_CONFIGS.strangle.tokenAction, BOT_CONFIGS.strangle.tokenCost);
+    if (!hasTokens) { return; }
     
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
@@ -546,8 +555,8 @@ const AlgoTrading = () => {
     );
     if (!confirmed) return;
     
-    // Check & deduct tokens
-    const hasTokens = await deductBotTokens();
+    // Check & deduct tokens (Delta Neutral with auto hedging = 40 tokens)
+    const hasTokens = await deductBotTokens(BOT_CONFIGS.delta.tokenAction, BOT_CONFIGS.delta.tokenCost);
     if (!hasTokens) return;
     
     setDeltaBot(prev => ({ ...prev, loading: true }));
@@ -863,7 +872,7 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   
   const renderBotCard = (config, botState, startBot, stopBot, renderConfig) => {
-    const { id, name, description, icon: Icon, gradient, features, riskLevel, winRate, avgReturn } = config;
+    const { id, name, description, icon: Icon, gradient, features, riskLevel, winRate, avgReturn, tokenCost } = config;
     const isExpanded = expandedBot === id;
     const isRunning = botState.running;
     const isLoading = botState.loading;
@@ -893,6 +902,9 @@ const AlgoTrading = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-semibold">{name}</h3>
+                  <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-500 border-violet-500/30">
+                    <Coins className="w-3 h-3 mr-1" />{tokenCost} tokens
+                  </Badge>
                   {isRunning && (
                     <Badge className="bg-green-500/20 text-green-500 border-green-500/30 animate-pulse">
                       <Activity className="w-3 h-3 mr-1" /> Running
@@ -1400,9 +1412,9 @@ const AlgoTrading = () => {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Cost per bot start</p>
-              <p className="text-sm font-semibold text-violet-500">{BOT_TOKEN_COST} tokens</p>
+              <p className="text-sm font-semibold text-violet-500">15 - 60 tokens</p>
             </div>
-            {!isAdminUser && tokenBalance < BOT_TOKEN_COST && (
+            {!isAdminUser && tokenBalance < 15 && (
               <Button size="sm" onClick={() => window.location.href = '/profile'} className="bg-violet-600 hover:bg-violet-700">
                 <Coins className="w-4 h-4 mr-2" />Recharge
               </Button>
@@ -1444,7 +1456,7 @@ const AlgoTrading = () => {
             <Brain className="w-5 h-5" />
             AI Trading Bots
             <Badge variant="secondary" className="text-xs ml-2">
-              <Coins className="w-3 h-3 mr-1" />{BOT_TOKEN_COST} tokens/start
+              <Coins className="w-3 h-3 mr-1" />15-60 tokens/start
             </Badge>
           </h2>
           

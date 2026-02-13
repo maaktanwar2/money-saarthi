@@ -32,7 +32,9 @@ TOKEN_COSTS = {
     "strategy_suggestion": 10,  # Get strategy adjustment
     "risk_assessment": 8,       # Risk analysis
     "market_insight": 3,        # Quick market insight
-    "bot_start": 15,            # Start an algo trading bot
+    "bot_start": 15,            # Start a basic trading bot (VWAP)
+    "bot_start_hedging": 40,    # Start bot with auto hedging (Delta Neutral)
+    "bot_start_ai_hedging": 60, # Start AI bot with auto hedging (QuantStrangle)
 }
 
 # In-memory storage (replace with database in production)
