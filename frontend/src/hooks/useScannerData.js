@@ -59,7 +59,7 @@ export const useDayGainersScanner = (filters = {}) => {
           return data;
         }
       } catch (e) {
-        console.log('v2 day-gainers failed, trying v1:', e.message);
+        // v2 failed, try v1
       }
       
       // Fallback to v1 GET endpoint
@@ -103,7 +103,7 @@ export const useDayLosersScanner = (filters = {}) => {
           return data;
         }
       } catch (e) {
-        console.log('v2 day-losers failed, trying v1:', e.message);
+        // v2 failed, try v1
       }
       
       // Fallback to v1 GET endpoint
@@ -147,7 +147,7 @@ export const useSwingScanner = (filters = {}) => {
           return data;
         }
       } catch (e) {
-        console.log('v2 swing failed, trying v1:', e.message);
+        // v2 failed, try v1
       }
       
       // Fallback to v1 GET endpoint which fetches live data
@@ -190,7 +190,7 @@ export const useMoneyFlowScanner = (filters = {}) => {
           return data;
         }
       } catch (e) {
-        console.log('v2 money-flow failed, trying v1:', e.message);
+        // v2 failed, try v1
       }
       
       // Fallback to v1 GET endpoint
@@ -233,7 +233,7 @@ export const useHighVolumeScanner = (filters = {}) => {
           return data;
         }
       } catch (e) {
-        console.log('v2 high-volume failed, trying v1:', e.message);
+        // v2 failed, try v1
       }
       
       // Fallback to v1 GET endpoint

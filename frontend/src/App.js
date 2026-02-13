@@ -16,14 +16,12 @@ const SUBSCRIPTION_VERSION = 'v3_subscription_required';
 const checkSubscriptionVersion = () => {
   const storedVersion = localStorage.getItem('ms_subscription_version');
   if (storedVersion !== SUBSCRIPTION_VERSION) {
-    console.log('🔄 Subscription version mismatch, clearing old data...');
     // Clear subscription from user data
     const user = JSON.parse(localStorage.getItem('ms_user') || 'null');
     if (user) {
       delete user.subscription;
       delete user.plan;
       localStorage.setItem('ms_user', JSON.stringify(user));
-      console.log('✅ Cleared subscription data for user:', user.email);
     }
     localStorage.setItem('ms_subscription_version', SUBSCRIPTION_VERSION);
   }
@@ -38,7 +36,6 @@ const ensureAuthToken = () => {
   const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   
   if (user?.email && !authToken) {
-    console.log('⚠️ User exists but no auth token - clearing session for fresh login');
     // Clear user data to force re-login which will create proper session
     localStorage.removeItem('ms_user');
     localStorage.removeItem('authToken');
@@ -107,14 +104,12 @@ const syncSubscriptionFromBackend = async () => {
         if (!currentSub || currentSub.plan !== 'pro') {
           user.subscription = subscription;
           localStorage.setItem('ms_user', JSON.stringify(user));
-          console.log('✅ Subscription synced from backend:', subscription);
           window.dispatchEvent(new Event('storage'));
         }
       } else if (user.subscription && user.subscription.plan === 'pro') {
         // User WAS pro but now backend says no - revoke access
         user.subscription = null;
         localStorage.setItem('ms_user', JSON.stringify(user));
-        console.log('⚠️ Subscription revoked - backend says not paid');
         window.dispatchEvent(new Event('storage'));
       }
     }
@@ -128,7 +123,6 @@ const isAuthenticated = () => {
   try {
     const user = localStorage.getItem('ms_user');
     const parsed = user ? JSON.parse(user) : null;
-    console.log('🔐 isAuthenticated check:', { hasUser: !!parsed, email: parsed?.email });
     return parsed?.email ? true : false;
   } catch {
     return false;
@@ -140,37 +134,26 @@ const hasActiveSubscription = () => {
   try {
     const user = JSON.parse(localStorage.getItem('ms_user') || '{}');
     
-    console.log('💳 Subscription check:', { 
-      email: user.email,
-      isAdmin: user.isAdmin, 
-      subscription: user.subscription 
-    });
-    
     // Admins always have access
     if (user.isAdmin) {
-      console.log('✅ Admin access granted');
       return true;
     }
     
     const sub = user.subscription;
     if (!sub) {
-      console.log('❌ No subscription found');
       return false;
     }
     
     // Must have pro plan with active status
     if (sub.plan !== 'pro' || sub.status !== 'active') {
-      console.log('❌ Subscription not pro/active:', sub);
       return false;
     }
     
     // Check if subscription has expired
     if (sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
-      console.log('❌ Subscription expired:', sub.expiresAt);
       return false;
     }
     
-    console.log('✅ Subscription active');
     return true;
   } catch (e) {
     console.error('❌ Subscription check error:', e);
@@ -294,11 +277,6 @@ const SubscriptionRoute = ({ children }) => {
     const checkSubscription = () => {
       const authenticated = isAuthenticated();
       const subscribed = hasActiveSubscription();
-      console.log('🔒 SubscriptionRoute check:', { 
-        path: location.pathname,
-        authenticated, 
-        subscribed 
-      });
       setHasSubscription(subscribed);
       setSubscriptionChecked(true);
     };
@@ -307,7 +285,6 @@ const SubscriptionRoute = ({ children }) => {
     
     // Also listen for storage changes (for when subscription is updated)
     const handleStorageChange = () => {
-      console.log('📦 Storage changed, rechecking subscription...');
       checkSubscription();
     };
     
@@ -332,11 +309,9 @@ const SubscriptionRoute = ({ children }) => {
   
   // If no active subscription, show blurred content with paywall
   if (!hasSubscription) {
-    console.log('🚫 Showing paywall for:', location.pathname);
     return <SubscriptionPaywall>{children}</SubscriptionPaywall>;
   }
   
-  console.log('✅ Access granted for:', location.pathname);
   return children;
 };
 

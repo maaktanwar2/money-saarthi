@@ -49,7 +49,7 @@ export const trackReferralClick = async (refCode) => {
       body: JSON.stringify({ referral_code: refCode })
     });
   } catch (e) {
-    console.log('Referral click tracking failed:', e);
+    // Silently fail - non-critical
   }
 };
 
@@ -76,7 +76,7 @@ export const convertReferral = async (newUserId, newUserEmail) => {
           })
         });
       } catch (e) {
-        console.log('Referral conversion tracking failed:', e);
+        // Silently fail - non-critical
       }
     }
   }
@@ -117,7 +117,7 @@ export const getReferralStats = async () => {
       return data;
     }
   } catch (e) {
-    console.log('Failed to fetch referral stats:', e);
+    // Silently fail - return cached/default
   }
   
   // Return cached or default

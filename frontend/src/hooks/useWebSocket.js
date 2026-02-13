@@ -16,11 +16,6 @@ const getWebSocketUrl = () => {
 const BASE_WS_URL = getWebSocketUrl();
 const WS_URL = `${BASE_WS_URL}/ws/prices`;
 
-// Debug log for production troubleshooting
-if (process.env.NODE_ENV === 'production') {
-  console.log('WebSocket URL:', WS_URL);
-}
-
 export const ConnectionStatus = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
@@ -70,7 +65,6 @@ export function useWebSocket(options = {}) {
       const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setStatus(ConnectionStatus.CONNECTED);
         reconnectAttempts.current = 0;
         setError(null);
@@ -126,11 +120,9 @@ export function useWebSocket(options = {}) {
               break;
             
             case 'stats':
-              console.log('WebSocket stats:', data.data);
               break;
             
             default:
-              console.log('Unknown message type:', data.type);
           }
         } catch (e) {
           console.error('Error parsing WebSocket message:', e);
@@ -144,14 +136,11 @@ export function useWebSocket(options = {}) {
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
         setStatus(ConnectionStatus.DISCONNECTED);
 
         // Attempt reconnection if not manually disconnected
         if (!isManualDisconnect.current && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current += 1;
-          console.log(`Reconnecting... Attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
-          
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, reconnectInterval);

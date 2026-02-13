@@ -55,7 +55,6 @@ export const subscribeToPush = async () => {
     
     // This would typically use a VAPID key from your backend
     // For now, we'll use local notifications
-    console.log('Push subscription ready');
     localStorage.setItem(PUSH_SUBSCRIPTION_KEY, 'true');
     
     return true;

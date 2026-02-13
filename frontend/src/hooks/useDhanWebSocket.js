@@ -30,7 +30,6 @@ export const useDhanWebSocket = (options = {}) => {
       wsRef.current = new WebSocket(WS_URL);
 
       wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         setError(null);
         reconnectAttempts.current = 0;
@@ -62,15 +61,12 @@ export const useDhanWebSocket = (options = {}) => {
       };
 
       wsRef.current.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
 
         // Attempt reconnection
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current += 1;
           const delay = reconnectDelay * Math.pow(2, reconnectAttempts.current - 1);
-          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`);
-          
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);

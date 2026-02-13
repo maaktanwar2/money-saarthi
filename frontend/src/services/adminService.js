@@ -21,21 +21,13 @@ const STORAGE_KEYS = {
 export const fetchUsersFromBackend = async () => {
   try {
     const headers = getAuthHeaders();
-    console.log('📡 Fetching users from backend...', { 
-      hasAuth: !!headers.Authorization,
-      token: headers.Authorization ? headers.Authorization.substring(0, 30) + '...' : 'none'
-    });
-    
     const response = await fetch(`${API}/admin/users`, {
       headers,
       credentials: 'include' // Include cookies for session
     });
     
-    console.log('📡 Admin users response:', response.status, response.statusText);
-    
     if (response.ok) {
       const backendUsers = await response.json();
-      console.log('✅ Got users from backend:', backendUsers.length, backendUsers.map(u => u.email));
       
       // Get local users and merge (for users who logged in before backend sync)
       const localUsers = getAllUsersFromStorage();
@@ -45,7 +37,6 @@ export const fetchUsersFromBackend = async () => {
       const uniqueLocalUsers = localUsers.filter(u => !backendEmails.has(u.email?.toLowerCase()));
       
       const mergedUsers = [...backendUsers, ...uniqueLocalUsers];
-      console.log('📊 Merged users:', { backend: backendUsers.length, local: localUsers.length, unique: uniqueLocalUsers.length, total: mergedUsers.length });
       
       // Cache merged list
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mergedUsers));
@@ -54,11 +45,9 @@ export const fetchUsersFromBackend = async () => {
     
     const errorText = await response.text();
     console.warn('❌ Failed to fetch users from backend:', response.status, errorText);
-    console.log('⚠️ Falling back to local storage');
     return getAllUsersFromStorage();
   } catch (e) {
     console.error('❌ Error fetching users from backend:', e);
-    console.log('⚠️ Falling back to local storage');
     return getAllUsersFromStorage();
   }
 };

@@ -18,15 +18,11 @@ const isProduction = window.location.hostname !== 'localhost' && window.location
 // Use Cloud Run for production, local for dev
 export const API_BASE_URL = isProduction ? CLOUD_RUN_URL : LOCAL_URL;
 
-// Log for debugging (remove in production if needed)
-console.log(`🌐 API Config: hostname=${window.location.hostname}, isProduction=${isProduction}, API_BASE_URL=${API_BASE_URL}`);
-
 export const API = `${API_BASE_URL}/api`;
 
 // Helper for making API calls with auth
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-  console.log('🔐 Auth token:', token ? `${token.substring(0, 20)}...` : 'none');
   return {
     'Content-Type': 'application/json',
     ...(token && { 
