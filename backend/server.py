@@ -2415,10 +2415,66 @@ async def recharge_tokens(request: Request):
     current_balance = user_token_balances.get(user_id, 100)
     user_token_balances[user_id] = current_balance + tokens_to_add
     
+    # Record in history
+    if user_id not in user_token_history:
+        user_token_history[user_id] = []
+    user_token_history[user_id].insert(0, {
+        "type": "recharge",
+        "amount": tokens_to_add,
+        "package": package_id,
+        "balance_after": user_token_balances[user_id],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
     return {
         "success": True,
         "new_balance": user_token_balances[user_id],
         "tokens_added": tokens_to_add
+    }
+
+
+# In-memory token usage history
+user_token_history = {}
+
+@api_router.get("/ai/tokens/history")
+async def get_token_history(request: Request, limit: int = 50):
+    """Get user's token usage history"""
+    user_id = request.headers.get("X-User-Id", "anonymous")
+    history = user_token_history.get(user_id, [])
+    return {
+        "history": history[:limit],
+        "total": len(history)
+    }
+
+
+@api_router.get("/ai/tokens/check/{action}")
+async def check_token_usage(action: str, request: Request):
+    """Check if user has enough tokens for an action"""
+    user_id = request.headers.get("X-User-Id", "anonymous")
+    
+    # Token costs per action
+    action_costs = {
+        "ai_analysis": 5,
+        "signal_generation": 10,
+        "portfolio_review": 15,
+        "backtest": 20,
+        "scanner": 2,
+        "chat": 3
+    }
+    
+    cost = action_costs.get(action, 5)
+    
+    # Admin check
+    admin_emails = ["maaktanwar@gmail.com", "admin@moneysaarthi.in"]
+    if user_id in admin_emails:
+        return {"allowed": True, "cost": cost, "balance": 999999, "unlimited": True}
+    
+    balance = user_token_balances.get(user_id, 100)
+    return {
+        "allowed": balance >= cost,
+        "cost": cost,
+        "balance": balance,
+        "unlimited": False
     }
 
 
