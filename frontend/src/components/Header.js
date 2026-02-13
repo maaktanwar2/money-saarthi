@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Bell, Sun, Moon, User, Menu,
-  TrendingUp, TrendingDown, Activity, LogOut
+  TrendingUp, TrendingDown, Activity, LogOut, Coins
 } from 'lucide-react';
 import { cn, formatNumber, formatPercent, getMarketSession, fetchAPI } from '../lib/utils';
 import { Button, Input, Badge } from './ui';
@@ -103,7 +103,22 @@ export const Header = ({ onMenuClick }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState(null);
   const marketSession = getMarketSession();
+
+  // Fetch token balance
+  useEffect(() => {
+    const loadTokens = async () => {
+      try {
+        const userId = user?.email || 'anonymous';
+        const data = await fetchAPI('/ai/tokens/balance', { headers: { 'X-User-Id': userId } });
+        setTokenBalance(data?.unlimited ? '∞' : (data?.balance ?? null));
+      } catch (e) { /* ignore */ }
+    };
+    loadTokens();
+    const interval = setInterval(loadTokens, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Get user info
   const user = (() => {
@@ -191,6 +206,18 @@ export const Header = ({ onMenuClick }) => {
               <Moon className="w-[18px] h-[18px]" />
             )}
           </button>
+
+          {/* Token Balance */}
+          {tokenBalance !== null && (
+            <button
+              onClick={() => navigate('/profile')}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-all"
+              title="AI Tokens - Click to recharge"
+            >
+              <Coins className="w-3.5 h-3.5 text-violet-400" />
+              <span className="text-xs font-bold text-violet-400">{tokenBalance}</span>
+            </button>
+          )}
 
           {/* Notifications */}
           <button className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative">
