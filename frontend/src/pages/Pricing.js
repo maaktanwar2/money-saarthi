@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PageLayout, PageHeader } from '../components/PageLayout';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
+import { PageLayout } from '../components/PageLayout';
+import { Card, CardContent, Button, Badge } from '../components/ui';
 import { cn } from '../lib/utils';
-import { addTransaction, updateUser, getPaymentConfig } from '../services/adminService';
+import { addTransaction, updateUser } from '../services/adminService';
+import API from '../config/api';
 import { 
   Check, 
   X, 
@@ -18,13 +19,7 @@ import {
   ArrowRight,
   BadgeCheck,
   CreditCard,
-  Smartphone,
-  Building2,
-  QrCode,
-  Copy,
   CheckCircle2,
-  Wallet,
-  IndianRupee,
   AlertCircle
 } from 'lucide-react';
 
@@ -32,23 +27,7 @@ import {
 // PRICING PAGE - Subscription Plans
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Default Payment Configuration (loaded from admin settings)
-const DEFAULT_PAYMENT_CONFIG = {
-  upiId: '',
-  merchantName: 'Money Saarthi',
-  bankDetails: {
-    accountName: 'Money Saarthi',
-    accountNumber: '',
-    ifscCode: '',
-    bankName: '',
-  },
-  phonepeNumber: '',
-  gpayNumber: '',
-  paytmNumber: '',
-  whatsappNumber: '',
-  razorpayKey: '',
-  razorpayEnabled: false,
-};
+// Razorpay is the only payment gateway
 
 // Plan configurations
 export const PLANS = {
@@ -159,11 +138,8 @@ export default function Pricing() {
   const [user, setUser] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [transactionId, setTransactionId] = useState('');
-  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
-  const [copied, setCopied] = useState('');
-  const [paymentConfig, setPaymentConfig] = useState(DEFAULT_PAYMENT_CONFIG);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentId, setPaymentId] = useState('');
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('ms_user') || 'null');
@@ -171,12 +147,9 @@ export default function Pricing() {
     if (storedUser?.subscription?.plan) {
       setCurrentPlan(storedUser.subscription.plan);
     }
-    // Load payment config from admin settings
-    const savedConfig = getPaymentConfig();
-    setPaymentConfig({ ...DEFAULT_PAYMENT_CONFIG, ...savedConfig });
   }, []);
 
-  // Load Razorpay script (optional)
+  // Load Razorpay script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -188,41 +161,6 @@ export default function Pricing() {
       }
     };
   }, []);
-
-  // Copy to clipboard helper
-  const copyToClipboard = (text, field) => {
-    navigator.clipboard.writeText(text);
-    setCopied(field);
-    setTimeout(() => setCopied(''), 2000);
-  };
-
-  // Generate UPI payment link
-  const generateUPILink = (amount) => {
-    const upiUrl = `upi://pay?pa=${paymentConfig.upiId}&pn=${encodeURIComponent(paymentConfig.merchantName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Money Saarthi Pro - ${billingCycle}`)}`;
-    return upiUrl;
-  };
-
-  // Open payment app directly
-  const openPaymentApp = (app, amount) => {
-    let url = '';
-    const note = encodeURIComponent(`Money Saarthi Pro - ${billingCycle}`);
-    
-    switch(app) {
-      case 'phonepe':
-        url = `phonepe://pay?pa=${paymentConfig.upiId}&pn=${encodeURIComponent(paymentConfig.merchantName)}&am=${amount}&cu=INR&tn=${note}`;
-        break;
-      case 'gpay':
-        url = `gpay://upi/pay?pa=${paymentConfig.upiId}&pn=${encodeURIComponent(paymentConfig.merchantName)}&am=${amount}&cu=INR&tn=${note}`;
-        break;
-      case 'paytm':
-        url = `paytmmp://pay?pa=${paymentConfig.upiId}&pn=${encodeURIComponent(paymentConfig.merchantName)}&am=${amount}&cu=INR&tn=${note}`;
-        break;
-      default:
-        url = generateUPILink(amount);
-    }
-    
-    window.location.href = url;
-  };
 
   // Helper to get redirect URL after subscription
   const getPostSubscriptionRedirect = () => {
@@ -243,115 +181,86 @@ export default function Pricing() {
       return; // Do nothing for free plan - subscription required
     }
 
-    // Open payment modal instead of direct Razorpay
     setSelectedPlan(PLANS[planId]);
     setShowPaymentModal(true);
-    setPaymentSubmitted(false);
-    setTransactionId('');
+    setPaymentSuccess(false);
+    setPaymentId('');
   };
 
-  // Handle manual payment submission
-  const handleManualPaymentSubmit = () => {
-    if (!transactionId.trim()) {
-      alert('Please enter the Transaction ID / UTR Number');
-      return;
-    }
-
+  // Handle Razorpay payment via backend order creation
+  const handleRazorpayPayment = async () => {
+    if (!selectedPlan) return;
     setLoading(true);
 
+    const planId = billingCycle === 'yearly' ? 'yearly' : 'monthly';
     const amount = billingCycle === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
-    
-    // Record pending transaction
-    addTransaction({
-      user: user?.name || 'Unknown',
-      email: user?.email,
-      amount: amount,
-      plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-      status: 'pending',
-      paymentMethod: paymentMethod,
-      transactionId: transactionId,
-      notes: 'Pending verification',
-    });
-
-    // Update user with pending status
-    updateUser(user?.email, {
-      plan: 'pro',
-      billingCycle: billingCycle,
-      subscriptionStatus: 'pending',
-    });
-
-    setPaymentSubmitted(true);
-    setLoading(false);
-  };
-
-  // Handle Razorpay payment (optional)
-  const handleRazorpayPayment = () => {
-    const amount = billingCycle === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
-    const amountInPaise = amount * 100;
-
-    const options = {
-      key: paymentConfig.razorpayKey,
-      amount: amountInPaise,
-      currency: 'INR',
-      name: 'Money Saarthi',
-      description: `${selectedPlan.name} Plan - ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-      image: '/logo.png',
-      handler: function (response) {
-        const expiresAt = new Date();
-        if (billingCycle === 'yearly') {
-          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-        } else {
-          expiresAt.setMonth(expiresAt.getMonth() + 1);
-        }
-
-        saveSubscription({
-          plan: selectedPlan.id,
-          status: 'active',
-          expiresAt: expiresAt.toISOString(),
-          billingCycle: billingCycle,
-          paymentId: response.razorpay_payment_id,
-          subscribedAt: new Date().toISOString(),
-        });
-
-        addTransaction({
-          user: user?.name || 'Unknown',
-          email: user?.email,
-          amount: amount,
-          plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-          status: 'success',
-          paymentId: response.razorpay_payment_id,
-          paymentMethod: 'razorpay',
-        });
-
-        updateUser(user?.email, {
-          plan: 'pro',
-          billingCycle: billingCycle,
-          revenue: amount,
-        });
-
-        setCurrentPlan(selectedPlan.id);
-        setShowPaymentModal(false);
-        alert('🎉 Payment successful! Welcome to Money Saarthi Pro!');
-        navigate(getPostSubscriptionRedirect());
-      },
-      prefill: {
-        name: user?.name || '',
-        email: user?.email || '',
-      },
-      theme: { color: '#10b981' },
-      modal: {
-        ondismiss: function () {
-          setLoading(false);
-        },
-      },
-    };
 
     try {
+      // Create order on backend
+      const orderRes = await API.post('/payment/create-order', { plan_id: planId, amount: amount * 100 });
+      const orderData = orderRes.data;
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'Money Saarthi',
+        description: `${selectedPlan.name} Plan - ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
+        order_id: orderData.order_id,
+        handler: async function (response) {
+          try {
+            // Verify on backend
+            const verifyRes = await API.post('/payment/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyRes.data.success) {
+              const expiresAt = verifyRes.data.subscription_end || new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 86400000).toISOString();
+
+              saveSubscription({
+                plan: selectedPlan.id,
+                status: 'active',
+                expiresAt,
+                billingCycle,
+                paymentId: response.razorpay_payment_id,
+                subscribedAt: new Date().toISOString(),
+              });
+
+              addTransaction({
+                user: user?.name || 'Unknown',
+                email: user?.email,
+                amount,
+                plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
+                status: 'success',
+                paymentId: response.razorpay_payment_id,
+                paymentMethod: 'razorpay',
+              });
+
+              updateUser(user?.email, { plan: 'pro', billingCycle, revenue: amount });
+
+              setCurrentPlan(selectedPlan.id);
+              setPaymentId(response.razorpay_payment_id);
+              setPaymentSuccess(true);
+            } else {
+              alert('Payment verification failed. Please contact support.');
+            }
+          } catch {
+            alert('Payment verification failed. Please contact support.');
+          }
+          setLoading(false);
+        },
+        prefill: { name: user?.name || '', email: user?.email || '' },
+        theme: { color: '#10b981' },
+        modal: { ondismiss: () => setLoading(false) },
+      };
+
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-    } catch (error) {
-      console.error('Razorpay Error:', error);
-      alert('Payment initialization failed. Please use another payment method.');
+    } catch {
+      alert('Unable to initiate payment. Please try again later.');
+      setLoading(false);
     }
   };
 
@@ -363,17 +272,7 @@ export default function Pricing() {
     }).format(price);
   };
 
-  // Payment methods configuration (dynamically filter based on config)
-  const paymentMethods = [
-    { id: 'upi', name: 'UPI / QR Code', icon: QrCode, description: 'Pay via any UPI app' },
-    { id: 'phonepe', name: 'PhonePe', icon: Smartphone, description: 'Pay with PhonePe' },
-    { id: 'gpay', name: 'Google Pay', icon: Wallet, description: 'Pay with GPay' },
-    { id: 'paytm', name: 'Paytm', icon: Smartphone, description: 'Pay with Paytm' },
-    { id: 'bank', name: 'Bank Transfer', icon: Building2, description: 'Direct bank transfer' },
-    ...(paymentConfig.razorpayEnabled ? [{ id: 'razorpay', name: 'Card / Netbanking', icon: CreditCard, description: 'Cards, Netbanking, Wallets' }] : []),
-  ];
-
-  // Payment Modal Component
+  // Payment Modal Component (Razorpay only)
   const PaymentModal = () => {
     if (!showPaymentModal || !selectedPlan) return null;
 
@@ -413,36 +312,23 @@ export default function Pricing() {
               </div>
             </div>
 
-            {paymentSubmitted ? (
+            {paymentSuccess ? (
               /* Success State */
               <div className="p-8 text-center">
                 <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Payment Details Submitted!</h3>
+                <h3 className="text-xl font-bold mb-2">Payment Successful!</h3>
                 <p className="text-muted-foreground mb-4">
-                  Your payment is being verified. You'll receive confirmation within 24 hours.
+                  Welcome to Money Saarthi Pro! Your subscription is now active.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4 text-left mb-6">
-                  <p className="text-sm"><strong>Transaction ID:</strong> {transactionId}</p>
+                  <p className="text-sm"><strong>Payment ID:</strong> {paymentId}</p>
                   <p className="text-sm"><strong>Amount:</strong> {formatPrice(amount)}</p>
-                  <p className="text-sm"><strong>Method:</strong> {paymentMethods.find(m => m.id === paymentMethod)?.name}</p>
+                  <p className="text-sm"><strong>Plan:</strong> {selectedPlan.name} ({billingCycle === 'yearly' ? 'Yearly' : 'Monthly'})</p>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  For faster verification, send screenshot to WhatsApp:
-                </p>
-                <a
-                  href={`https://wa.me/${paymentConfig.whatsappNumber}?text=Payment%20for%20Money%20Saarthi%20Pro%0ATransaction%20ID:%20${transactionId}%0AAmount:%20${amount}%0AEmail:%20${user?.email}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors"
-                >
-                  <Smartphone className="w-5 h-5" />
-                  Send on WhatsApp
-                </a>
                 <Button
-                  variant="outline"
-                  className="w-full mt-4"
+                  className="w-full"
                   onClick={() => {
                     setShowPaymentModal(false);
                     navigate(getPostSubscriptionRedirect());
@@ -452,184 +338,53 @@ export default function Pricing() {
                 </Button>
               </div>
             ) : (
-              /* Payment Form */
+              /* Razorpay Payment */
               <div className="p-6">
-                {/* Payment Method Selection */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium mb-3 block">Select Payment Method</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {paymentMethods.map((method) => {
-                      const Icon = method.icon;
-                      return (
-                        <button
-                          key={method.id}
-                          onClick={() => setPaymentMethod(method.id)}
-                          className={cn(
-                            'p-3 rounded-xl border text-left transition-all',
-                            paymentMethod === method.id
-                              ? 'border-primary bg-primary/10'
-                              : 'border-border hover:border-primary/50'
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon className={cn(
-                              'w-5 h-5',
-                              paymentMethod === method.id ? 'text-primary' : 'text-muted-foreground'
-                            )} />
-                            <span className="font-medium text-sm">{method.name}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* UPI / QR Code Payment */}
-                {paymentMethod === 'upi' && (
-                  <div className="space-y-4">
-                    <div className="bg-muted/50 rounded-xl p-4 text-center">
-                      <div className="w-48 h-48 mx-auto bg-white rounded-xl p-2 mb-3">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(generateUPILink(amount))}`}
-                          alt="UPI QR Code"
-                          className="w-full h-full"
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">Scan with any UPI app</p>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                      <span className="flex-1 text-sm font-mono truncate">{paymentConfig.upiId}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyToClipboard(paymentConfig.upiId, 'upi')}
-                      >
-                        {copied === 'upi' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => window.location.href = generateUPILink(amount)}
-                    >
-                      <Smartphone className="w-4 h-4 mr-2" />
-                      Open UPI App
-                    </Button>
-                  </div>
-                )}
-
-                {/* PhonePe / GPay / Paytm */}
-                {['phonepe', 'gpay', 'paytm'].includes(paymentMethod) && (
-                  <div className="space-y-4">
-                    <div className="bg-muted/50 rounded-xl p-4 text-center">
-                      <div className={cn(
-                        'w-20 h-20 rounded-2xl mx-auto mb-3 flex items-center justify-center',
-                        paymentMethod === 'phonepe' && 'bg-purple-500/20 text-purple-500',
-                        paymentMethod === 'gpay' && 'bg-blue-500/20 text-blue-500',
-                        paymentMethod === 'paytm' && 'bg-cyan-500/20 text-cyan-500'
-                      )}>
-                        <IndianRupee className="w-10 h-10" />
-                      </div>
-                      <p className="font-semibold text-lg">{formatPrice(amount)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {paymentMethod === 'phonepe' && `PhonePe: ${paymentConfig.phonepeNumber}`}
-                        {paymentMethod === 'gpay' && `Google Pay: ${paymentConfig.gpayNumber}`}
-                        {paymentMethod === 'paytm' && `Paytm: ${paymentConfig.paytmNumber}`}
-                      </p>
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => openPaymentApp(paymentMethod, amount)}
-                    >
-                      <Smartphone className="w-4 h-4 mr-2" />
-                      Open {paymentMethod === 'phonepe' ? 'PhonePe' : paymentMethod === 'gpay' ? 'Google Pay' : 'Paytm'}
-                    </Button>
-                    <p className="text-xs text-center text-muted-foreground">
-                      If app doesn't open, pay manually to the number above
+                <div className="space-y-4">
+                  <div className="bg-muted/50 rounded-xl p-6 text-center">
+                    <CreditCard className="w-14 h-14 mx-auto mb-4 text-primary" />
+                    <p className="font-semibold text-lg mb-1">Secure Payment via Razorpay</p>
+                    <p className="text-sm text-muted-foreground">
+                      Credit/Debit Cards, Net Banking, UPI, Wallets
                     </p>
                   </div>
-                )}
 
-                {/* Bank Transfer */}
-                {paymentMethod === 'bank' && (
-                  <div className="space-y-3">
-                    <div className="bg-muted/50 rounded-xl p-4">
-                      <h4 className="font-semibold mb-3">Bank Account Details</h4>
-                      {[
-                        { label: 'Account Name', value: paymentConfig.bankDetails?.accountName },
-                        { label: 'Account Number', value: paymentConfig.bankDetails?.accountNumber },
-                        { label: 'IFSC Code', value: paymentConfig.bankDetails?.ifscCode },
-                        { label: 'Bank', value: paymentConfig.bankDetails?.bankName },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-mono">{item.value}</span>
-                            <button
-                              onClick={() => copyToClipboard(item.value, item.label)}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              {copied === item.label ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm">
-                      <strong className="text-yellow-500">Important:</strong> Transfer exactly{' '}
-                      <strong>{formatPrice(amount)}</strong> and note down the UTR/Reference number.
-                    </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { label: 'Cards', icon: '💳' },
+                      { label: 'UPI', icon: '📱' },
+                      { label: 'NetBanking', icon: '🏦' },
+                      { label: 'Wallets', icon: '👛' },
+                    ].map((m) => (
+                      <div key={m.label} className="text-center p-3 rounded-lg bg-muted/30 border border-border">
+                        <span className="text-xl block mb-1">{m.icon}</span>
+                        <span className="text-xs text-muted-foreground">{m.label}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
 
-                {/* Razorpay */}
-                {paymentMethod === 'razorpay' && (
-                  <div className="space-y-4">
-                    <div className="bg-muted/50 rounded-xl p-4 text-center">
-                      <CreditCard className="w-12 h-12 mx-auto mb-3 text-primary" />
-                      <p className="font-semibold">Pay securely with Razorpay</p>
-                      <p className="text-sm text-muted-foreground">
-                        Credit/Debit Cards, Net Banking, UPI, Wallets
-                      </p>
-                    </div>
-                    <Button className="w-full" onClick={handleRazorpayPayment}>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay {formatPrice(amount)} with Razorpay
-                    </Button>
-                  </div>
-                )}
+                  <Button
+                    className="w-full h-12 text-base"
+                    onClick={handleRazorpayPayment}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pay {formatPrice(amount)}
+                      </>
+                    )}
+                  </Button>
 
-                {/* Transaction ID Input (for manual payments) */}
-                {paymentMethod !== 'razorpay' && (
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <label className="text-sm font-medium mb-2 block">
-                      After payment, enter Transaction ID / UTR Number
-                    </label>
-                    <input
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      placeholder="Enter Transaction ID / UTR Number"
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                    <Button
-                      className="w-full mt-4"
-                      onClick={handleManualPaymentSubmit}
-                      disabled={loading || !transactionId.trim()}
-                    >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Submitting...
-                        </span>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                          Submit Payment Details
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                  <p className="text-xs text-center text-muted-foreground">
+                    Payments are secured by Razorpay. Your card details are never stored.
+                  </p>
+                </div>
 
                 {/* Close button */}
                 <button
@@ -923,11 +678,11 @@ export default function Pricing() {
               },
               {
                 q: 'What payment methods do you accept?',
-                a: 'We accept UPI (PhonePe, Google Pay, Paytm, any UPI app), direct bank transfer, credit/debit cards, net banking, and digital wallets.',
+                a: 'We accept all major payment methods via Razorpay — Credit/Debit Cards, Net Banking, UPI, and Digital Wallets. All payments are processed instantly.',
               },
               {
                 q: 'How long does payment verification take?',
-                a: 'UPI and card payments are verified instantly. Bank transfers may take up to 24 hours. Send your payment screenshot on WhatsApp for faster verification.',
+                a: 'All payments are verified instantly via Razorpay. Your subscription is activated immediately after successful payment.',
               },
               {
                 q: 'Is there a refund policy?',

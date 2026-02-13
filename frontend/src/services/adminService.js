@@ -358,20 +358,8 @@ export const addAnnouncement = (announcement) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const defaultPaymentConfig = {
-  upiId: 'yourupi@paytm',
   merchantName: 'Money Saarthi',
-  phonepeNumber: '9999999999',
-  gpayNumber: '9999999999',
-  paytmNumber: '9999999999',
-  whatsappNumber: '919999999999',
-  bankDetails: {
-    accountName: 'Money Saarthi',
-    accountNumber: 'XXXXXXXXXXXX',
-    ifscCode: 'SBIN0XXXXXX',
-    bankName: 'State Bank of India',
-  },
-  razorpayKey: 'rzp_test_YourTestKeyHere',
-  razorpayEnabled: false,
+  razorpayEnabled: true,
 };
 
 // Get payment config

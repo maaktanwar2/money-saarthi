@@ -7,14 +7,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Coins, Package, Zap, Crown, Star, Check,
-  CreditCard, Smartphone, Building, MessageCircle,
+  CreditCard,
   ArrowRight, History, AlertCircle,
   Brain, Target, BarChart3, ShieldCheck
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import {
   Card, CardHeader, CardTitle, CardContent, CardDescription,
-  Button, Badge, Input
+  Button, Badge
 } from '../components/ui';
 import { cn, formatINR } from '../lib/utils';
 import {
@@ -23,7 +23,7 @@ import {
   rechargeTokens,
   getTokenHistory
 } from '../services/tokenService';
-import { getPaymentConfig } from '../services/adminService';
+import API from '../config/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOKEN PACKAGE CARD
@@ -117,39 +117,66 @@ const TokenPackageCard = ({ pkg, isPopular, isSelected, onSelect }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PAYMENT MODAL
+// PAYMENT MODAL (Razorpay Only)
 // ═══════════════════════════════════════════════════════════════════════════════
-const PaymentModal = ({ pkg, paymentConfig, onClose, onSuccess }) => {
-  const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [transactionId, setTransactionId] = useState('');
+const PaymentModal = ({ pkg, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Pay, 2: Confirm
 
-  const handleConfirmPayment = async () => {
-    if (!transactionId.trim()) return;
-    
+  const handleRazorpayPayment = async () => {
     setLoading(true);
     try {
-      const result = await rechargeTokens(pkg.id, transactionId);
-      if (result.success) {
-        onSuccess(result);
-      } else {
-        alert(result.error || 'Payment verification failed');
-      }
-    } catch (err) {
-      alert(err.message || 'Error processing payment');
-    } finally {
+      // Create order on backend (reuse payment create-order or direct recharge)
+      // For tokens, we'll use Razorpay checkout and then call rechargeTokens on success
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = async () => {
+        try {
+          // Try to create order via backend
+          const orderRes = await API.post('/payment/create-order', {
+            plan_id: `token_${pkg.id}`,
+            amount: pkg.price * 100,
+          });
+          const orderData = orderRes.data;
+
+          const options = {
+            key: orderData.key_id,
+            amount: orderData.amount || pkg.price * 100,
+            currency: 'INR',
+            name: 'Money Saarthi',
+            description: `${pkg.name} - ${pkg.tokens} AI Tokens`,
+            order_id: orderData.order_id,
+            handler: async function (response) {
+              try {
+                // Verify payment and add tokens
+                const result = await rechargeTokens(pkg.id, response.razorpay_payment_id);
+                if (result.success) {
+                  onSuccess(result);
+                } else {
+                  alert(result.error || 'Token recharge failed after payment. Contact support.');
+                }
+              } catch {
+                alert('Token recharge failed. Contact support with your payment ID: ' + response.razorpay_payment_id);
+              }
+              setLoading(false);
+            },
+            theme: { color: '#10b981' },
+            modal: { ondismiss: () => setLoading(false) },
+          };
+
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        } catch {
+          // Fallback: open Razorpay without backend order (client-side key)
+          alert('Unable to initiate payment. Please try again later.');
+          setLoading(false);
+        }
+      };
+      document.body.appendChild(script);
+    } catch {
+      alert('Payment initialization failed. Please try again.');
       setLoading(false);
     }
   };
-
-  const paymentMethods = [
-    { id: 'upi', name: 'UPI', icon: <Smartphone className="w-5 h-5" />, details: paymentConfig.upiId },
-    { id: 'phonepe', name: 'PhonePe', icon: <Smartphone className="w-5 h-5" />, details: paymentConfig.phonepeNumber },
-    { id: 'gpay', name: 'Google Pay', icon: <Smartphone className="w-5 h-5" />, details: paymentConfig.gpayNumber },
-    { id: 'paytm', name: 'Paytm', icon: <Smartphone className="w-5 h-5" />, details: paymentConfig.paytmNumber },
-    { id: 'bank', name: 'Bank Transfer', icon: <Building className="w-5 h-5" />, details: 'NEFT/IMPS' },
-  ];
 
   return (
     <motion.div
@@ -174,133 +201,49 @@ const PaymentModal = ({ pkg, paymentConfig, onClose, onSuccess }) => {
           </p>
         </div>
 
-        {step === 1 ? (
-          <div className="p-6 space-y-6">
-            {/* Payment Method Selection */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-3 block">Select Payment Method</label>
-              <div className="grid grid-cols-2 gap-3">
-                {paymentMethods.map(method => (
-                  <button
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={cn(
-                      "p-4 rounded-xl border transition-all flex items-center gap-3",
-                      paymentMethod === method.id 
-                        ? "border-primary bg-primary/10" 
-                        : "border-white/10 hover:border-white/20"
-                    )}
-                  >
-                    {method.icon}
-                    <span className="font-medium">{method.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Payment Details */}
-            <div className="p-4 rounded-xl bg-secondary/50">
-              {paymentMethod === 'upi' && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-2">Pay to UPI ID:</p>
-                  <p className="text-lg font-mono font-bold text-primary">{paymentConfig.upiId}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Merchant: {paymentConfig.merchantName}
-                  </p>
-                </>
-              )}
-              {paymentMethod === 'phonepe' && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-2">PhonePe Number:</p>
-                  <p className="text-lg font-mono font-bold text-primary">{paymentConfig.phonepeNumber}</p>
-                </>
-              )}
-              {paymentMethod === 'gpay' && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-2">Google Pay Number:</p>
-                  <p className="text-lg font-mono font-bold text-primary">{paymentConfig.gpayNumber}</p>
-                </>
-              )}
-              {paymentMethod === 'paytm' && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-2">Paytm Number:</p>
-                  <p className="text-lg font-mono font-bold text-primary">{paymentConfig.paytmNumber}</p>
-                </>
-              )}
-              {paymentMethod === 'bank' && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-2">Bank Details:</p>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-muted-foreground">Account:</span> <span className="font-mono">{paymentConfig.bankDetails?.accountNumber}</span></p>
-                    <p><span className="text-muted-foreground">IFSC:</span> <span className="font-mono">{paymentConfig.bankDetails?.ifscCode}</span></p>
-                    <p><span className="text-muted-foreground">Name:</span> {paymentConfig.bankDetails?.accountName}</p>
-                    <p><span className="text-muted-foreground">Bank:</span> {paymentConfig.bankDetails?.bankName}</p>
-                  </div>
-                </>
-              )}
-              
-              <div className="mt-4 p-3 rounded-lg bg-primary/10">
-                <p className="text-sm font-medium">Amount to Pay: <span className="text-primary text-lg">₹{pkg.price}</span></p>
-              </div>
-            </div>
-
-            <Button onClick={() => setStep(2)} className="w-full">
-              I've Made the Payment
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+        <div className="p-6 space-y-6">
+          {/* Payment Info */}
+          <div className="bg-muted/50 rounded-xl p-6 text-center">
+            <CreditCard className="w-12 h-12 mx-auto mb-3 text-primary" />
+            <p className="font-semibold text-lg mb-1">Secure Payment via Razorpay</p>
+            <p className="text-sm text-muted-foreground">
+              Credit/Debit Cards, Net Banking, UPI, Wallets
+            </p>
           </div>
-        ) : (
-          <div className="p-6 space-y-6">
-            {/* Transaction ID */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Enter Transaction/UTR ID
-              </label>
-              <Input
-                placeholder="e.g., 123456789012"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="bg-secondary/50"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                You can find this in your payment app's transaction history
-              </p>
-            </div>
 
-            {/* WhatsApp Support */}
-            {paymentConfig.whatsappNumber && (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <p className="text-sm font-medium">Need Help?</p>
-                    <a 
-                      href={`https://wa.me/${paymentConfig.whatsappNumber}?text=Token%20recharge%20query%20for%20${pkg.name}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-emerald-500 text-sm hover:underline"
-                    >
-                      Chat on WhatsApp
-                    </a>
-                  </div>
-                </div>
-              </div>
+          <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
+            <p className="text-sm font-medium">Amount to Pay: <span className="text-primary text-xl font-bold">₹{pkg.price}</span></p>
+          </div>
+
+          <Button
+            onClick={handleRazorpayPayment}
+            disabled={loading}
+            className="w-full h-12 text-base"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Processing...
+              </span>
+            ) : (
+              <>
+                <CreditCard className="w-5 h-5 mr-2" />
+                Pay ₹{pkg.price}
+              </>
             )}
+          </Button>
 
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                Back
-              </Button>
-              <Button 
-                onClick={handleConfirmPayment} 
-                disabled={!transactionId.trim() || loading}
-                className="flex-1"
-              >
-                {loading ? 'Verifying...' : 'Confirm Payment'}
-              </Button>
-            </div>
-          </div>
-        )}
+          <p className="text-xs text-center text-muted-foreground">
+            Payments are secured by Razorpay. Your card details are never stored.
+          </p>
+
+          <button
+            onClick={onClose}
+            className="w-full text-sm text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -394,9 +337,8 @@ const TokensPage = () => {
         setPackages(packagesRes.packages || []);
         setTokenBalance(balanceRes.balance || 0);
         setHistory(historyRes.history || []);
-        setPaymentConfig(getPaymentConfig());
       } catch (err) {
-        console.error('Error fetching data:', err);
+        // Token data fetch failed — show defaults
       } finally {
         setLoading(false);
       }
@@ -508,7 +450,6 @@ const TokensPage = () => {
         {showPaymentModal && selectedPackage && (
           <PaymentModal
             pkg={selectedPackage}
-            paymentConfig={paymentConfig}
             onClose={() => {
               setShowPaymentModal(false);
               setSelectedPackage(null);

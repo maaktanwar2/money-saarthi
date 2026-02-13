@@ -1853,18 +1853,6 @@ class PaymentVerify(BaseModel):
     razorpay_payment_id: str
     razorpay_signature: str
 
-# UPI Payment Models
-class UPIPaymentRequest(BaseModel):
-    plan_id: str
-    utr_number: str
-    amount: int
-    payment_method: str = "upi"  # upi or qr
-
-class UPIPaymentApproval(BaseModel):
-    payment_id: str
-    action: str  # approve or reject
-    reason: Optional[str] = None
-
 
 # ==================== AUTH HELPER ====================
 
@@ -3359,7 +3347,7 @@ async def create_payment_order(
     order: PaymentOrder,
     current_user: User = Depends(get_current_user)
 ):
-    """Create Razorpay order for subscription"""
+    """Create Razorpay order for subscription or token purchase"""
     try:
         key_id, key_secret = await get_razorpay_keys()
         
@@ -3369,16 +3357,22 @@ async def create_payment_order(
         import razorpay
         client = razorpay.Client(auth=(key_id, key_secret))
         
-        # Define plans - Updated pricing
+        # Define subscription plans
         plans = {
-            "monthly": {"amount": 49900, "days": 30, "name": "Monthly Plan", "has_full_package": False},
-            "yearly": {"amount": 299900, "days": 365, "name": "Yearly Plan", "has_full_package": False},
-            "full_package": {"amount": 499900, "days": 365, "name": "Full Package (Yearly)", "has_full_package": True}
+            "monthly": {"amount": 89900, "days": 30, "name": "Monthly Plan", "has_full_package": False},
+            "yearly": {"amount": 499900, "days": 365, "name": "Yearly Plan", "has_full_package": False},
+            "full_package": {"amount": 499900, "days": 365, "name": "Full Package (Yearly)", "has_full_package": True},
+            # Token packages
+            "token_starter": {"amount": 9900, "days": 0, "name": "Starter Token Pack"},
+            "token_basic": {"amount": 29900, "days": 0, "name": "Pro Token Pack"},
+            "token_pro": {"amount": 59900, "days": 0, "name": "Premium Token Pack"},
+            "token_unlimited": {"amount": 99900, "days": 0, "name": "Unlimited Token Pack"},
         }
         
         plan = plans.get(order.plan_id)
         if not plan:
-            raise HTTPException(status_code=400, detail="Invalid plan")
+            # Accept any plan_id with explicit amount from frontend
+            plan = {"amount": order.amount, "days": 0, "name": order.plan_id}
         
         # Create Razorpay order
         razorpay_order = client.order.create({
@@ -3480,227 +3474,7 @@ async def verify_payment(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==================== UPI PAYMENT ROUTES ====================
-
-# UPI Payment Settings (Admin can update this)
-UPI_PAYMENT_SETTINGS = {
-    "upi_id": "moneysaarthi@upi",  # Your UPI ID
-    "merchant_name": "Money Saarthi",
-    "qr_code_url": "",  # Optional: URL to QR code image
-}
-
-@api_router.get("/payment/upi-settings")
-async def get_upi_settings():
-    """Get UPI payment settings for display"""
-    # Get from database if available
-    settings = await db.settings.find_one({"key": "upi_payment"}, {"_id": 0})
-    if settings and settings.get("value"):
-        return settings["value"]
-    return UPI_PAYMENT_SETTINGS
-
-@api_router.put("/admin/settings/upi-payment")
-async def update_upi_settings(
-    settings: dict,
-    admin: User = Depends(get_admin_user)
-):
-    """Admin: Update UPI payment settings"""
-    await db.settings.update_one(
-        {"key": "upi_payment"},
-        {"$set": {"key": "upi_payment", "value": settings}},
-        upsert=True
-    )
-    return {"success": True, "message": "UPI settings updated"}
-
-@api_router.post("/payment/upi/submit")
-async def submit_upi_payment(
-    payment: UPIPaymentRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Submit UPI payment with UTR number for verification"""
-    try:
-        # Define plans
-        plans = {
-            "monthly": {"amount": 499, "days": 30, "name": "Monthly Plan", "has_full_package": False},
-            "yearly": {"amount": 2999, "days": 365, "name": "Yearly Plan", "has_full_package": False},
-            "full_package": {"amount": 4999, "days": 365, "name": "Full Package (Yearly)", "has_full_package": True}
-        }
-        
-        plan = plans.get(payment.plan_id)
-        if not plan:
-            raise HTTPException(status_code=400, detail="Invalid plan")
-        
-        # Validate UTR number (12 digit alphanumeric typically)
-        utr = payment.utr_number.strip().upper()
-        if len(utr) < 10 or len(utr) > 22:
-            raise HTTPException(status_code=400, detail="Invalid UTR number format")
-        
-        # Check if UTR already used
-        existing = await db.upi_payments.find_one({"utr_number": utr})
-        if existing:
-            raise HTTPException(status_code=400, detail="This UTR number has already been submitted")
-        
-        # Create payment request
-        payment_id = f"UPI_{current_user.user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        payment_doc = {
-            "payment_id": payment_id,
-            "user_id": current_user.user_id,
-            "email": current_user.email,
-            "plan_id": payment.plan_id,
-            "plan_name": plan["name"],
-            "amount": payment.amount,
-            "expected_amount": plan["amount"],
-            "utr_number": utr,
-            "payment_method": payment.payment_method,
-            "status": "pending",  # pending, approved, rejected
-            "plan_days": plan["days"],
-            "has_full_package": plan["has_full_package"],
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "approved_by": None,
-            "rejection_reason": None
-        }
-        
-        await db.upi_payments.insert_one(payment_doc)
-        
-        return {
-            "success": True,
-            "payment_id": payment_id,
-            "message": "Payment submitted successfully! Your subscription will be activated once verified.",
-            "status": "pending"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Error submitting UPI payment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/payment/upi/status")
-async def get_upi_payment_status(current_user: User = Depends(get_current_user)):
-    """Get user's pending payment status"""
-    payment = await db.upi_payments.find_one(
-        {"user_id": current_user.user_id, "status": "pending"},
-        {"_id": 0}
-    )
-    
-    if payment:
-        return {
-            "has_pending": True,
-            "payment": payment
-        }
-    
-    # Check for recent approved/rejected
-    recent = await db.upi_payments.find_one(
-        {"user_id": current_user.user_id},
-        {"_id": 0},
-        sort=[("updated_at", -1)]
-    )
-    
-    return {
-        "has_pending": False,
-        "recent_payment": recent
-    }
-
-@api_router.get("/admin/payments/pending")
-async def get_pending_payments(admin: User = Depends(get_admin_user)):
-    """Admin: Get all pending UPI payments"""
-    payments = await db.upi_payments.find(
-        {"status": "pending"},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    
-    return {"pending_payments": payments, "count": len(payments)}
-
-@api_router.get("/admin/payments/all")
-async def get_all_payments(
-    status: Optional[str] = None,
-    limit: int = 50,
-    admin: User = Depends(get_admin_user)
-):
-    """Admin: Get all UPI payments with optional status filter"""
-    query = {}
-    if status:
-        query["status"] = status
-    
-    payments = await db.upi_payments.find(
-        query,
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(limit)
-    
-    return {"payments": payments, "count": len(payments)}
-
-@api_router.post("/admin/payments/approve")
-async def approve_upi_payment(
-    approval: UPIPaymentApproval,
-    admin: User = Depends(get_admin_user)
-):
-    """Admin: Approve or reject a UPI payment"""
-    try:
-        payment = await db.upi_payments.find_one({"payment_id": approval.payment_id})
-        
-        if not payment:
-            raise HTTPException(status_code=404, detail="Payment not found")
-        
-        if payment["status"] != "pending":
-            raise HTTPException(status_code=400, detail=f"Payment already {payment['status']}")
-        
-        if approval.action == "approve":
-            # Approve payment and activate subscription
-            subscription_end = datetime.now(timezone.utc) + timedelta(days=payment["plan_days"])
-            
-            # Update user subscription
-            await db.users.update_one(
-                {"user_id": payment["user_id"]},
-                {"$set": {
-                    "is_paid": True,
-                    "has_full_package": payment["has_full_package"],
-                    "subscription_type": payment["plan_id"],
-                    "subscription_end": subscription_end.isoformat()
-                }}
-            )
-            
-            # Update payment status
-            await db.upi_payments.update_one(
-                {"payment_id": approval.payment_id},
-                {"$set": {
-                    "status": "approved",
-                    "approved_by": admin.email,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                    "subscription_end": subscription_end.isoformat()
-                }}
-            )
-            
-            return {
-                "success": True,
-                "message": f"Payment approved! User subscription activated until {subscription_end.strftime('%d %b %Y')}",
-                "subscription_end": subscription_end.isoformat()
-            }
-            
-        elif approval.action == "reject":
-            # Reject payment
-            await db.upi_payments.update_one(
-                {"payment_id": approval.payment_id},
-                {"$set": {
-                    "status": "rejected",
-                    "approved_by": admin.email,
-                    "rejection_reason": approval.reason or "Payment verification failed",
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            
-            return {
-                "success": True,
-                "message": "Payment rejected"
-            }
-        else:
-            raise HTTPException(status_code=400, detail="Invalid action. Use 'approve' or 'reject'")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Error processing payment approval: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# ==================== SUBSCRIPTION STATUS ====================
 
 @api_router.get("/user/subscription")
 async def get_subscription_status(current_user: User = Depends(get_current_user)):
