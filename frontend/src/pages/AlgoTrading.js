@@ -63,14 +63,14 @@ const BOT_CONFIGS = {
   delta: {
     id: 'delta',
     name: 'Delta Neutral Bot',
-    description: 'Sells premium while maintaining delta neutrality through hedging',
+    description: 'Iron Condor, Butterfly & Strangle strategies with auto-adjustments — choose your risk profile',
     icon: Shield,
     gradient: 'from-emerald-500 to-teal-500',
     color: 'emerald',
-    features: ['Theta Decay', 'Auto Hedging', 'Risk Control'],
+    features: ['4 Strategy Modes', 'Defined Risk Options', 'Daily & Weekly', 'Auto Adjustments', 'Trailing Profit'],
     riskLevel: 'Low-Medium',
     winRate: '78%',
-    avgReturn: '+1.5%',
+    avgReturn: '+2-4%',
     tokenAction: 'bot_start_hedging',
     tokenCost: 40,
   }
@@ -130,7 +130,16 @@ const AlgoTrading = () => {
     underlying: 'NIFTY',
     lotSize: 25,
     maxDeltaDrift: 0.1,
-    hedgeThreshold: 0.05
+    hedgeThreshold: 0.05,
+    // ─── Strategy & Timeframe ───
+    strategyMode: 'iron_condor',    // iron_condor | iron_butterfly | short_strangle | straddle_hedge
+    timeframe: 'weekly',            // intraday | weekly | smart
+    entryDelta: 16,
+    wingWidth: 200,
+    profitTargetPct: 50,
+    trailingProfit: true,
+    ivEntryMin: 25,
+    maxAdjustmentsPerDay: 3,
   });
   
   // UI State
@@ -545,16 +554,36 @@ const AlgoTrading = () => {
     }
   };
   
+  const STRATEGY_LABELS = {
+    iron_condor: 'Iron Condor (Defined Risk)',
+    iron_butterfly: 'Iron Butterfly (High Premium)',
+    short_strangle: 'Short Strangle (Aggressive)',
+    straddle_hedge: 'Straddle + Hedge (Max Theta)',
+  };
+  
+  const TIMEFRAME_LABELS = {
+    intraday: '0DTE Intraday',
+    weekly: 'Weekly Expiry',
+    smart: 'Smart (Auto-select)',
+  };
+  
   const startDeltaBot = async () => {
     const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
     const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
     const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
+    const strategyLabel = STRATEGY_LABELS[deltaConfig.strategyMode] || deltaConfig.strategyMode;
+    const timeframeLabel = TIMEFRAME_LABELS[deltaConfig.timeframe] || deltaConfig.timeframe;
+    const isDefinedRisk = ['iron_condor', 'iron_butterfly'].includes(deltaConfig.strategyMode);
+    
     const confirmed = window.confirm(
       `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
       `You are about to start Delta Neutral Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
+      `📊 Strategy: ${strategyLabel}\n` +
+      `⏱️ Timeframe: ${timeframeLabel}\n` +
       `• Underlying: ${deltaConfig.underlying}\n` +
-      `• Lot Size: ${deltaConfig.lotSize}\n` +
-      `• Max Delta Drift: ±${deltaConfig.maxDeltaDrift}\n` +
+      `• Entry Delta: ${deltaConfig.entryDelta}δ\n` +
+      (isDefinedRisk ? `• Wing Protection: ${deltaConfig.wingWidth} pts (capped loss)\n` : '• ⚠️ Unlimited risk — no wing protection\n') +
+      `• Profit Target: ${deltaConfig.profitTargetPct}%${deltaConfig.trailingProfit ? ' (trailing)' : ''}\n` +
       `• Token Cost: 40 tokens\n\n` +
       `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}\n\n` +
       `Are you sure you want to proceed?`
@@ -580,13 +609,22 @@ const AlgoTrading = () => {
           adjustment_interval: 60,
           stop_loss_percent: 2.0,
           target_profit_percent: 1.0,
-          mock_mode: isSandbox
+          mock_mode: isSandbox,
+          // ── New strategy params ──
+          strategy_mode: deltaConfig.strategyMode,
+          timeframe: deltaConfig.timeframe,
+          entry_delta: deltaConfig.entryDelta,
+          wing_width: deltaConfig.wingWidth,
+          profit_target_pct: deltaConfig.profitTargetPct,
+          trailing_profit: deltaConfig.trailingProfit,
+          iv_entry_min: deltaConfig.ivEntryMin,
+          max_adjustments_per_day: deltaConfig.maxAdjustmentsPerDay,
         })
       });
       const data = await response.json();
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: true }));
-        toast({ title: '🛡️ Bot Started', description: data.message || 'Delta Neutral Bot is now active' });
+        toast({ title: '🛡️ Bot Started', description: data.message || `${strategyLabel} bot is now active` });
       } else {
         toast({ title: 'Error', description: data.error || data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
       }
@@ -1278,47 +1316,144 @@ const AlgoTrading = () => {
   );
   
   const renderDeltaConfig = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <div>
-        <label className="text-xs text-muted-foreground">Underlying</label>
-        <select
-          value={deltaConfig.underlying}
-          onChange={(e) => setDeltaConfig(prev => ({ ...prev, underlying: e.target.value }))}
-          className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
-        >
-          <option value="NIFTY">NIFTY</option>
-          <option value="BANKNIFTY">BANK NIFTY</option>
-          <option value="FINNIFTY">FIN NIFTY</option>
-        </select>
+    <div className="space-y-4">
+      {/* Strategy Mode & Timeframe */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs text-muted-foreground font-medium">Strategy Mode</label>
+          <select
+            value={deltaConfig.strategyMode}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, strategyMode: e.target.value }))}
+            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="iron_condor">🛡️ Iron Condor (Defined Risk)</option>
+            <option value="iron_butterfly">🦋 Iron Butterfly (High Premium)</option>
+            <option value="short_strangle">⚡ Short Strangle (Aggressive)</option>
+            <option value="straddle_hedge">🔄 Straddle + Hedge (Max Theta)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground font-medium">Timeframe</label>
+          <select
+            value={deltaConfig.timeframe}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, timeframe: e.target.value }))}
+            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="weekly">📅 Weekly Expiry</option>
+            <option value="intraday">⚡ 0DTE Intraday</option>
+            <option value="smart">🧠 Smart (Auto-select)</option>
+          </select>
+        </div>
       </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Lot Size</label>
-        <Input
-          type="number"
-          value={deltaConfig.lotSize}
-          onChange={(e) => setDeltaConfig(prev => ({ ...prev, lotSize: Number(e.target.value) }))}
-          className="mt-1"
-        />
+      
+      {/* Strategy description */}
+      <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+        {deltaConfig.strategyMode === 'iron_condor' && (
+          <p>Sells OTM options + buys protective wings. <span className="text-green-500 font-medium">Max loss is capped.</span> Ideal for hands-off weekly income. Target 2-4% on margin.</p>
+        )}
+        {deltaConfig.strategyMode === 'iron_butterfly' && (
+          <p>Sells ATM straddle + buys OTM wings. <span className="text-green-500 font-medium">Higher premium, defined risk.</span> Best for range-bound/low-vol days. Target 3-6% weekly.</p>
+        )}
+        {deltaConfig.strategyMode === 'short_strangle' && (
+          <p>Sells naked OTM options. <span className="text-red-500 font-medium">Unlimited risk — no wings.</span> Highest premium but needs active monitoring. For experienced traders.</p>
+        )}
+        {deltaConfig.strategyMode === 'straddle_hedge' && (
+          <p>Sells ATM straddle + dynamic hedging. <span className="text-blue-500 font-medium">Pure theta capture with gamma scalping.</span> Most automated, bot handles everything.</p>
+        )}
       </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Max Delta Drift</label>
-        <Input
-          type="number"
-          step="0.01"
-          value={deltaConfig.maxDeltaDrift}
-          onChange={(e) => setDeltaConfig(prev => ({ ...prev, maxDeltaDrift: Number(e.target.value) }))}
-          className="mt-1"
-        />
+      
+      {/* Core Settings */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label className="text-xs text-muted-foreground">Underlying</label>
+          <select
+            value={deltaConfig.underlying}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, underlying: e.target.value }))}
+            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="NIFTY">NIFTY</option>
+            <option value="BANKNIFTY">BANK NIFTY</option>
+            <option value="FINNIFTY">FIN NIFTY</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Entry Delta (δ)</label>
+          <Input
+            type="number"
+            min={5} max={50} step={1}
+            value={deltaConfig.entryDelta}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, entryDelta: Number(e.target.value) }))}
+            className="mt-1"
+          />
+        </div>
+        {['iron_condor', 'iron_butterfly', 'straddle_hedge'].includes(deltaConfig.strategyMode) && (
+          <div>
+            <label className="text-xs text-muted-foreground">Wing Width (pts)</label>
+            <Input
+              type="number"
+              min={50} max={500} step={50}
+              value={deltaConfig.wingWidth}
+              onChange={(e) => setDeltaConfig(prev => ({ ...prev, wingWidth: Number(e.target.value) }))}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Hedge Threshold</label>
-        <Input
-          type="number"
-          step="0.01"
-          value={deltaConfig.hedgeThreshold}
-          onChange={(e) => setDeltaConfig(prev => ({ ...prev, hedgeThreshold: Number(e.target.value) }))}
-          className="mt-1"
-        />
+      
+      {/* Profit & Risk Settings */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label className="text-xs text-muted-foreground">Profit Target (%)</label>
+          <Input
+            type="number"
+            min={10} max={90} step={5}
+            value={deltaConfig.profitTargetPct}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, profitTargetPct: Number(e.target.value) }))}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">IV Entry Min (%ile)</label>
+          <Input
+            type="number"
+            min={0} max={80} step={5}
+            value={deltaConfig.ivEntryMin}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, ivEntryMin: Number(e.target.value) }))}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Max Adj/Day</label>
+          <Input
+            type="number"
+            min={1} max={10} step={1}
+            value={deltaConfig.maxAdjustmentsPerDay}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, maxAdjustmentsPerDay: Number(e.target.value) }))}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Lot Size</label>
+          <Input
+            type="number"
+            value={deltaConfig.lotSize}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, lotSize: Number(e.target.value) }))}
+            className="mt-1"
+          />
+        </div>
+      </div>
+      
+      {/* Toggle switches */}
+      <div className="flex gap-6">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={deltaConfig.trailingProfit}
+            onChange={(e) => setDeltaConfig(prev => ({ ...prev, trailingProfit: e.target.checked }))}
+            className="rounded"
+          />
+          Trailing Profit
+        </label>
       </div>
     </div>
   );

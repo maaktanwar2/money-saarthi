@@ -50,6 +50,21 @@ class Position:
     expiry: str = None
 
 
+class StrategyMode(Enum):
+    """Available delta-neutral strategy types"""
+    SHORT_STRANGLE = "short_strangle"       # Sell OTM CE + PE (unlimited risk, high premium)
+    IRON_CONDOR = "iron_condor"             # Sell OTM CE+PE, buy further OTM wings (defined risk)
+    IRON_BUTTERFLY = "iron_butterfly"       # Sell ATM straddle + buy OTM wings (high premium, defined risk)
+    STRADDLE_HEDGE = "straddle_hedge"       # Sell ATM straddle + dynamic delta hedge with futures/options
+
+
+class Timeframe(Enum):
+    """Trading timeframe"""
+    INTRADAY = "intraday"     # 0DTE - enter morning, exit by 3:15 PM same day
+    WEEKLY = "weekly"         # Enter Mon/Tue, ride till Thu/Fri expiry
+    SMART = "smart"           # Auto-select based on IV percentile and DTE
+
+
 @dataclass
 class DeltaNeutralConfig:
     """Configuration for Delta Neutral Strategy"""
@@ -65,6 +80,33 @@ class DeltaNeutralConfig:
     target_profit_percent: float = 1.0
     max_loss_per_day: float = 5000.0
     position_sizing: str = "fixed"  # fixed, kelly, volatility
+    
+    # ─── NEW: Strategy & Timeframe ───────────────────────────────────────
+    strategy_mode: str = "iron_condor"      # short_strangle | iron_condor | iron_butterfly | straddle_hedge
+    timeframe: str = "weekly"               # intraday | weekly | smart
+    
+    # ─── NEW: Iron Condor / Butterfly specific ───────────────────────────
+    entry_delta: float = 16.0               # Delta for short strikes (0-100 scale)
+    wing_width: int = 200                   # Points between short & long strikes (protection)
+    wing_delta: float = 5.0                 # Delta for long (protective) wings
+    
+    # ─── NEW: Smart Entry Filters ────────────────────────────────────────
+    iv_entry_min: float = 25.0              # Min IV percentile to enter (skip low-IV days)
+    min_premium_pct: float = 0.3            # Min premium as % of underlying to enter
+    no_entry_after: str = "14:30"           # Don't open new positions after this (IST)
+    
+    # ─── NEW: Enhanced Profit / Exit ─────────────────────────────────────
+    trailing_profit: bool = True            # Use trailing profit instead of fixed target
+    profit_target_pct: float = 50.0         # Close at 50% of max credit
+    trailing_step_pct: float = 10.0         # Trail in 10% increments
+    time_based_exit: bool = True            # Tighter targets as expiry nears
+    
+    # ─── NEW: Enhanced Risk Management ───────────────────────────────────
+    max_adjustments_per_day: int = 3        # Cap daily adjustments
+    adjustment_trigger_delta: float = 30.0  # Adjust when short strike delta > this
+    cool_down_seconds: int = 120            # Min time between adjustments
+    vix_exit_threshold: float = 25.0        # Emergency close if India VIX exceeds this
+    partial_profit_booking: bool = True     # Close 50% at first target, trail rest
 
 
 @dataclass 
@@ -353,6 +395,156 @@ class AlgoTradingEngine:
         
         return {"success": False, "error": "No hedge method available"}
     
+    # ========================================
+    # STRATEGY-SPECIFIC ENTRY LOGIC
+    # ========================================
+    
+    def get_strategy_description(self) -> Dict[str, Any]:
+        """Get human-readable strategy description for the current config"""
+        mode = self.config.strategy_mode
+        tf = self.config.timeframe
+        
+        descriptions = {
+            "iron_condor": {
+                "name": "Iron Condor",
+                "risk": "Defined (max loss = wing width × lot size)",
+                "description": (
+                    f"Sell CE & PE at ~{self.config.entry_delta}δ, buy protective wings "
+                    f"{self.config.wing_width} pts away. Max loss is capped. "
+                    "Auto-rolls inner legs when delta breaches threshold."
+                ),
+                "best_for": "Range-bound markets, hands-off trading",
+                "expected_return": "2-4% weekly on margin deployed",
+                "profit_target": f"{self.config.profit_target_pct}% of credit received",
+            },
+            "iron_butterfly": {
+                "name": "Iron Butterfly",
+                "risk": "Defined (max loss = wing width × lot size − credit)",
+                "description": (
+                    "Sell ATM straddle, buy OTM wings for protection. "
+                    "Higher premium than condor but needs market to stay near strike. "
+                    "Auto-adjusts center when underlying moves significantly."
+                ),
+                "best_for": "Low-volatility, range-bound days",
+                "expected_return": "3-6% weekly on margin deployed",
+                "profit_target": f"{self.config.profit_target_pct}% of credit received",
+            },
+            "short_strangle": {
+                "name": "Short Strangle",
+                "risk": "Unlimited (no protective wings)",
+                "description": (
+                    f"Sell naked CE & PE at ~{self.config.entry_delta}δ. "
+                    "Highest premium but unlimited risk. "
+                    "Auto-rolls when delta breaches. Requires margin."
+                ),
+                "best_for": "Experienced traders, high IV environments",
+                "expected_return": "3-5% weekly on capital",
+                "profit_target": f"{self.config.profit_target_pct}% of credit received",
+            },
+            "straddle_hedge": {
+                "name": "Straddle + Hedge",
+                "risk": "Managed via continuous delta hedging",
+                "description": (
+                    "Sell ATM straddle, hedge delta continuously with far-OTM options. "
+                    "Pure theta capture with gamma scalping. "
+                    "Most automated—bot handles all adjustments."
+                ),
+                "best_for": "Maximum theta, active management",
+                "expected_return": "2-4% weekly",
+                "profit_target": f"{self.config.profit_target_pct}% of credit received",
+            },
+        }
+        
+        timeframe_info = {
+            "intraday": "0DTE — enter after 9:30, exit by 3:15 PM same day",
+            "weekly": "Enter Mon/Tue, ride till Thu/Fri expiry",
+            "smart": "Auto-selects intraday or weekly based on IV and DTE",
+        }
+        
+        desc = descriptions.get(mode, descriptions["iron_condor"])
+        desc["timeframe"] = timeframe_info.get(tf, timeframe_info["weekly"])
+        desc["mode"] = mode
+        desc["tf"] = tf
+        
+        return desc
+    
+    def calculate_time_based_profit_target(self, dte: int) -> float:
+        """
+        Dynamic profit target that gets tighter as expiry nears.
+        More theta decays near expiry, so we can close earlier.
+        
+        Returns target as % of max credit.
+        """
+        base = self.config.profit_target_pct
+        
+        if not self.config.time_based_exit:
+            return base
+        
+        if dte <= 0:
+            return 90.0  # Almost all profit at 0DTE
+        elif dte == 1:
+            return 70.0  # 70% profit at 1 DTE
+        elif dte == 2:
+            return 60.0  # 60% at 2 DTE
+        elif dte <= 4:
+            return 50.0  # Standard 50% at 3-4 DTE
+        else:
+            return base   # User-configured target for longer-dated
+    
+    def calculate_dynamic_stop_loss(self, dte: int) -> float:
+        """
+        Dynamic stop-loss that tightens near expiry (limit gamma risk).
+        
+        Returns max loss as multiple of credit.
+        """
+        base = 2.0  # Default 2x credit
+        
+        if self.config.timeframe == "intraday":
+            return 1.5   # Tighter stop for 0DTE
+        
+        if dte <= 1:
+            return 1.5   # Tighter near expiry
+        elif dte <= 3:
+            return 1.75
+        else:
+            return base
+    
+    def should_enter_trade(self, iv_percentile: float, current_time_str: str) -> Dict[str, Any]:
+        """
+        Smart entry filter — only enter when conditions are favorable.
+        
+        Checks:
+        - IV percentile above minimum
+        - Not too late in the day
+        - Market hours
+        """
+        reasons = []
+        can_enter = True
+        
+        # IV filter
+        if iv_percentile < self.config.iv_entry_min:
+            can_enter = False
+            reasons.append(f"IV percentile {iv_percentile:.0f}% < min {self.config.iv_entry_min:.0f}%")
+        else:
+            reasons.append(f"IV percentile {iv_percentile:.0f}% OK (min {self.config.iv_entry_min:.0f}%)")
+        
+        # Time filter
+        try:
+            hour, minute = map(int, current_time_str.split(":"))
+            no_h, no_m = map(int, self.config.no_entry_after.split(":"))
+            if hour > no_h or (hour == no_h and minute > no_m):
+                can_enter = False
+                reasons.append(f"Too late ({current_time_str} > {self.config.no_entry_after})")
+        except:
+            pass
+        
+        # Weekend check
+        if datetime.now().weekday() >= 5:
+            can_enter = False
+            reasons.append("Weekend — market closed")
+        
+        return {"can_enter": can_enter, "reasons": reasons}
+
     async def _get_spot_price(self) -> Optional[float]:
         """Get current spot price of underlying from broker or market data"""
         try:
@@ -440,17 +632,25 @@ class AlgoTradingEngine:
         self._task = asyncio.create_task(self._monitoring_loop())
         
         mode_str = " [MOCK MODE]" if mock_mode else ""
-        logger.info(f"Algo bot started{mode_str} with config: {self.config}")
+        strategy_desc = self.get_strategy_description()
+        logger.info(f"Algo bot started{mode_str}: {strategy_desc['name']} ({self.config.timeframe})")
         
         return {
             "success": True,
-            "message": f"Delta Neutral bot started{mode_str}",
+            "message": f"{strategy_desc['name']} bot started{mode_str} ({self.config.timeframe} mode)",
             "mock_mode": mock_mode,
+            "strategy": strategy_desc,
             "config": {
                 "underlying": self.config.underlying,
                 "max_delta_drift": self.config.max_delta_drift,
                 "auto_adjust": self.config.auto_adjust,
-                "adjustment_interval": self.config.adjustment_interval_seconds
+                "adjustment_interval": self.config.adjustment_interval_seconds,
+                "strategy_mode": self.config.strategy_mode,
+                "timeframe": self.config.timeframe,
+                "entry_delta": self.config.entry_delta,
+                "wing_width": self.config.wing_width,
+                "profit_target_pct": self.config.profit_target_pct,
+                "trailing_profit": self.config.trailing_profit,
             }
         }
     
@@ -497,6 +697,7 @@ class AlgoTradingEngine:
     
     def get_status(self) -> Dict[str, Any]:
         """Get current bot status"""
+        strategy_desc = self.get_strategy_description()
         return {
             "is_running": self.state.is_running,
             "broker": self.broker,
@@ -506,11 +707,20 @@ class AlgoTradingEngine:
             "positions_count": len(self.state.positions),
             "last_adjustment": self.state.last_adjustment.isoformat() if self.state.last_adjustment else None,
             "errors": self.state.errors[-5:],  # Last 5 errors
+            "strategy": strategy_desc,
             "config": {
                 "underlying": self.config.underlying,
                 "max_delta_drift": self.config.max_delta_drift,
                 "auto_adjust": self.config.auto_adjust,
-                "lot_size": self.config.lot_size
+                "lot_size": self.config.lot_size,
+                "strategy_mode": self.config.strategy_mode,
+                "timeframe": self.config.timeframe,
+                "entry_delta": self.config.entry_delta,
+                "wing_width": self.config.wing_width,
+                "profit_target_pct": self.config.profit_target_pct,
+                "trailing_profit": self.config.trailing_profit,
+                "iv_entry_min": self.config.iv_entry_min,
+                "max_adjustments_per_day": self.config.max_adjustments_per_day,
             }
         }
 

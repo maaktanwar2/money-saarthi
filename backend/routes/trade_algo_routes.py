@@ -662,6 +662,24 @@ class DeltaNeutralStartRequest(BaseModel):
     stop_loss_percent: float = Field(default=2.0)
     target_profit_percent: float = Field(default=1.0)
     mock_mode: Optional[bool] = Field(default=False, description="Enable mock mode for testing")
+    
+    # ─── NEW: Strategy & Timeframe ───────────────────────────────────────
+    strategy_mode: str = Field(
+        default="iron_condor",
+        description="short_strangle | iron_condor | iron_butterfly | straddle_hedge"
+    )
+    timeframe: str = Field(
+        default="weekly",
+        description="intraday | weekly | smart"
+    )
+    
+    # ─── NEW: Strategy parameters ────────────────────────────────────────
+    entry_delta: float = Field(default=16.0, ge=5, le=50, description="Delta for short strikes (0-100)")
+    wing_width: int = Field(default=200, ge=50, le=500, description="Points between short/long strikes")
+    profit_target_pct: float = Field(default=50.0, ge=10, le=90, description="Close at this % of max credit")
+    trailing_profit: bool = Field(default=True, description="Trail profit instead of fixed exit")
+    iv_entry_min: float = Field(default=25.0, ge=0, le=80, description="Min IV percentile to enter")
+    max_adjustments_per_day: int = Field(default=3, ge=1, le=10)
 
 
 class DeltaNeutralStopRequest(BaseModel):
@@ -707,7 +725,16 @@ async def start_delta_neutral_bot(request: DeltaNeutralStartRequest):
             auto_adjust=request.auto_adjust,
             adjustment_interval_seconds=request.adjustment_interval,
             stop_loss_percent=request.stop_loss_percent,
-            target_profit_percent=request.target_profit_percent
+            target_profit_percent=request.target_profit_percent,
+            # ─── NEW: Strategy & Timeframe ───
+            strategy_mode=request.strategy_mode,
+            timeframe=request.timeframe,
+            entry_delta=request.entry_delta,
+            wing_width=request.wing_width,
+            profit_target_pct=request.profit_target_pct,
+            trailing_profit=request.trailing_profit,
+            iv_entry_min=request.iv_entry_min,
+            max_adjustments_per_day=request.max_adjustments_per_day,
         )
         
         # Get or create bot
@@ -2142,6 +2169,19 @@ class DeltaStrangleStartRequest(BaseModel):
     entry_time: str = Field(default="09:20", description="Entry window start (HH:MM IST)")
     exit_time: str = Field(default="15:15", description="Exit window end (HH:MM IST)")
     max_adjustments_per_day: int = Field(default=3, ge=0, le=10, description="Max adjustments per day (0-10)")
+    
+    # ─── NEW: Strategy & Timeframe ───────────────────────────────────────
+    strategy_mode: str = Field(
+        default="iron_condor",
+        description="short_strangle | iron_condor | iron_butterfly | straddle_hedge"
+    )
+    timeframe: str = Field(
+        default="weekly",
+        description="intraday | weekly | smart"
+    )
+    wing_width: int = Field(default=200, ge=50, le=500, description="Points between short/long strikes")
+    trailing_profit: bool = Field(default=True, description="Trail profit instead of fixed exit")
+    iv_entry_min: float = Field(default=25.0, ge=0, le=80, description="Min IV percentile to enter")
 
 
 class DeltaStrangleStopRequest(BaseModel):
@@ -2225,7 +2265,13 @@ async def start_ai_delta_strangle(request: DeltaStrangleStartRequest):
             ai_confidence_threshold=request.ai_confidence_threshold,
             entry_time=request.entry_time,
             exit_time=request.exit_time,
-            max_adjustments_per_day=request.max_adjustments_per_day
+            max_adjustments_per_day=request.max_adjustments_per_day,
+            # ─── NEW: Strategy & Timeframe ───
+            strategy_mode=request.strategy_mode,
+            timeframe=request.timeframe,
+            wing_width=request.wing_width,
+            trailing_profit=request.trailing_profit,
+            iv_entry_min=request.iv_entry_min,
         )
         
         # Create and start bot
@@ -2243,7 +2289,7 @@ async def start_ai_delta_strangle(request: DeltaStrangleStartRequest):
         
         return {
             "status": "success",
-            "message": f"QuantStrangle AI Bot started for {request.underlying}",
+            "message": f"QuantStrangle AI Bot started for {request.underlying} ({request.strategy_mode}, {request.timeframe})",
             **result,
             "timestamp": datetime.now().isoformat()
         }

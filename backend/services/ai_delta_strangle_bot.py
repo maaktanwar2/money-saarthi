@@ -163,22 +163,55 @@ class DeltaStrangleConfig:
     lot_size: int = 65
     num_lots: int = 1
     
+    # ─── Strategy Mode ───────────────────────────────────────────────────
+    # short_strangle: Sell OTM CE + PE (unlimited risk, high premium)
+    # iron_condor:    Sell OTM CE + PE, buy further OTM wings (defined risk, hands-off)
+    # iron_butterfly: Sell ATM straddle + buy OTM wings (high premium, defined risk)
+    # straddle_hedge: Sell ATM straddle + dynamic hedge with far-OTM options
+    strategy_mode: str = "iron_condor"
+    
+    # ─── Timeframe ───────────────────────────────────────────────────────
+    # intraday: 0DTE, enter morning, exit by 3:15 PM same day
+    # weekly:   Enter Mon/Tue, ride till Thu/Fri expiry
+    # smart:    Auto-select based on IV percentile and DTE
+    timeframe: str = "weekly"
+    
     # Delta Settings
     entry_delta: float = 15.0  # Enter at 15-16 delta
     adjustment_trigger_delta: float = 30.0  # Adjust when delta reaches 30
     roll_target_delta: float = 15.0  # Roll to 15 delta
     
+    # ─── Iron Condor / Butterfly Specific ────────────────────────────────
+    wing_width: int = 200            # Points between short & long strikes
+    wing_delta: float = 5.0          # Delta for protective wings
+    
     # Profit/Loss Settings
     profit_target_pct: float = 50.0  # Close at 50% profit
     max_loss_multiplier: float = 2.0  # Stop at 2x credit
     
+    # ─── Enhanced Profit Management ──────────────────────────────────────
+    trailing_profit: bool = True           # Trail profit instead of fixed exit
+    trailing_step_pct: float = 10.0        # Trail in 10% increments
+    time_based_exit: bool = True           # Tighter targets as expiry nears
+    partial_profit_booking: bool = True    # Close 50% at first target, trail rest
+    
+    # ─── Smart Entry Filters ─────────────────────────────────────────────
+    iv_entry_min: float = 25.0       # Min IV percentile to enter
+    min_premium_pct: float = 0.3     # Min premium as % of underlying
+    
     # Trading Hours
     entry_time: str = "09:30"
     exit_time: str = "15:15"
+    no_entry_after: str = "14:30"    # Don't enter new positions after this
     
     # Adjustment Settings
     max_adjustments_per_day: int = 3
     adjustment_cooldown_seconds: int = 300  # 5 min between adjustments
+    cool_down_seconds: int = 120     # Min time between adjustments
+    
+    # ─── Enhanced Risk Management ────────────────────────────────────────
+    vix_exit_threshold: float = 25.0       # Emergency close if VIX exceeds this
+    max_daily_loss: float = 10000.0        # Auto-stop if daily loss exceeds this
     
     # AI Settings
     use_ai_decisions: bool = True
@@ -1529,6 +1562,338 @@ class AIDeltaStrangleBot:
             self._log(f"Error entering strangle: {e}", "ERROR")
             return {"success": False, "error": str(e)}
     
+    async def enter_iron_condor(self, option_chain: Dict) -> Dict:
+        """
+        Enter an Iron Condor position (DEFINED RISK — ideal for hands-off).
+        
+        Structure:
+        - SELL OTM Call at ~16δ (short call)
+        - BUY further OTM Call at ~5δ (long call wing — protection)
+        - SELL OTM Put at ~16δ (short put)
+        - BUY further OTM Put at ~5δ (long put wing — protection)
+        
+        Max loss = wing width × lot size - net credit
+        Max profit = net credit received
+        """
+        try:
+            # Find short strikes at entry delta
+            short_call, short_put = self.find_strikes_by_delta(
+                option_chain, self.config.entry_delta
+            )
+            
+            if not short_call or not short_put:
+                return {"success": False, "error": "Could not find short strikes at target delta"}
+            
+            # Find long (protective) wings
+            # Option 1: Use wing_width from config
+            wing_width = self.config.wing_width
+            long_call_strike = short_call["strike"] + wing_width
+            long_put_strike = short_put["strike"] - wing_width
+            
+            # Find the actual option data for wing strikes
+            long_call = self._find_nearest_strike(option_chain, long_call_strike, "CE")
+            long_put = self._find_nearest_strike(option_chain, long_put_strike, "PE")
+            
+            if not long_call or not long_put:
+                # Fallback: find wings by delta
+                long_call = self.find_delta_strike(option_chain, self.config.wing_delta, "CE")
+                long_put = self.find_delta_strike(option_chain, self.config.wing_delta, "PE")
+            
+            if not long_call or not long_put:
+                return {"success": False, "error": "Could not find protective wing strikes"}
+            
+            self._log(
+                f"Entering Iron Condor:\n"
+                f"  Short CE: {short_call['strike']} @ δ{short_call['delta']:.1f} (₹{short_call['price']:.2f})\n"
+                f"  Long CE:  {long_call['strike']} @ δ{long_call.get('delta', 0):.1f} (₹{long_call.get('price', 0):.2f})\n"
+                f"  Short PE: {short_put['strike']} @ δ{short_put['delta']:.1f} (₹{short_put['price']:.2f})\n"
+                f"  Long PE:  {long_put['strike']} @ δ{long_put.get('delta', 0):.1f} (₹{long_put.get('price', 0):.2f})"
+            )
+            
+            lot_size = LOT_SIZES.get(self.config.underlying, 65)
+            quantity = lot_size * self.config.num_lots
+            
+            # Place 4 orders: SELL short legs, BUY long (wing) legs
+            sc_order = await self._place_order(
+                strike=short_call["strike"], option_type="CE", quantity=quantity,
+                side="SELL", price=short_call["price"],
+                security_id=short_call.get("security_id", ""),
+                instrument_key=short_call.get("instrument_key", "")
+            )
+            lc_order = await self._place_order(
+                strike=long_call["strike"], option_type="CE", quantity=quantity,
+                side="BUY", price=long_call.get("price", 0),
+                security_id=long_call.get("security_id", ""),
+                instrument_key=long_call.get("instrument_key", "")
+            )
+            sp_order = await self._place_order(
+                strike=short_put["strike"], option_type="PE", quantity=quantity,
+                side="SELL", price=short_put["price"],
+                security_id=short_put.get("security_id", ""),
+                instrument_key=short_put.get("instrument_key", "")
+            )
+            lp_order = await self._place_order(
+                strike=long_put["strike"], option_type="PE", quantity=quantity,
+                side="BUY", price=long_put.get("price", 0),
+                security_id=long_put.get("security_id", ""),
+                instrument_key=long_put.get("instrument_key", "")
+            )
+            
+            # Net credit = (short premiums sold) - (long premiums paid)
+            net_credit = (
+                (short_call["price"] + short_put["price"]) -
+                (long_call.get("price", 0) + long_put.get("price", 0))
+            ) * quantity
+            
+            # Max loss = (wing_width × lot_size) - net_credit
+            actual_wing_ce = abs(long_call["strike"] - short_call["strike"])
+            actual_wing_pe = abs(short_put["strike"] - long_put["strike"])
+            max_loss = max(actual_wing_ce, actual_wing_pe) * quantity - net_credit
+            
+            # Update position (track short legs for adjustment, wings are set-and-forget)
+            self.position = StranglePosition(
+                call_leg=OptionLeg(
+                    option_type="CE", strike=short_call["strike"],
+                    entry_price=short_call["price"], current_price=short_call["price"],
+                    quantity=quantity,
+                    greeks=OptionGreeks(
+                        delta=short_call["delta"], gamma=short_call["gamma"],
+                        theta=short_call["theta"], vega=short_call["vega"], iv=short_call["iv"]
+                    ),
+                    order_id=sc_order.get("order_id", ""),
+                    security_id=short_call.get("security_id", ""),
+                    instrument_key=short_call.get("instrument_key", "")
+                ),
+                put_leg=OptionLeg(
+                    option_type="PE", strike=short_put["strike"],
+                    entry_price=short_put["price"], current_price=short_put["price"],
+                    quantity=quantity,
+                    greeks=OptionGreeks(
+                        delta=short_put["delta"], gamma=short_put["gamma"],
+                        theta=short_put["theta"], vega=short_put["vega"], iv=short_put["iv"]
+                    ),
+                    order_id=sp_order.get("order_id", ""),
+                    security_id=short_put.get("security_id", ""),
+                    instrument_key=short_put.get("instrument_key", "")
+                ),
+                status=PositionStatus.OPEN,
+                entry_time=datetime.now(),
+                entry_credit=net_credit
+            )
+            
+            self._log(f"✅ Iron Condor entered! Net credit: ₹{net_credit:.2f}, Max loss: ₹{max_loss:.2f}")
+            
+            return {
+                "success": True,
+                "strategy": "iron_condor",
+                "orders": {
+                    "short_call": sc_order, "long_call": lc_order,
+                    "short_put": sp_order, "long_put": lp_order
+                },
+                "position": {
+                    "short_call_strike": short_call["strike"],
+                    "long_call_strike": long_call["strike"],
+                    "short_put_strike": short_put["strike"],
+                    "long_put_strike": long_put["strike"],
+                    "net_credit": net_credit,
+                    "max_loss": max_loss,
+                    "quantity": quantity
+                }
+            }
+            
+        except Exception as e:
+            self._log(f"Error entering iron condor: {e}", "ERROR")
+            return {"success": False, "error": str(e)}
+    
+    async def enter_iron_butterfly(self, option_chain: Dict) -> Dict:
+        """
+        Enter an Iron Butterfly position (HIGH PREMIUM, DEFINED RISK).
+        
+        Structure:
+        - SELL ATM Call (at-the-money)
+        - SELL ATM Put (at-the-money)
+        - BUY OTM Call (wing_width points above ATM)
+        - BUY OTM Put (wing_width points below ATM)
+        
+        Higher premium than condor but needs market to stay near ATM.
+        Auto-adjusts center strike when underlying moves significantly.
+        """
+        try:
+            spot = option_chain.get("underlying_price", 25000)
+            
+            # Find ATM strike
+            step = 50 if self.config.underlying in ["NIFTY", "FINNIFTY"] else 100
+            atm_strike = round(spot / step) * step
+            
+            # Get ATM option data
+            atm_call = option_chain.get("calls", {}).get(atm_strike, {})
+            atm_put = option_chain.get("puts", {}).get(atm_strike, {})
+            
+            if not atm_call or not atm_put:
+                return {"success": False, "error": f"No data for ATM strike {atm_strike}"}
+            
+            # Calculate wing strikes
+            wing_width = self.config.wing_width
+            long_call_strike = atm_strike + wing_width
+            long_put_strike = atm_strike - wing_width
+            
+            long_call = option_chain.get("calls", {}).get(long_call_strike, {})
+            long_put = option_chain.get("puts", {}).get(long_put_strike, {})
+            
+            # Fallback: find nearest available strikes
+            if not long_call:
+                long_call = self._find_nearest_strike(option_chain, long_call_strike, "CE") or {}
+                long_call_strike = long_call.get("strike", long_call_strike)
+            if not long_put:
+                long_put = self._find_nearest_strike(option_chain, long_put_strike, "PE") or {}
+                long_put_strike = long_put.get("strike", long_put_strike)
+            
+            self._log(
+                f"Entering Iron Butterfly:\n"
+                f"  ATM CE (SELL): {atm_strike} @ ₹{atm_call.get('price', 0):.2f}\n"
+                f"  ATM PE (SELL): {atm_strike} @ ₹{atm_put.get('price', 0):.2f}\n"
+                f"  Wing CE (BUY): {long_call_strike} @ ₹{long_call.get('price', 0):.2f}\n"
+                f"  Wing PE (BUY): {long_put_strike} @ ₹{long_put.get('price', 0):.2f}"
+            )
+            
+            lot_size = LOT_SIZES.get(self.config.underlying, 65)
+            quantity = lot_size * self.config.num_lots
+            
+            # Place 4 orders
+            sc_order = await self._place_order(
+                strike=atm_strike, option_type="CE", quantity=quantity,
+                side="SELL", price=atm_call.get("price", 0),
+                security_id=atm_call.get("security_id", ""),
+                instrument_key=atm_call.get("instrument_key", "")
+            )
+            sp_order = await self._place_order(
+                strike=atm_strike, option_type="PE", quantity=quantity,
+                side="SELL", price=atm_put.get("price", 0),
+                security_id=atm_put.get("security_id", ""),
+                instrument_key=atm_put.get("instrument_key", "")
+            )
+            lc_order = await self._place_order(
+                strike=long_call_strike, option_type="CE", quantity=quantity,
+                side="BUY", price=long_call.get("price", 0),
+                security_id=long_call.get("security_id", ""),
+                instrument_key=long_call.get("instrument_key", "")
+            )
+            lp_order = await self._place_order(
+                strike=long_put_strike, option_type="PE", quantity=quantity,
+                side="BUY", price=long_put.get("price", 0),
+                security_id=long_put.get("security_id", ""),
+                instrument_key=long_put.get("instrument_key", "")
+            )
+            
+            net_credit = (
+                (atm_call.get("price", 0) + atm_put.get("price", 0)) -
+                (long_call.get("price", 0) + long_put.get("price", 0))
+            ) * quantity
+            max_loss = wing_width * quantity - net_credit
+            
+            # Track short legs (ATM)
+            self.position = StranglePosition(
+                call_leg=OptionLeg(
+                    option_type="CE", strike=atm_strike,
+                    entry_price=atm_call.get("price", 0), current_price=atm_call.get("price", 0),
+                    quantity=quantity,
+                    greeks=OptionGreeks(
+                        delta=atm_call.get("delta", 50), gamma=atm_call.get("gamma", 0),
+                        theta=atm_call.get("theta", 0), vega=atm_call.get("vega", 0),
+                        iv=atm_call.get("iv", 0)
+                    ),
+                    security_id=atm_call.get("security_id", ""),
+                    instrument_key=atm_call.get("instrument_key", "")
+                ),
+                put_leg=OptionLeg(
+                    option_type="PE", strike=atm_strike,
+                    entry_price=atm_put.get("price", 0), current_price=atm_put.get("price", 0),
+                    quantity=quantity,
+                    greeks=OptionGreeks(
+                        delta=atm_put.get("delta", -50), gamma=atm_put.get("gamma", 0),
+                        theta=atm_put.get("theta", 0), vega=atm_put.get("vega", 0),
+                        iv=atm_put.get("iv", 0)
+                    ),
+                    security_id=atm_put.get("security_id", ""),
+                    instrument_key=atm_put.get("instrument_key", "")
+                ),
+                status=PositionStatus.OPEN,
+                entry_time=datetime.now(),
+                entry_credit=net_credit
+            )
+            
+            self._log(f"✅ Iron Butterfly entered! Net credit: ₹{net_credit:.2f}, Max loss: ₹{max_loss:.2f}")
+            
+            return {
+                "success": True,
+                "strategy": "iron_butterfly",
+                "orders": {
+                    "short_call": sc_order, "short_put": sp_order,
+                    "long_call": lc_order, "long_put": lp_order
+                },
+                "position": {
+                    "atm_strike": atm_strike,
+                    "long_call_strike": long_call_strike,
+                    "long_put_strike": long_put_strike,
+                    "net_credit": net_credit,
+                    "max_loss": max_loss,
+                    "quantity": quantity
+                }
+            }
+            
+        except Exception as e:
+            self._log(f"Error entering iron butterfly: {e}", "ERROR")
+            return {"success": False, "error": str(e)}
+    
+    async def enter_position_by_strategy(self, option_chain: Dict) -> Dict:
+        """
+        Enter position based on configured strategy_mode.
+        This is the unified entry point that auto-selects the right strategy.
+        """
+        mode = self.config.strategy_mode
+        
+        self._log(f"📊 Entering {mode} position for {self.config.underlying} ({self.config.timeframe} mode)")
+        
+        if mode == "iron_condor":
+            return await self.enter_iron_condor(option_chain)
+        elif mode == "iron_butterfly":
+            return await self.enter_iron_butterfly(option_chain)
+        elif mode == "straddle_hedge":
+            # Straddle hedge = iron butterfly with wider wings + more aggressive adjustment
+            self.config.entry_delta = 50.0  # ATM
+            return await self.enter_iron_butterfly(option_chain)
+        else:  # short_strangle (default/legacy)
+            return await self.enter_strangle(option_chain)
+    
+    def _find_nearest_strike(self, option_chain: Dict, target_strike: float, option_type: str) -> Optional[Dict]:
+        """Find the nearest available strike to target in option chain"""
+        options = option_chain.get("calls" if option_type == "CE" else "puts", {})
+        
+        if not options:
+            return None
+        
+        best = None
+        best_diff = float('inf')
+        
+        for strike, data in options.items():
+            diff = abs(float(strike) - target_strike)
+            if diff < best_diff:
+                best_diff = diff
+                best = {
+                    "strike": float(strike),
+                    "price": data.get("price", 0),
+                    "delta": data.get("delta", 0),
+                    "gamma": data.get("gamma", 0),
+                    "theta": data.get("theta", 0),
+                    "vega": data.get("vega", 0),
+                    "iv": data.get("iv", 0),
+                    "oi": data.get("oi", 0),
+                    "security_id": data.get("security_id", ""),
+                    "instrument_key": data.get("instrument_key", ""),
+                }
+        
+        return best
+
     async def adjust_position(
         self,
         option_chain: Dict,
@@ -1941,8 +2306,11 @@ class AIDeltaStrangleBot:
                 self.config.lot_size = LOT_SIZES.get(self.config.underlying, 65)
             
             self._log(f"Starting AI Delta Strangle Bot for {self.config.underlying}")
+            self._log(f"Strategy: {self.config.strategy_mode} | Timeframe: {self.config.timeframe}")
             self._log(f"Entry Delta: {self.config.entry_delta}, Adjustment Trigger: {self.config.adjustment_trigger_delta}")
             self._log(f"AI Enabled: {self.config.use_ai_decisions}, Lots: {self.config.num_lots}")
+            if self.config.strategy_mode in ("iron_condor", "iron_butterfly"):
+                self._log(f"Wing Width: {self.config.wing_width} pts (defined risk)")
             
             self.status = BotStatus.RUNNING
             self._running = True
@@ -1955,17 +2323,19 @@ class AIDeltaStrangleBot:
             if self.config.use_ai_decisions and self.claude_api_key:
                 ai_decision = await self.get_claude_decision(option_chain)
             
-            # Enter strangle if no position and within trading hours
+            # Enter position based on strategy if no position and within trading hours
             entry_result = None
             if self.position.status == PositionStatus.NONE:
                 if self._is_trading_hours():
-                    entry_result = await self.enter_strangle(option_chain)
+                    entry_result = await self.enter_position_by_strategy(option_chain)
                 else:
                     self._log("Outside trading hours, waiting...")
             
             return {
                 "success": True,
-                "message": "Bot started",
+                "message": f"{self.config.strategy_mode.replace('_', ' ').title()} bot started ({self.config.timeframe} mode)",
+                "strategy": self.config.strategy_mode,
+                "timeframe": self.config.timeframe,
                 "config": asdict(self.config),
                 "ai_decision": ai_decision,
                 "position": entry_result.get("position") if entry_result else None
@@ -2067,9 +2437,9 @@ class AIDeltaStrangleBot:
             # Entry check
             elif self.position.status == PositionStatus.NONE and self._is_trading_hours():
                 if ai_action == "ENTER_TRADE" and ai_confidence >= self.config.ai_confidence_threshold:
-                    action_taken = await self.enter_strangle(option_chain)
+                    action_taken = await self.enter_position_by_strategy(option_chain)
                     action_taken["reason"] = "ai_new_entry"
-                    action_taken["trigger"] = "AI recommended new entry"
+                    action_taken["trigger"] = f"AI recommended new entry ({self.config.strategy_mode})"
             
             return {
                 "spot_price": option_chain.get("underlying_price"),

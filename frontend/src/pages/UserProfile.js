@@ -746,7 +746,7 @@ export default function UserProfile() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
                       { name: 'VWAP Momentum', tokens: 15, color: 'text-blue-500', bg: 'bg-blue-500/15', desc: 'Basic bot' },
-                      { name: 'Delta Neutral', tokens: 40, color: 'text-emerald-500', bg: 'bg-emerald-500/15', desc: 'Auto Hedging' },
+                      { name: 'Delta Neutral', tokens: 40, color: 'text-emerald-500', bg: 'bg-emerald-500/15', desc: 'Iron Condor / Butterfly / Strangle' },
                       { name: 'QuantStrangle AI', tokens: 60, color: 'text-purple-500', bg: 'bg-purple-500/15', desc: 'AI + Auto Hedging' },
                     ].map(item => (
                       <Card key={item.name} className="text-center">
