@@ -799,7 +799,7 @@ export default function LTPCalculator() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={0}>
                       <BarChart data={oiChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                         <XAxis dataKey="strike" tick={{ fill: CHART_COLORS.text, fontSize: 10 }} interval={Math.max(0, Math.floor(oiChartData.length / 12))} />
@@ -828,7 +828,7 @@ export default function LTPCalculator() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                       <BarChart data={oiChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                         <XAxis dataKey="strike" tick={{ fill: CHART_COLORS.text, fontSize: 10 }} interval={Math.max(0, Math.floor(oiChartData.length / 12))} />
@@ -856,7 +856,7 @@ export default function LTPCalculator() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                       <LineChart data={ivChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                         <XAxis dataKey="strike" tick={{ fill: CHART_COLORS.text, fontSize: 10 }} interval={Math.max(0, Math.floor(ivChartData.length / 12))} />
@@ -990,8 +990,8 @@ export default function LTPCalculator() {
                         <div className="text-sm font-bold text-yellow-400">{effectiveLevels.diversions.length} levels</div>
                       </div>
                     </div>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ minHeight: 256 }}>
+                      <ResponsiveContainer width="100%" height={256} minWidth={0} minHeight={0}>
                         <LineChart data={[
                           { idx: 0, price: effectiveLevels.priceMin },
                           { idx: 1, price: effectiveLevels.priceMax },
@@ -1250,8 +1250,8 @@ export default function LTPCalculator() {
                         <div className="text-[9px] text-yellow-400/50">D1–D{effectiveLevels.diversions.length}</div>
                       </div>
                     </div>
-                    <div className="h-72">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div style={{ minHeight: 288 }}>
+                      <ResponsiveContainer width="100%" height={288} minWidth={0} minHeight={0}>
                         <LineChart data={[
                           { idx: 0, price: effectiveLevels.priceMin },
                           { idx: 1, price: effectiveLevels.priceMax },
