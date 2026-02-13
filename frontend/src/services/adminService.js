@@ -1,386 +1,271 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADMIN SERVICE - Real Data Management for Admin Panel
+// ADMIN SERVICE - Real Backend API Integration
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { API, getAuthHeaders } from '../config/api';
 
 const STORAGE_KEYS = {
   USERS: 'moneysaarthi_all_users',
-  TRANSACTIONS: 'moneysaarthi_transactions',
   SIGNALS: 'moneysaarthi_signals',
   ANNOUNCEMENTS: 'moneysaarthi_announcements',
-  SYSTEM_CONFIG: 'moneysaarthi_system_config',
-  PAYMENT_CONFIG: 'moneysaarthi_payment_config',
+};
+
+// Helper for admin API calls
+const adminFetch = async (path, options = {}) => {
+  const res = await fetch(`${API}${path}`, {
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    credentials: 'include',
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(err || `Admin API error: ${res.status}`);
+  }
+  return res.json();
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// USER MANAGEMENT
+// USER MANAGEMENT — Backend-first
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Get all registered users from backend API
 export const fetchUsersFromBackend = async () => {
   try {
-    const headers = getAuthHeaders();
-    const response = await fetch(`${API}/admin/users`, {
-      headers,
-      credentials: 'include' // Include cookies for session
-    });
-    
-    if (response.ok) {
-      const backendUsers = await response.json();
-      
-      // Get local users and merge (for users who logged in before backend sync)
-      const localUsers = getAllUsersFromStorage();
-      
-      // Merge: backend users take priority, add local users not in backend
-      const backendEmails = new Set(backendUsers.map(u => u.email?.toLowerCase()));
-      const uniqueLocalUsers = localUsers.filter(u => !backendEmails.has(u.email?.toLowerCase()));
-      
-      const mergedUsers = [...backendUsers, ...uniqueLocalUsers];
-      
-      // Cache merged list
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mergedUsers));
-      return mergedUsers;
-    }
-    
-    const errorText = await response.text();
-    console.warn('❌ Failed to fetch users from backend:', response.status, errorText);
-    return getAllUsersFromStorage();
+    const backendUsers = await adminFetch('/admin/users');
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(backendUsers));
+    return backendUsers;
   } catch (e) {
-    console.error('❌ Error fetching users from backend:', e);
-    return getAllUsersFromStorage();
+    console.error('Error fetching users from backend:', e);
+    return getAllUsers();
   }
 };
 
-// Get users from localStorage (fallback)
-const getAllUsersFromStorage = () => {
-  try {
-    const users = localStorage.getItem(STORAGE_KEYS.USERS);
-    return users ? JSON.parse(users) : [];
-  } catch (e) {
-    console.error('Error getting users from storage:', e);
-    return [];
-  }
-};
-
-// Sync version - returns cached users (for compatibility)
 export const getAllUsers = () => {
-  return getAllUsersFromStorage();
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+  } catch { return []; }
 };
 
-// Save user to users list (called on login/signup)
 export const saveUserToList = (user) => {
   try {
     const users = getAllUsers();
-    const existingIndex = users.findIndex(u => u.email === user.email);
-    
+    const idx = users.findIndex(u => u.email?.toLowerCase() === user.email?.toLowerCase());
     const userData = {
-      id: user.id || Date.now(),
+      id: user.id || user.user_id || Date.now(),
       name: user.name,
       email: user.email,
       picture: user.picture,
       plan: user.subscription?.plan || 'free',
-      billingCycle: user.subscription?.billingCycle || null,
       status: 'active',
-      joinedAt: user.joinedAt || new Date().toISOString().split('T')[0],
+      joinedAt: user.joinedAt || user.created_at || new Date().toISOString(),
       lastActive: new Date().toISOString(),
-      trades: user.trades || 0,
-      revenue: user.subscription?.plan === 'pro' 
-        ? (user.subscription?.billingCycle === 'yearly' ? 4999 : 899) 
-        : 0,
     };
-
-    if (existingIndex >= 0) {
-      users[existingIndex] = { ...users[existingIndex], ...userData, lastActive: new Date().toISOString() };
-    } else {
-      users.push(userData);
-    }
-
+    if (idx >= 0) users[idx] = { ...users[idx], ...userData };
+    else users.push(userData);
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
     return userData;
+  } catch { return null; }
+};
+
+export const updateUser = async (emailOrId, updates) => {
+  try {
+    // Try backend first
+    const users = getAllUsers();
+    const user = users.find(u => u.email === emailOrId || u.user_id === emailOrId);
+    const userId = user?.user_id || user?.id || emailOrId;
+    
+    // For block/unblock, use dedicated endpoints
+    if (updates.is_blocked === true) {
+      return await adminFetch(`/admin/users/${userId}/block`, { method: 'POST' });
+    }
+    if (updates.is_blocked === false) {
+      return await adminFetch(`/admin/users/${userId}/unblock`, { method: 'POST' });
+    }
+    // For grant/revoke access
+    if (updates.has_free_access === true || updates.is_paid === true) {
+      return await adminFetch(`/admin/users/${userId}/grant-access`, { method: 'POST' });
+    }
+    if (updates.has_free_access === false && updates.is_paid === false) {
+      return await adminFetch(`/admin/users/${userId}/revoke-access`, { method: 'POST' });
+    }
+    
+    // General update
+    return await adminFetch(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
   } catch (e) {
-    console.error('Error saving user:', e);
+    console.error('Error updating user via backend:', e);
+    // Fallback to local
+    const users = getAllUsers();
+    const idx = users.findIndex(u => u.email === emailOrId);
+    if (idx >= 0) {
+      users[idx] = { ...users[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      return users[idx];
+    }
     return null;
   }
 };
 
-// Update user
-export const updateUser = (email, updates) => {
+export const deleteUser = async (emailOrId) => {
   try {
     const users = getAllUsers();
-    const index = users.findIndex(u => u.email === email);
-    if (index >= 0) {
-      users[index] = { ...users[index], ...updates };
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-      return users[index];
-    }
-    return null;
-  } catch (e) {
-    console.error('Error updating user:', e);
-    return null;
-  }
-};
-
-// Delete user
-export const deleteUser = (email) => {
-  try {
-    const users = getAllUsers().filter(u => u.email !== email);
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    const user = users.find(u => u.email === emailOrId || u.user_id === emailOrId);
+    const userId = user?.user_id || user?.id || emailOrId;
+    await adminFetch(`/admin/users/${userId}`, { method: 'DELETE' });
+    // Also remove from local cache
+    const filtered = users.filter(u => u.email !== emailOrId && u.user_id !== emailOrId);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
     return true;
   } catch (e) {
-    console.error('Error deleting user:', e);
+    console.error('Error deleting user via backend:', e);
     return false;
   }
 };
 
-// Get user stats
-export const getUserStats = () => {
-  const users = getAllUsers();
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
-
-  // Count active users (logged in within 7 days or status is active)
-  const activeUsers = users.filter(u => {
-    // Check status field (local format)
-    if (u.status === 'active') return true;
-    // Check is_blocked field (backend format)
-    if (u.is_blocked) return false;
-    // Check last login (backend format)
-    if (u.last_login) {
-      const lastLogin = new Date(u.last_login);
-      return lastLogin >= sevenDaysAgo;
-    }
-    // Check lastActive (local format)
-    if (u.lastActive) {
-      const lastActive = new Date(u.lastActive);
-      return lastActive >= sevenDaysAgo;
-    }
-    return true; // Default to active if no status info
-  });
-
-  // Count pro users (handle both local and backend formats)
-  const proUsers = users.filter(u => 
-    u.plan === 'pro' || 
-    u.is_paid === true || 
-    (u.subscription_end && new Date(u.subscription_end) > now)
-  );
-
-  return {
-    totalUsers: users.length,
-    activeUsers: activeUsers.length,
-    freeUsers: users.length - proUsers.length,
-    proMonthly: users.filter(u => u.plan === 'pro' && u.billingCycle === 'monthly').length || Math.floor(proUsers.length * 0.6),
-    proYearly: users.filter(u => u.plan === 'pro' && u.billingCycle === 'yearly').length || Math.floor(proUsers.length * 0.4),
-    newUsersToday: users.filter(u => {
-      const createdAt = u.joinedAt || u.created_at;
-      return createdAt && createdAt.startsWith(today);
-    }).length,
-    newUsersWeek: users.filter(u => {
-      const createdAt = u.joinedAt || u.created_at;
-      return createdAt && createdAt >= weekAgo;
-    }).length,
-  };
+// Stats from backend
+export const getUserStats = async () => {
+  try {
+    const stats = await adminFetch('/admin/stats');
+    return {
+      totalUsers: stats.total_users || 0,
+      activeUsers: (stats.total_users || 0) - (stats.blocked_users || 0),
+      freeUsers: (stats.total_users || 0) - (stats.paid_users || 0) - (stats.free_access_users || 0),
+      proUsers: stats.paid_users || 0,
+      freeAccessUsers: stats.free_access_users || 0,
+      blockedUsers: stats.blocked_users || 0,
+    };
+  } catch (e) {
+    console.error('Error fetching admin stats:', e);
+    // Derive from cached users as fallback
+    const users = getAllUsers();
+    return {
+      totalUsers: users.length,
+      activeUsers: users.filter(u => !u.is_blocked).length,
+      freeUsers: users.filter(u => !u.is_paid && !u.has_free_access).length,
+      proUsers: users.filter(u => u.is_paid).length,
+      freeAccessUsers: users.filter(u => u.has_free_access).length,
+      blockedUsers: users.filter(u => u.is_blocked).length,
+    };
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRANSACTION MANAGEMENT
+// PAYMENT / TRANSACTIONS — Backend-first via /admin/payments
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Get all transactions
-export const getAllTransactions = () => {
+export const getAllTransactions = async () => {
   try {
-    const transactions = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-    return transactions ? JSON.parse(transactions) : [];
+    const data = await adminFetch('/admin/payments/pending');
+    return data.payments || [];
   } catch (e) {
-    console.error('Error getting transactions:', e);
+    console.error('Error fetching payments from backend:', e);
     return [];
   }
 };
 
-// Add transaction
-export const addTransaction = (transaction) => {
+export const approvePayment = async (paymentId) => {
+  return adminFetch(`/admin/payments/approve/${paymentId}`, { method: 'POST' });
+};
+
+export const rejectPayment = async (paymentId) => {
+  return adminFetch(`/admin/payments/reject/${paymentId}`, { method: 'POST' });
+};
+
+export const getRevenueStats = async () => {
+  // Revenue stats derived from admin stats endpoint
   try {
-    const transactions = getAllTransactions();
-    const newTransaction = {
-      id: Date.now(),
-      ...transaction,
-      date: new Date().toISOString().split('T')[0],
-      paymentId: transaction.paymentId || `pay_${Date.now().toString(36).toUpperCase()}`,
+    const stats = await adminFetch('/admin/stats');
+    return {
+      paidUsers: stats.paid_users || 0,
+      freeAccessUsers: stats.free_access_users || 0,
     };
-    transactions.unshift(newTransaction);
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
-    return newTransaction;
   } catch (e) {
-    console.error('Error adding transaction:', e);
-    return null;
+    return { paidUsers: 0, freeAccessUsers: 0 };
   }
 };
 
-// Get revenue stats
-export const getRevenueStats = () => {
-  const transactions = getAllTransactions();
-  const successfulTx = transactions.filter(t => t.status === 'success');
-  
-  const totalRevenue = successfulTx.reduce((sum, t) => sum + (t.amount || 0), 0);
-  const monthlyRevenue = successfulTx
-    .filter(t => t.plan?.includes('Monthly'))
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
-  const yearlyRevenue = successfulTx
-    .filter(t => t.plan?.includes('Yearly'))
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-  return {
-    totalRevenue,
-    mrrMonthly: monthlyRevenue,
-    arrYearly: yearlyRevenue,
-    totalTransactions: transactions.length,
-    successfulTransactions: successfulTx.length,
-    failedTransactions: transactions.filter(t => t.status === 'failed').length,
-  };
-};
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIGNAL MANAGEMENT
+// SIGNALS — localStorage (no backend endpoints yet)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Get all signals
 export const getAllSignals = () => {
   try {
-    const signals = localStorage.getItem(STORAGE_KEYS.SIGNALS);
-    return signals ? JSON.parse(signals) : [];
-  } catch (e) {
-    console.error('Error getting signals:', e);
-    return [];
-  }
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SIGNALS) || '[]');
+  } catch { return []; }
 };
 
-// Add signal
 export const addSignal = (signal) => {
-  try {
-    const signals = getAllSignals();
-    const newSignal = {
-      id: Date.now(),
-      ...signal,
-      status: 'active',
-      pnl: '₹0',
-      subscribers: 0,
-      generated: 'Just now',
-      createdAt: new Date().toISOString(),
-    };
-    signals.unshift(newSignal);
-    localStorage.setItem(STORAGE_KEYS.SIGNALS, JSON.stringify(signals));
-    return newSignal;
-  } catch (e) {
-    console.error('Error adding signal:', e);
-    return null;
-  }
+  const signals = getAllSignals();
+  const ns = { id: Date.now(), ...signal, status: 'active', createdAt: new Date().toISOString() };
+  signals.unshift(ns);
+  localStorage.setItem(STORAGE_KEYS.SIGNALS, JSON.stringify(signals));
+  return ns;
 };
 
-// Update signal
 export const updateSignal = (id, updates) => {
-  try {
-    const signals = getAllSignals();
-    const index = signals.findIndex(s => s.id === id);
-    if (index >= 0) {
-      signals[index] = { ...signals[index], ...updates };
-      localStorage.setItem(STORAGE_KEYS.SIGNALS, JSON.stringify(signals));
-      return signals[index];
-    }
-    return null;
-  } catch (e) {
-    console.error('Error updating signal:', e);
-    return null;
-  }
-};
-
-// Delete signal
-export const deleteSignal = (id) => {
-  try {
-    const signals = getAllSignals().filter(s => s.id !== id);
+  const signals = getAllSignals();
+  const idx = signals.findIndex(s => s.id === id);
+  if (idx >= 0) {
+    signals[idx] = { ...signals[idx], ...updates };
     localStorage.setItem(STORAGE_KEYS.SIGNALS, JSON.stringify(signals));
-    return true;
-  } catch (e) {
-    console.error('Error deleting signal:', e);
-    return false;
+    return signals[idx];
   }
+  return null;
 };
 
-// Get signal stats
+export const deleteSignal = (id) => {
+  const signals = getAllSignals().filter(s => s.id !== id);
+  localStorage.setItem(STORAGE_KEYS.SIGNALS, JSON.stringify(signals));
+  return true;
+};
+
 export const getSignalStats = () => {
   const signals = getAllSignals();
   return {
     totalSignals: signals.length,
     activeSignals: signals.filter(s => s.status === 'active').length,
     closedSignals: signals.filter(s => s.status === 'closed').length,
-    avgConfidence: signals.length > 0 
-      ? Math.round(signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length)
-      : 0,
   };
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ANNOUNCEMENT MANAGEMENT
+// ANNOUNCEMENTS — localStorage (no backend endpoints yet)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Get all announcements
 export const getAllAnnouncements = () => {
   try {
-    const announcements = localStorage.getItem(STORAGE_KEYS.ANNOUNCEMENTS);
-    return announcements ? JSON.parse(announcements) : [];
-  } catch (e) {
-    console.error('Error getting announcements:', e);
-    return [];
-  }
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.ANNOUNCEMENTS) || '[]');
+  } catch { return []; }
 };
 
-// Add announcement
 export const addAnnouncement = (announcement) => {
-  try {
-    const announcements = getAllAnnouncements();
-    const newAnnouncement = {
-      id: Date.now(),
-      ...announcement,
-      createdAt: new Date().toISOString(),
-    };
-    announcements.unshift(newAnnouncement);
-    localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(announcements));
-    return newAnnouncement;
-  } catch (e) {
-    console.error('Error adding announcement:', e);
-    return null;
-  }
+  const list = getAllAnnouncements();
+  const na = { id: Date.now(), ...announcement, createdAt: new Date().toISOString() };
+  list.unshift(na);
+  localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+  return na;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PAYMENT CONFIG
+// PAYMENT CONFIG — Backend-first via /admin/settings/payment
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const defaultPaymentConfig = {
-  merchantName: 'Money Saarthi',
-  upiEnabled: true,
-  upiNumber: '9818856552',
-  payeeName: 'mspay',
-};
-
-// Get payment config
-export const getPaymentConfig = () => {
+export const getPaymentConfig = async () => {
   try {
-    const config = localStorage.getItem(STORAGE_KEYS.PAYMENT_CONFIG);
-    return config ? { ...defaultPaymentConfig, ...JSON.parse(config) } : defaultPaymentConfig;
+    return await adminFetch('/admin/settings/payment');
   } catch (e) {
-    console.error('Error getting payment config:', e);
-    return defaultPaymentConfig;
+    console.error('Error fetching payment config from backend:', e);
+    return { upi_number: '', payee_name: '', upi_id: '' };
   }
 };
 
-// Update payment config
-export const updatePaymentConfig = (updates) => {
+export const updatePaymentConfig = async (updates) => {
   try {
-    const config = { ...getPaymentConfig(), ...updates };
-    localStorage.setItem(STORAGE_KEYS.PAYMENT_CONFIG, JSON.stringify(config));
-    return config;
+    return await adminFetch('/admin/settings/payment', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
   } catch (e) {
     console.error('Error updating payment config:', e);
     return null;
@@ -388,34 +273,24 @@ export const updatePaymentConfig = (updates) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SYSTEM CONFIG
+// SYSTEM CONFIG — Backend-first via /admin/settings
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const defaultConfig = {
-  apiRateLimit: 60,
-  cacheTTL: 300,
-  maxConcurrentUsers: 1000,
-  maintenanceMode: false,
-  upiPayment: true,
-};
-
-// Get system config
-export const getSystemConfig = () => {
+export const getSystemConfig = async () => {
   try {
-    const config = localStorage.getItem(STORAGE_KEYS.SYSTEM_CONFIG);
-    return config ? JSON.parse(config) : defaultConfig;
+    return await adminFetch('/admin/settings');
   } catch (e) {
-    console.error('Error getting system config:', e);
-    return defaultConfig;
+    console.error('Error fetching system config:', e);
+    return {};
   }
 };
 
-// Update system config
-export const updateSystemConfig = (updates) => {
+export const updateSystemConfig = async (updates) => {
   try {
-    const config = { ...getSystemConfig(), ...updates };
-    localStorage.setItem(STORAGE_KEYS.SYSTEM_CONFIG, JSON.stringify(config));
-    return config;
+    return await adminFetch('/admin/settings/provider', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
   } catch (e) {
     console.error('Error updating system config:', e);
     return null;
@@ -423,44 +298,28 @@ export const updateSystemConfig = (updates) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
+// UTILITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Clear all cache
 export const clearAllCache = () => {
-  try {
-    // Don't clear user data, just cache
-    localStorage.removeItem('moneysaarthi_cache');
-    return true;
-  } catch (e) {
-    console.error('Error clearing cache:', e);
-    return false;
-  }
+  Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+  return true;
 };
 
-// Export all data
-export const exportAllData = () => {
-  return {
-    users: getAllUsers(),
-    transactions: getAllTransactions(),
-    signals: getAllSignals(),
-    announcements: getAllAnnouncements(),
-    config: getSystemConfig(),
-    exportedAt: new Date().toISOString(),
-  };
-};
+export const exportAllData = () => ({
+  users: getAllUsers(),
+  signals: getAllSignals(),
+  announcements: getAllAnnouncements(),
+  exportedAt: new Date().toISOString(),
+});
 
-// Format time ago
 export const formatTimeAgo = (dateString) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
+  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
   if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
-  return date.toLocaleDateString();
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(dateString).toLocaleDateString();
 };
 
 export default {
@@ -471,7 +330,8 @@ export default {
   deleteUser,
   getUserStats,
   getAllTransactions,
-  addTransaction,
+  approvePayment,
+  rejectPayment,
   getRevenueStats,
   getAllSignals,
   addSignal,

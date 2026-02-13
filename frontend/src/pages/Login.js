@@ -71,16 +71,13 @@ export default function Login() {
     name: ''
   });
 
-  // Handle email/password login
+  // Handle email/password login — calls real backend /auth/login or /auth/register
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       if (!form.email || !form.password) {
         throw new Error('Please fill in all fields');
       }
@@ -89,26 +86,42 @@ export default function Login() {
         throw new Error('Please enter your name');
       }
 
-      // Create user object - subscription will be checked from local users list
+      const endpoint = isLogin ? '/auth/login' : '/auth/register';
+      const body = isLogin
+        ? { email: form.email, password: form.password }
+        : { email: form.email, password: form.password, name: form.name };
+
+      const res = await fetch(`${API}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Authentication failed');
+      }
+
+      // Save session token
+      if (data.session_id) {
+        localStorage.setItem('session_id', data.session_id);
+      }
+
+      // Build user object from backend response and save to localStorage
+      const backendUser = data.user || {};
       const user = saveUserToStorage({
-        id: Date.now().toString(),
-        email: form.email,
-        name: form.name || form.email.split('@')[0],
-        avatar: null,
-        joinedAt: new Date().toISOString(),
+        id: backendUser.user_id || backendUser.id,
+        email: backendUser.email,
+        name: backendUser.name || form.name || form.email.split('@')[0],
+        avatar: backendUser.picture || null,
+        joinedAt: backendUser.created_at || new Date().toISOString(),
         provider: 'email',
-        // subscription is not set here - will be picked from existing user list if available
-        preferences: {
-          defaultIndex: 'NIFTY',
-          notifications: true,
-          darkMode: true
-        },
-        stats: {
-          totalTrades: 0,
-          winRate: 0,
-          totalPnL: 0,
-          streak: 0
-        }
+        subscription: backendUser.subscription || null,
+        is_paid: backendUser.is_paid || false,
+        has_full_package: backendUser.has_full_package || false,
+        has_free_access: backendUser.has_free_access || false,
       });
 
       // Redirect based on admin status or saved redirect URL

@@ -10,7 +10,7 @@ import {
   Users, Crown, TrendingUp, DollarSign, Activity, Settings, Shield,
   Bell, FileText, BarChart3, Zap, AlertTriangle, CheckCircle, XCircle,
   Search, Filter, Download, RefreshCw, Eye, Edit, Trash2, UserPlus,
-  CreditCard, Calendar, Mail, Send, Database, Server, Globe, Lock
+  CreditCard, Calendar, Mail, Send, Database, Server, Globe, Lock, Clock
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -70,31 +70,31 @@ export default function AdminPanel() {
       setUsers(fetchedUsers);
     }
     
-    // Calculate stats after users are loaded
-    const userStats = adminService.getUserStats();
-    const revenueStats = adminService.getRevenueStats();
+    // Fetch stats from backend
+    const [userStats, revenueStats, pendingPayments, sysConfig, pmtConfig] = await Promise.all([
+      adminService.getUserStats().catch(() => ({})),
+      adminService.getRevenueStats().catch(() => ({})),
+      adminService.getAllTransactions().catch(() => []),
+      adminService.getSystemConfig().catch(() => ({})),
+      adminService.getPaymentConfig().catch(() => ({})),
+    ]);
     const signalStats = adminService.getSignalStats();
     
     setStats({
       ...userStats,
-      ...revenueStats,
       ...signalStats,
-      totalUsers: fetchedUsers.length || userStats.totalUsers,
-      activeUsers: userStats.activeUsers || fetchedUsers.filter(u => !u.is_blocked && u.status !== 'blocked').length,
-      totalRevenue: revenueStats.totalRevenue || 0,
-      revenueGrowth: 0,
-      dailyActiveUsers: Math.floor((userStats.activeUsers || fetchedUsers.length) * 0.5),
-      avgSessionTime: '18m 32s',
-      signalAccuracy: 73.5,
-      serverLoad: Math.floor(Math.random() * 30) + 20,
-      apiCalls: '2.4M',
-      uptime: '99.97%',
+      totalUsers: userStats.totalUsers || fetchedUsers.length,
+      activeUsers: userStats.activeUsers || fetchedUsers.filter(u => !u.is_blocked).length,
+      paidUsers: userStats.proUsers || revenueStats.paidUsers || 0,
+      freeAccessUsers: userStats.freeAccessUsers || revenueStats.freeAccessUsers || 0,
+      blockedUsers: userStats.blockedUsers || 0,
+      pendingPayments: pendingPayments.length || 0,
     });
 
-    setTransactions(adminService.getAllTransactions());
+    setTransactions(pendingPayments);
     setSignals(adminService.getAllSignals());
-    setSystemConfig(adminService.getSystemConfig());
-    setPaymentConfig(adminService.getPaymentConfig());
+    setSystemConfig(sysConfig);
+    setPaymentConfig(pmtConfig);
   }, []);
 
   useEffect(() => {
@@ -114,17 +114,17 @@ export default function AdminPanel() {
   };
 
   // Delete user handler
-  const handleDeleteUser = (email) => {
+  const handleDeleteUser = async (email) => {
     if (window.confirm(`Are you sure you want to delete user ${email}?`)) {
-      adminService.deleteUser(email);
+      await adminService.deleteUser(email);
       loadData();
     }
   };
 
-  // Toggle user status
-  const handleToggleUserStatus = (email, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    adminService.updateUser(email, { status: newStatus });
+  // Toggle user status (block/unblock)
+  const handleToggleUserStatus = async (email, currentStatus) => {
+    const isBlocked = currentStatus === 'active' ? true : false;
+    await adminService.updateUser(email, { is_blocked: isBlocked });
     loadData();
   };
 
@@ -166,14 +166,14 @@ export default function AdminPanel() {
   };
 
   // Save system config
-  const handleSaveConfig = () => {
-    adminService.updateSystemConfig(systemConfig);
+  const handleSaveConfig = async () => {
+    await adminService.updateSystemConfig(systemConfig);
     alert('Configuration saved!');
   };
 
   // Save payment config
-  const handleSavePaymentConfig = () => {
-    adminService.updatePaymentConfig(paymentConfig);
+  const handleSavePaymentConfig = async () => {
+    await adminService.updatePaymentConfig(paymentConfig);
     alert('Payment settings saved successfully!');
   };
 
@@ -299,10 +299,10 @@ export default function AdminPanel() {
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
                     <DollarSign className="w-5 h-5 text-green-500" />
                   </div>
-                  {stats.totalRevenue > 0 && <Badge variant="success" className="text-xs">Live</Badge>}
+                  {stats.paidUsers > 0 && <Badge variant="success" className="text-xs">Live</Badge>}
                 </div>
-                <div className="text-2xl font-bold">{formatINR(stats.totalRevenue || 0)}</div>
-                <div className="text-sm text-muted-foreground">Total Revenue</div>
+                <div className="text-2xl font-bold">{stats.paidUsers || 0}</div>
+                <div className="text-sm text-muted-foreground">Paid Users</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -310,10 +310,10 @@ export default function AdminPanel() {
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                     <CreditCard className="w-5 h-5 text-blue-500" />
                   </div>
-                  <Badge variant="outline" className="text-xs">MRR</Badge>
+                  <Badge variant="outline" className="text-xs">Free Access</Badge>
                 </div>
-                <div className="text-2xl font-bold">{formatINR((stats.proMonthly || 0) * 899)}</div>
-                <div className="text-sm text-muted-foreground">Monthly Recurring</div>
+                <div className="text-2xl font-bold">{stats.freeAccessUsers || 0}</div>
+                <div className="text-sm text-muted-foreground">Free Access Grants</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -321,10 +321,10 @@ export default function AdminPanel() {
                   <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
                     <Crown className="w-5 h-5 text-purple-500" />
                   </div>
-                  <Badge variant="outline" className="text-xs">{(stats.proMonthly || 0) + (stats.proYearly || 0)}</Badge>
+                  <Badge variant="outline" className="text-xs">Pending</Badge>
                 </div>
-                <div className="text-2xl font-bold">{(stats.proMonthly || 0) + (stats.proYearly || 0)}</div>
-                <div className="text-sm text-muted-foreground">Pro Subscribers</div>
+                <div className="text-2xl font-bold">{stats.pendingPayments || 0}</div>
+                <div className="text-sm text-muted-foreground">Pending Payments</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -332,7 +332,6 @@ export default function AdminPanel() {
                   <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                     <Users className="w-5 h-5 text-primary" />
                   </div>
-                  <Badge variant="outline" className="text-xs">+{stats.newUsersToday || 0} today</Badge>
                 </div>
                 <div className="text-2xl font-bold">{(stats.totalUsers || 0).toLocaleString()}</div>
                 <div className="text-sm text-muted-foreground">Total Users</div>
@@ -373,33 +372,26 @@ export default function AdminPanel() {
                   {transactions.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>No transactions yet</p>
+                      <p>No pending payments</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {transactions.slice(0, 4).map(tx => (
-                        <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                        <div key={tx._id || tx.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center',
-                              tx.status === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
-                            )}>
-                              {tx.status === 'success' ? (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              ) : (
-                                <XCircle className="w-4 h-4 text-red-500" />
-                              )}
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-yellow-500/20">
+                              <Clock className="w-4 h-4 text-yellow-500" />
                             </div>
                             <div>
-                              <div className="font-medium text-sm">{tx.user}</div>
-                              <div className="text-xs text-muted-foreground">{tx.plan}</div>
+                              <div className="font-medium text-sm">{tx.email || tx.user}</div>
+                              <div className="text-xs text-muted-foreground">{tx.plan_name || tx.plan_id || tx.plan}</div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={cn('font-medium', tx.status === 'success' ? 'text-green-500' : 'text-red-500')}>
+                            <div className="font-medium text-yellow-500">
                               {formatINR(tx.amount)}
                             </div>
-                            <div className="text-xs text-muted-foreground">{tx.date}</div>
+                            <div className="text-xs text-muted-foreground">{tx.utr_number ? `UTR: ${tx.utr_number}` : tx.date}</div>
                           </div>
                         </div>
                       ))}
@@ -417,10 +409,10 @@ export default function AdminPanel() {
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { label: 'API Server', status: 'Operational', latency: '45ms', icon: Server },
-                      { label: 'Database', status: 'Operational', latency: '12ms', icon: Database },
-                      { label: 'WebSocket', status: 'Operational', latency: '8ms', icon: Globe },
-                      { label: 'Payment Gateway', status: 'Operational', latency: '120ms', icon: CreditCard },
+                      { label: 'API Server', status: 'Operational', icon: Server },
+                      { label: 'Database', status: 'Operational', icon: Database },
+                      { label: 'WebSocket', status: 'Operational', icon: Globe },
+                      { label: 'Payment (UPI)', status: 'Operational', icon: CreditCard },
                     ].map(item => (
                       <div key={item.label} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -428,25 +420,19 @@ export default function AdminPanel() {
                           <span className="text-sm">{item.label}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground">{item.latency}</span>
                           <span className="w-2 h-2 rounded-full bg-green-500" />
                         </div>
                       </div>
                     ))}
                     
                     <div className="pt-4 border-t border-border space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>CPU Load</span>
-                          <span>{stats.serverLoad || 25}%</span>
-                        </div>
-                        <div className="h-2 bg-border rounded-full overflow-hidden">
-                          <div className="h-full bg-primary transition-all" style={{ width: `${stats.serverLoad || 25}%` }} />
-                        </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pending Payments</span>
+                        <span className="font-medium">{stats.pendingPayments || 0}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Uptime</span>
-                        <span className="text-green-500 font-medium">{stats.uptime || '99.97%'}</span>
+                        <span className="text-muted-foreground">Blocked Users</span>
+                        <span className="font-medium">{stats.blockedUsers || 0}</span>
                       </div>
                     </div>
                   </div>

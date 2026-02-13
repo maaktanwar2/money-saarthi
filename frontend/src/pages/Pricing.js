@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PageLayout } from '../components/PageLayout';
 import { Card, CardContent, Button, Badge } from '../components/ui';
 import { cn } from '../lib/utils';
-import { addTransaction, updateUser } from '../services/adminService';
+import { updateUser } from '../services/adminService';
 import { fetchWithAuth } from '../config/api';
 import { 
   Check, 
@@ -209,19 +209,8 @@ export default function Pricing() {
         }),
       });
     } catch {
-      // Even if backend fails, record locally
+      // Even if backend fails, continue
     }
-
-    // Record transaction locally
-    addTransaction({
-      user: user?.name || 'Unknown',
-      email: user?.email,
-      amount,
-      plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-      status: 'pending',
-      paymentMethod: 'upi',
-      transactionId: transactionId.trim(),
-    });
 
     updateUser(user?.email, {
       plan: 'pro',

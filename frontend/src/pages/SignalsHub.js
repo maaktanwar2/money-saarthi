@@ -1,40 +1,37 @@
-// Signals Hub - AI-powered trade signals with confidence scores
+// Stock Scanner Hub - Real scanner data from NSE
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Zap, TrendingUp, TrendingDown, Target, Clock, Filter,
-  RefreshCw, Star, AlertCircle, CheckCircle,
-  BarChart3, Activity, ChevronRight, Info
+  Zap, TrendingUp, TrendingDown, Target, Clock,
+  RefreshCw, AlertCircle, ExternalLink,
+  BarChart3, Info
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import {
-  Card, CardHeader, CardTitle, CardContent, CardDescription,
-  Button, Badge, Input, Select, Tabs, Spinner, AccuracyBadge
+  Card, Button, Badge, Select,
 } from '../components/ui';
-import DataTable from '../components/ui/DataTable';
 import { cn, formatINR, formatPercent, fetchAPI, getChangeColor } from '../lib/utils';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIGNAL TYPES
+// SCANNER CATEGORIES
 // ═══════════════════════════════════════════════════════════════════════════════
-const SIGNAL_TYPES = [
-  { id: 'all', label: 'All Signals', icon: Zap },
-  { id: 'buy', label: 'Buy Signals', icon: TrendingUp },
-  { id: 'sell', label: 'Sell Signals', icon: TrendingDown },
-  { id: 'options', label: 'Options', icon: Target },
+const SCANNER_TYPES = [
+  { id: 'all', label: 'All Stocks', icon: Zap },
+  { id: 'buy', label: 'Gainers', icon: TrendingUp },
+  { id: 'sell', label: 'Losers', icon: TrendingDown },
+  { id: 'swing', label: 'Swing Setups', icon: Target },
 ];
 
 const TIMEFRAMES = [
   { value: 'intraday', label: 'Intraday' },
   { value: 'swing', label: 'Swing (2-5 days)' },
-  { value: 'positional', label: 'Positional' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIGNAL CARD COMPONENT
+// STOCK CARD COMPONENT — shows real scanner data only
 // ═══════════════════════════════════════════════════════════════════════════════
-const SignalCard = ({ signal, onView }) => {
-  const isBuy = signal.type === 'BUY';
+const StockCard = ({ stock, onView }) => {
+  const isBuy = stock.type === 'BUY';
   
   return (
     <motion.div
@@ -47,77 +44,88 @@ const SignalCard = ({ signal, onView }) => {
           'p-4 cursor-pointer transition-all duration-200 border-l-4',
           isBuy ? 'border-l-bullish hover:border-bullish/50' : 'border-l-bearish hover:border-bearish/50'
         )}
-        onClick={() => onView(signal)}
+        onClick={() => onView(stock)}
       >
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-bold">{signal.symbol}</span>
+              <span className="text-lg font-bold">{stock.symbol}</span>
               <Badge variant={isBuy ? 'success' : 'destructive'} className="text-xs">
-                {signal.type}
+                {isBuy ? 'GAINER' : 'LOSER'}
               </Badge>
+              <Badge variant="outline" className="text-xs">{stock.category}</Badge>
             </div>
-            <p className="text-xs text-muted-foreground">{signal.strategy}</p>
+            <p className="text-xs text-muted-foreground">{stock.strategy}</p>
           </div>
           <div className="text-right">
-            <div className={cn(
-              'text-2xl font-bold',
-              signal.confidence >= 75 ? 'text-bullish' : 
-              signal.confidence >= 60 ? 'text-amber-500' : 'text-muted-foreground'
-            )}>
-              {signal.confidence}%
+            <div className={cn('text-xl font-bold', getChangeColor(stock.changePercent))}>
+              {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
             </div>
-            <p className="text-xs text-muted-foreground">Confidence</p>
+            <p className="text-xs text-muted-foreground">Day Change</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm mb-3">
           <div>
-            <p className="text-xs text-muted-foreground">Entry</p>
-            <p className="font-medium">{formatINR(signal.entry)}</p>
+            <p className="text-xs text-muted-foreground">LTP</p>
+            <p className="font-medium">{formatINR(stock.ltp)}</p>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Target</p>
-            <p className="font-medium text-bullish">{formatINR(signal.target)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Stop Loss</p>
-            <p className="font-medium text-bearish">{formatINR(signal.stopLoss)}</p>
-          </div>
+          {stock.target ? (
+            <div>
+              <p className="text-xs text-muted-foreground">Target</p>
+              <p className="font-medium text-bullish">{formatINR(stock.target)}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-muted-foreground">Volume</p>
+              <p className="font-medium">{stock.volume ? stock.volume.toLocaleString('en-IN') : '—'}</p>
+            </div>
+          )}
+          {stock.stopLoss ? (
+            <div>
+              <p className="text-xs text-muted-foreground">Stop Loss</p>
+              <p className="font-medium text-bearish">{formatINR(stock.stopLoss)}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-muted-foreground">Scanner Score</p>
+              <p className={cn('font-medium', stock.score >= 70 ? 'text-bullish' : stock.score >= 50 ? 'text-amber-500' : 'text-muted-foreground')}>
+                {stock.score || '—'}/100
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <Clock className="w-3 h-3 text-muted-foreground" />
-            <span className="text-muted-foreground">{signal.timeframe}</span>
+            <span className="text-muted-foreground">{stock.timeframe}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">R:R</span>
-            <span className={cn(
-              'font-semibold',
-              signal.riskReward >= 2 ? 'text-bullish' : 'text-amber-500'
-            )}>
-              1:{signal.riskReward.toFixed(1)}
-            </span>
-          </div>
+          <a 
+            href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
+            target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            Chart <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
 
-        {/* Reason Preview */}
-        <p className="text-xs text-muted-foreground mt-3 line-clamp-2">
-          {signal.reason}
-        </p>
+        {stock.reason && (
+          <p className="text-xs text-muted-foreground mt-3 line-clamp-2">{stock.reason}</p>
+        )}
       </Card>
     </motion.div>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIGNAL DETAIL MODAL
+// STOCK DETAIL MODAL — shows real data only, no fabricated metrics
 // ═══════════════════════════════════════════════════════════════════════════════
-const SignalDetailModal = ({ signal, onClose }) => {
-  if (!signal) return null;
+const StockDetailModal = ({ stock, onClose }) => {
+  if (!stock) return null;
 
-  const isBuy = signal.type === 'BUY';
+  const isBuy = stock.type === 'BUY';
 
   return (
     <motion.div
@@ -142,110 +150,97 @@ const SignalDetailModal = ({ signal, onClose }) => {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl font-bold">{signal.symbol}</span>
+                <span className="text-2xl font-bold">{stock.symbol}</span>
                 <Badge variant={isBuy ? 'success' : 'destructive'} className="text-sm">
-                  {signal.type}
+                  {isBuy ? 'GAINER' : 'LOSER'}
                 </Badge>
-                <Badge variant="outline">{signal.timeframe}</Badge>
+                <Badge variant="outline">{stock.timeframe}</Badge>
               </div>
-              <p className="text-muted-foreground">{signal.strategy}</p>
+              <p className="text-muted-foreground">{stock.strategy} — {stock.category}</p>
             </div>
             <div className="text-right">
-              <div className={cn(
-                'text-4xl font-bold',
-                signal.confidence >= 75 ? 'text-bullish' : 
-                signal.confidence >= 60 ? 'text-amber-500' : 'text-muted-foreground'
-              )}>
-                {signal.confidence}%
+              <div className={cn('text-3xl font-bold', getChangeColor(stock.changePercent))}>
+                {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
               </div>
-              <p className="text-sm text-muted-foreground">Confidence Score</p>
+              <p className="text-sm text-muted-foreground">Day Change</p>
             </div>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Price Levels */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Entry Price</p>
-              <p className="text-xl font-bold">{formatINR(signal.entry)}</p>
-            </Card>
-            <Card className="p-4 text-center border-bullish/30">
-              <p className="text-xs text-muted-foreground mb-1">Target</p>
-              <p className="text-xl font-bold text-bullish">{formatINR(signal.target)}</p>
-              <p className="text-xs text-bullish">
-                +{formatPercent((signal.target - signal.entry) / signal.entry * 100)}
-              </p>
-            </Card>
-            <Card className="p-4 text-center border-bearish/30">
-              <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
-              <p className="text-xl font-bold text-bearish">{formatINR(signal.stopLoss)}</p>
-              <p className="text-xs text-bearish">
-                {formatPercent((signal.stopLoss - signal.entry) / signal.entry * 100)}
-              </p>
-            </Card>
-          </div>
-
-          {/* Metrics */}
+          {/* Price Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 rounded-xl bg-secondary/30">
-              <p className="text-xs text-muted-foreground">Risk:Reward</p>
-              <p className={cn(
-                'text-lg font-bold',
-                signal.riskReward >= 2 ? 'text-bullish' : 'text-amber-500'
-              )}>
-                1:{signal.riskReward.toFixed(1)}
-              </p>
-            </div>
-            <div className="p-3 rounded-xl bg-secondary/30">
-              <p className="text-xs text-muted-foreground">Backtest Win Rate</p>
-              <p className="text-lg font-bold text-primary">{signal.backtestWinRate}%</p>
-            </div>
-            <div className="p-3 rounded-xl bg-secondary/30">
-              <p className="text-xs text-muted-foreground">Avg. Holding</p>
-              <p className="text-lg font-bold">{signal.avgHolding}</p>
-            </div>
-            <div className="p-3 rounded-xl bg-secondary/30">
-              <p className="text-xs text-muted-foreground">Similar Trades</p>
-              <p className="text-lg font-bold">{signal.similarTrades}</p>
-            </div>
+            <Card className="p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">LTP</p>
+              <p className="text-xl font-bold">{formatINR(stock.ltp)}</p>
+            </Card>
+            {stock.target && (
+              <Card className="p-4 text-center border-bullish/30">
+                <p className="text-xs text-muted-foreground mb-1">Target</p>
+                <p className="text-xl font-bold text-bullish">{formatINR(stock.target)}</p>
+              </Card>
+            )}
+            {stock.stopLoss && (
+              <Card className="p-4 text-center border-bearish/30">
+                <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
+                <p className="text-xl font-bold text-bearish">{formatINR(stock.stopLoss)}</p>
+              </Card>
+            )}
+            {stock.score && (
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Scanner Score</p>
+                <p className={cn('text-xl font-bold', stock.score >= 70 ? 'text-bullish' : 'text-amber-500')}>
+                  {stock.score}/100
+                </p>
+              </Card>
+            )}
           </div>
 
-          {/* Reasoning */}
-          <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <Info className="w-4 h-4 text-primary" />
-              Signal Reasoning
-            </h4>
-            <p className="text-sm text-muted-foreground">{signal.reason}</p>
-          </div>
+          {/* Extra details if available */}
+          {stock.volume && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-xl bg-secondary/30">
+                <p className="text-xs text-muted-foreground">Volume</p>
+                <p className="text-lg font-bold">{stock.volume.toLocaleString('en-IN')}</p>
+              </div>
+              {stock.riskReward && (
+                <div className="p-3 rounded-xl bg-secondary/30">
+                  <p className="text-xs text-muted-foreground">Risk:Reward</p>
+                  <p className={cn('text-lg font-bold', stock.riskReward >= 2 ? 'text-bullish' : 'text-amber-500')}>
+                    1:{stock.riskReward}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Technical Triggers */}
-          <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Technical Triggers
-            </h4>
-            <ul className="space-y-2">
-              {signal.triggers.map((trigger, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">{trigger}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Scanner Reasoning */}
+          {stock.reason && (
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Scanner Notes
+              </h4>
+              <p className="text-sm text-muted-foreground">{stock.reason}</p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>
               Close
             </Button>
-            <Button variant="gradient" className="flex-1">
-              <Star className="w-4 h-4 mr-2" />
-              Add to Watchlist
-            </Button>
+            <a
+              href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex-1"
+            >
+              <Button variant="gradient" className="w-full">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Chart
+              </Button>
+            </a>
           </div>
         </div>
       </motion.div>
@@ -254,196 +249,181 @@ const SignalDetailModal = ({ signal, onClose }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PERFORMANCE METRICS
+// SCANNER SUMMARY — real derived stats, no fabricated accuracy
 // ═══════════════════════════════════════════════════════════════════════════════
-const PerformanceMetrics = ({ signals = [] }) => {
-  const totalSignals = signals.length;
-  const avgConfidence = totalSignals > 0 ? Math.round(signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / totalSignals) : 0;
-  const avgReturn = totalSignals > 0 ? (signals.reduce((sum, s) => sum + (s.riskReward || 0), 0) / totalSignals).toFixed(1) : '0';
-  const buyCount = signals.filter(s => s.type === 'BUY').length;
-  const metrics = {
-    totalSignals,
-    accuracy: avgConfidence,
-    avgReturn,
-    buySignals: buyCount,
-    sellSignals: totalSignals - buyCount,
-  };
+const ScannerSummary = ({ stocks = [] }) => {
+  const totalStocks = stocks.length;
+  const avgScore = totalStocks > 0 ? Math.round(stocks.reduce((sum, s) => sum + (s.score || 0), 0) / totalStocks) : 0;
+  const buyCount = stocks.filter(s => s.type === 'BUY').length;
+  const avgChange = totalStocks > 0 ? (stocks.reduce((sum, s) => sum + (s.changePercent || 0), 0) / totalStocks).toFixed(2) : '0';
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Total Signals</div>
-        <div className="text-2xl font-bold">{metrics.totalSignals}</div>
-        <div className="text-xs text-muted-foreground">Active now</div>
+        <div className="text-xs text-muted-foreground mb-1">Stocks Found</div>
+        <div className="text-2xl font-bold">{totalStocks}</div>
+        <div className="text-xs text-muted-foreground">From scanners</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Confidence</div>
-        <div className="text-2xl font-bold text-primary">{metrics.accuracy}%</div>
-        <div className="text-xs text-muted-foreground">AI confidence score</div>
+        <div className="text-xs text-muted-foreground mb-1">Avg Scanner Score</div>
+        <div className={cn('text-2xl font-bold', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
+        <div className="text-xs text-muted-foreground">Technical score</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Risk:Reward</div>
-        <div className="text-2xl font-bold text-bullish">{metrics.avgReturn}x</div>
-        <div className="text-xs text-muted-foreground">Per trade</div>
+        <div className="text-xs text-muted-foreground mb-1">Gainers</div>
+        <div className="text-2xl font-bold text-bullish">{buyCount}</div>
+        <div className="text-xs text-muted-foreground">Stocks up today</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Buy Signals</div>
-        <div className="text-2xl font-bold text-bullish">{metrics.buySignals}</div>
-        <div className="text-xs text-muted-foreground">Long opportunities</div>
-      </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Sell Signals</div>
-        <div className="text-2xl font-bold text-bearish">{metrics.sellSignals}</div>
-        <div className="text-xs text-muted-foreground">Short opportunities</div>
+        <div className="text-xs text-muted-foreground mb-1">Avg Change</div>
+        <div className={cn('text-2xl font-bold', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
+        <div className="text-xs text-muted-foreground">Across scanned stocks</div>
       </Card>
     </div>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN SIGNALS HUB COMPONENT
+// MAIN STOCK SCANNER COMPONENT — real data, no synthetic dressing
 // ═══════════════════════════════════════════════════════════════════════════════
 const SignalsHub = () => {
-  const [signals, setSignals] = useState([]);
+  const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState('all');
   const [timeframe, setTimeframe] = useState('all');
-  const [selectedSignal, setSelectedSignal] = useState(null);
-  const [indexSignal, setIndexSignal] = useState(null);
+  const [selectedStock, setSelectedStock] = useState(null);
 
   useEffect(() => {
-    const fetchSignals = async () => {
+    const fetchScannerData = async () => {
       setLoading(true);
       try {
-        // Fetch index-level signal for options trading
-        const indexData = await fetchAPI('/tools/trade-signals');
-        setIndexSignal(indexData);
-        
-        // Fetch stock-level signals from scanners
         const [gainers, losers, swing] = await Promise.all([
-          fetchAPI('/scanners/day-gainers?limit=5').catch(() => ({ data: [] })),
-          fetchAPI('/scanners/day-losers?limit=5').catch(() => ({ data: [] })),
-          fetchAPI('/scanners/swing?limit=5').catch(() => ({ data: [] }))
+          fetchAPI('/scanners/day-gainers?limit=8').catch(() => ({ data: [] })),
+          fetchAPI('/scanners/day-losers?limit=8').catch(() => ({ data: [] })),
+          fetchAPI('/scanners/swing?limit=8').catch(() => ({ data: [] }))
         ]);
         
-        // Transform scanner data into signal format
-        const stockSignals = [];
+        const scannedStocks = [];
         
-        // Add gainers as BUY signals
-        (gainers?.data || []).forEach((stock, i) => {
-          stockSignals.push({
+        // Gainers — show real data only
+        (gainers?.data || []).forEach((s, i) => {
+          scannedStocks.push({
             id: `gainer-${i}`,
-            symbol: stock.symbol,
+            symbol: s.symbol,
             type: 'BUY',
+            category: 'Day Gainer',
             strategy: 'Momentum',
-            entry: stock.ltp || stock.entry,
-            target: stock.target_1 || (stock.ltp * 1.03),
-            stopLoss: stock.stop_loss || (stock.ltp * 0.98),
-            confidence: stock.score || 70,
+            ltp: s.ltp || s.entry || 0,
+            changePercent: s.change_percent || 0,
+            target: s.target_1 || null,       // only if scanner provides it
+            stopLoss: s.stop_loss || null,     // only if scanner provides it
+            score: s.score || null,
+            volume: s.volume || null,
             timeframe: 'Intraday',
-            riskReward: ((stock.target_1 - stock.ltp) / (stock.ltp - stock.stop_loss)).toFixed(1) || 2.0,
-            reason: `Strong momentum with ${(stock.change_percent || 0).toFixed(1)}% gain. ${stock.signal || 'Technical breakout detected.'}`,
-            triggers: ['Positive momentum', 'Volume confirmation', stock.score_details?.ema_aligned ? 'EMA aligned' : 'Price action', 'Relative strength'],
-            backtestWinRate: Math.min(stock.score || 65, 85),
-            avgHolding: 'Same day',
-            similarTrades: Math.min((stock.score || 65) + 30, 100),
+            riskReward: (s.target_1 && s.stop_loss && s.ltp)
+              ? (((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
+              : null,
+            reason: s.signal || (s.change_percent > 3
+              ? `Up ${s.change_percent.toFixed(1)}% today with momentum.`
+              : `Moderate gain of ${(s.change_percent || 0).toFixed(1)}%.`),
           });
         });
         
-        // Add losers as SELL signals (short opportunities)
-        (losers?.data || []).forEach((stock, i) => {
-          stockSignals.push({
+        // Losers — show real data only
+        (losers?.data || []).forEach((s, i) => {
+          scannedStocks.push({
             id: `loser-${i}`,
-            symbol: stock.symbol,
+            symbol: s.symbol,
             type: 'SELL',
+            category: 'Day Loser',
             strategy: 'Breakdown',
-            entry: stock.ltp || stock.entry,
-            target: stock.target_1 || (stock.ltp * 0.97),
-            stopLoss: stock.stop_loss || (stock.ltp * 1.02),
-            confidence: stock.score || 65,
+            ltp: s.ltp || s.entry || 0,
+            changePercent: s.change_percent || 0,
+            target: s.target_1 || null,
+            stopLoss: s.stop_loss || null,
+            score: s.score || null,
+            volume: s.volume || null,
             timeframe: 'Intraday',
-            riskReward: ((stock.ltp - stock.target_1) / (stock.stop_loss - stock.ltp)).toFixed(1) || 1.5,
-            reason: `Weakness with ${(stock.change_percent || 0).toFixed(1)}% drop. ${stock.signal || 'Breakdown pattern.'}`,
-            triggers: ['Negative momentum', 'Volume selling', 'Below VWAP', 'Sector weakness'],
-            backtestWinRate: Math.min(stock.score || 60, 80),
-            avgHolding: 'Same day',
-            similarTrades: Math.min((stock.score || 60) + 20, 80),
+            riskReward: (s.target_1 && s.stop_loss && s.ltp)
+              ? (((s.ltp - s.target_1) / (s.stop_loss - s.ltp)).toFixed(1))
+              : null,
+            reason: s.signal || `Down ${Math.abs(s.change_percent || 0).toFixed(1)}% today.`,
           });
         });
         
-        // Add swing trades
-        (swing?.data || []).forEach((stock, i) => {
-          stockSignals.push({
+        // Swing setups — show real data only
+        (swing?.data || []).forEach((s, i) => {
+          scannedStocks.push({
             id: `swing-${i}`,
-            symbol: stock.symbol,
-            type: stock.signal === 'SELL' ? 'SELL' : 'BUY',
+            symbol: s.symbol,
+            type: s.signal === 'SELL' ? 'SELL' : 'BUY',
+            category: 'Swing Setup',
             strategy: 'Swing Trade',
-            entry: stock.ltp || stock.entry,
-            target: stock.target_1 || stock.ltp * (stock.signal === 'SELL' ? 0.95 : 1.05),
-            stopLoss: stock.stop_loss || stock.ltp * (stock.signal === 'SELL' ? 1.03 : 0.97),
-            confidence: stock.score || 72,
+            ltp: s.ltp || s.entry || 0,
+            changePercent: s.change_percent || 0,
+            target: s.target_1 || null,
+            stopLoss: s.stop_loss || null,
+            score: s.score || null,
+            volume: s.volume || null,
             timeframe: 'Swing',
-            riskReward: 2.0,
-            reason: stock.reason || `Swing setup with good risk-reward. ${stock.signal || 'Technical setup confirmed.'}`,
-            triggers: ['Technical setup', 'Volume pattern', 'Trend alignment', 'Support/Resistance'],
-            backtestWinRate: Math.min(stock.score || 68, 82),
-            avgHolding: '2-5 days',
-            similarTrades: Math.min((stock.score || 68) + 40, 120),
+            riskReward: (s.target_1 && s.stop_loss && s.ltp)
+              ? (Math.abs((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
+              : null,
+            reason: s.reason || s.signal || 'Swing setup detected by scanner.',
           });
         });
         
-        setSignals(stockSignals);
+        setStocks(scannedStocks);
       } catch (error) {
-        console.error('Error fetching signals:', error);
-        setSignals([]);
+        console.error('Error fetching scanner data:', error);
+        setStocks([]);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchSignals();
-    const interval = setInterval(fetchSignals, 60000);
+    fetchScannerData();
+    const interval = setInterval(fetchScannerData, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filter signals
-  const filteredSignals = useMemo(() => {
-    return signals.filter((signal) => {
-      if (activeType !== 'all' && signal.type.toLowerCase() !== activeType) return false;
-      if (timeframe !== 'all' && signal.timeframe.toLowerCase() !== timeframe) return false;
+  // Filter stocks
+  const filteredStocks = useMemo(() => {
+    return stocks.filter((stock) => {
+      if (activeType === 'buy' && stock.type !== 'BUY') return false;
+      if (activeType === 'sell' && stock.type !== 'SELL') return false;
+      if (activeType === 'swing' && stock.category !== 'Swing Setup') return false;
+      if (timeframe !== 'all' && stock.timeframe.toLowerCase() !== timeframe) return false;
       return true;
     });
-  }, [signals, activeType, timeframe]);
+  }, [stocks, activeType, timeframe]);
 
   return (
     <PageLayout>
       <PageHeader
-        title="Trade Signals"
-        description="AI-generated signals with confidence scores"
-        accuracy={signals.length > 0 ? Math.round(signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length) : null}
-        trades={signals.length}
+        title="Stock Scanner"
+        description="Real-time scanner results from NSE — gainers, losers & swing setups"
         breadcrumbs={[
           { label: 'Dashboard', link: '/' },
-          { label: 'Signals' },
+          { label: 'Scanner' },
         ]}
         actions={
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
         }
       />
 
-      {/* Performance Metrics */}
-      <PerformanceMetrics signals={signals} />
+      {/* Scanner Summary */}
+      <ScannerSummary stocks={stocks} />
 
       {/* Filters */}
       <Section className="mb-6">
         <Card className="p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            {/* Signal Type Tabs */}
             <div className="flex gap-1">
-              {SIGNAL_TYPES.map((type) => (
+              {SCANNER_TYPES.map((type) => (
                 <button
                   key={type.id}
                   onClick={() => setActiveType(type.id)}
@@ -460,7 +440,6 @@ const SignalsHub = () => {
               ))}
             </div>
 
-            {/* Timeframe Filter */}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm text-muted-foreground">Timeframe:</span>
               <Select
@@ -478,55 +457,55 @@ const SignalsHub = () => {
         </Card>
       </Section>
 
-      {/* Signals Grid */}
+      {/* Stocks Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 skeleton rounded-2xl" />
           ))}
         </div>
-      ) : filteredSignals.length === 0 ? (
+      ) : filteredStocks.length === 0 ? (
         <Card className="p-12 text-center">
           <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Signals Found</h3>
+          <h3 className="text-lg font-semibold mb-2">No Stocks Found</h3>
           <p className="text-muted-foreground">
-            No signals match your current filters. Try adjusting the timeframe or signal type.
+            No stocks match your current filters. Try adjusting the timeframe or category.
           </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSignals.map((signal, i) => (
-            <SignalCard 
-              key={signal.id} 
-              signal={signal} 
-              onView={setSelectedSignal}
+          {filteredStocks.map((stock) => (
+            <StockCard 
+              key={stock.id} 
+              stock={stock} 
+              onView={setSelectedStock}
             />
           ))}
         </div>
       )}
 
-      {/* Educational Note */}
+      {/* Disclaimer — honest about data source */}
       <Card className="mt-8 p-4 bg-primary/5 border-primary/20">
         <div className="flex items-start gap-3">
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
-            <h4 className="font-semibold mb-1">About Signal Confidence</h4>
+            <h4 className="font-semibold mb-1">About Scanner Data</h4>
             <p className="text-sm text-muted-foreground">
-              Confidence scores are calculated based on multiple factors: technical indicator alignment,
-              volume confirmation, market context, historical pattern accuracy, and sentiment analysis.
-              Higher confidence (75%+) signals have historically shown better win rates. Always use proper
-              risk management and never risk more than 1-2% of capital on a single trade.
+              This page shows real-time results from our NSE stock scanners. Gainers and losers
+              are based on live market data. Swing setups use technical indicators (EMA, RSI, VWAP).
+              Scanner scores reflect technical alignment — they are not predictions. Always do your
+              own analysis and use proper risk management.
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Signal Detail Modal */}
+      {/* Stock Detail Modal */}
       <AnimatePresence>
-        {selectedSignal && (
-          <SignalDetailModal 
-            signal={selectedSignal} 
-            onClose={() => setSelectedSignal(null)} 
+        {selectedStock && (
+          <StockDetailModal 
+            stock={selectedStock} 
+            onClose={() => setSelectedStock(null)} 
           />
         )}
       </AnimatePresence>

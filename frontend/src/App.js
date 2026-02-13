@@ -331,7 +331,6 @@ const Calculators = lazy(() => import('./pages/Calculators'));
 const TradingJournal = lazy(() => import('./pages/TradingJournal'));
 const Backtest = lazy(() => import('./pages/Backtest'));
 const Settings = lazy(() => import('./pages/Settings'));
-const LogoPreview = lazy(() => import('./pages/LogoPreview'));
 
 // User & Admin pages
 const UserProfile = lazy(() => import('./pages/UserProfile'));
@@ -359,7 +358,6 @@ function AppRouter() {
         {/* Subscription Required Pages - Login + Active Subscription required */}
         <Route path="/" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
         <Route path="/dashboard" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
-        <Route path="/logo-preview" element={<SubscriptionRoute><LogoPreview /></SubscriptionRoute>} />
         
         {/* Scanner Hub - All scanners */}
         <Route path="/scanners" element={<SubscriptionRoute><ScannerHub /></SubscriptionRoute>} />
