@@ -86,6 +86,15 @@ const NAV_ITEMS = [
     description: 'FII/DII, sectors, breadth',
   },
   {
+    id: 'ai-agent',
+    label: 'AI Agent',
+    icon: Brain,
+    path: '/ai-agent',
+    badge: 'New',
+    isPro: true,
+    description: 'Self-thinking autonomous trading',
+  },
+  {
     id: 'algo',
     label: 'Algo Trading',
     icon: Bot,

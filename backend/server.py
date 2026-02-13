@@ -22800,6 +22800,16 @@ except ImportError as e:
 except Exception as e:
     logging.error(f"❌ Error loading AI Advisor routes: {e}")
 
+# ==================== AI AUTONOMOUS AGENT ROUTES ====================
+try:
+    from routes.ai_agent_routes import router as ai_agent_router
+    app.include_router(ai_agent_router)
+    logging.info("✅ AI Autonomous Agent routes loaded successfully")
+except ImportError as e:
+    logging.warning(f"⚠️ AI Agent routes not loaded: {e}")
+except Exception as e:
+    logging.error(f"❌ Error loading AI Agent routes: {e}")
+
 # Include the router in the main app (MUST be after all routes are defined)
 app.include_router(api_router)
 
