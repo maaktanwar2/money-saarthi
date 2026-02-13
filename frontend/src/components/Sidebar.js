@@ -116,7 +116,15 @@ const NAV_ITEMS = [
     icon: Target,
     path: '/ltp-calculator',
     badge: 'New',
-    description: 'P&L, Option Chain, COA, Trade Finder',
+    description: 'P&L, Option Chain, COA Analysis',
+  },
+  {
+    id: 'trade-finder',
+    label: 'Trade Finder',
+    icon: Zap,
+    path: '/trade-finder',
+    badge: 'New',
+    description: 'Auto strategy suggestions from OI data',
   },
   {
     id: 'calculators',

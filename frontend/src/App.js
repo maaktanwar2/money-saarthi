@@ -341,6 +341,7 @@ const Pricing = lazy(() => import('./pages/Pricing'));
 // AI pages
 const AlgoTrading = lazy(() => import('./pages/AlgoTrading'));
 const LTPCalculator = lazy(() => import('./pages/LTPCalculator'));
+const TradeFinder = lazy(() => import('./pages/TradeFinder'));
 const AIAgent = lazy(() => import('./pages/AIAgent'));
 
 function AppRouter() {
@@ -402,7 +403,7 @@ function AppRouter() {
         {/* LTP Calculator & Trade Finder */}
         <Route path="/ltp-calculator" element={<SubscriptionRoute><LTPCalculator /></SubscriptionRoute>} />
         <Route path="/ltp" element={<Navigate to="/ltp-calculator" replace />} />
-        <Route path="/trade-finder" element={<Navigate to="/ltp-calculator" replace />} />
+        <Route path="/trade-finder" element={<SubscriptionRoute><TradeFinder /></SubscriptionRoute>} />
         
         {/* Trading Journal */}
         <Route path="/journal" element={<SubscriptionRoute><TradingJournal /></SubscriptionRoute>} />
