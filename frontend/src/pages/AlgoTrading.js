@@ -11,7 +11,7 @@ import {
   AlertCircle, CheckCircle2, Clock, Percent,
   RefreshCw, Eye, EyeOff, ChevronRight, ChevronDown, Power,
   Rocket, LineChart, Gauge, Wallet, Link, Unlink, ArrowUpRight,
-  ArrowDownRight, Timer, Calendar, Sparkles, Lock, Crown, Info
+  ArrowDownRight, Timer, Calendar, Sparkles, Lock, Crown, Info, Coins
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
 import {
@@ -21,6 +21,8 @@ import {
 import { cn, formatINR } from '../lib/utils';
 import { API_BASE_URL } from '../config/api';
 import { toast } from '../hooks/use-toast';
+import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
+import { fetchAPI } from '../lib/utils';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATIONS
@@ -132,6 +134,11 @@ const AlgoTrading = () => {
   const [todayPnL, setTodayPnL] = useState(0);
   const [activePositions, setActivePositions] = useState(0);
   
+  // Token State
+  const [tokenBalance, setTokenBalance] = useState(0);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const BOT_TOKEN_COST = 15;
+  
   // ─────────────────────────────────────────────────────────────────────────────
   // CHECK BROKER CONNECTION ON MOUNT
   // ─────────────────────────────────────────────────────────────────────────────
@@ -150,7 +157,39 @@ const AlgoTrading = () => {
       setBrokerInfo({ broker: savedBroker, sandbox: savedSandbox });
       setSelectedBroker(savedBroker);
     }
+    
+    // Load token balance
+    loadTokenBalance();
   }, []);
+  
+  const loadTokenBalance = async () => {
+    try {
+      const res = await getTokenBalance();
+      setTokenBalance(res.balance || 0);
+      setIsAdminUser(res.is_admin || res.unlimited || false);
+    } catch (e) { /* ignore */ }
+  };
+  
+  const deductBotTokens = async () => {
+    try {
+      const userId = JSON.parse(localStorage.getItem('ms_user') || '{}').email || 'anonymous';
+      const res = await fetchAPI('/ai/tokens/use', {
+        method: 'POST',
+        headers: { 'X-User-Id': userId },
+        body: JSON.stringify({ action: 'bot_start' })
+      });
+      if (res.success) {
+        setTokenBalance(res.remaining_balance);
+        return true;
+      } else {
+        toast({ title: 'Insufficient Tokens', description: `You need ${BOT_TOKEN_COST} tokens to start a bot. Current balance: ${res.available || tokenBalance}`, variant: 'destructive' });
+        return false;
+      }
+    } catch (e) {
+      // If token check fails, allow starting (graceful degradation)
+      return true;
+    }
+  };
   
   // ─────────────────────────────────────────────────────────────────────────────
   // BROKER CONNECTION
@@ -334,6 +373,10 @@ const AlgoTrading = () => {
     );
     if (!confirmed) return;
     
+    // Check & deduct tokens
+    const hasTokens = await deductBotTokens();
+    if (!hasTokens) return;
+    
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
       const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
@@ -502,6 +545,10 @@ const AlgoTrading = () => {
       `Are you sure you want to proceed?`
     );
     if (!confirmed) return;
+    
+    // Check & deduct tokens
+    const hasTokens = await deductBotTokens();
+    if (!hasTokens) return;
     
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
@@ -1336,6 +1383,38 @@ const AlgoTrading = () => {
       />
       
       <div className="space-y-6">
+        {/* Token Balance Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+              <Coins className="w-5 h-5 text-violet-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">AI Token Balance</p>
+              <p className="text-xl font-bold">
+                {isAdminUser ? '∞' : tokenBalance}
+                <span className="text-sm text-muted-foreground ml-1">tokens</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Cost per bot start</p>
+              <p className="text-sm font-semibold text-violet-500">{BOT_TOKEN_COST} tokens</p>
+            </div>
+            {!isAdminUser && tokenBalance < BOT_TOKEN_COST && (
+              <Button size="sm" onClick={() => window.location.href = '/profile'} className="bg-violet-600 hover:bg-violet-700">
+                <Coins className="w-4 h-4 mr-2" />Recharge
+              </Button>
+            )}
+            {isAdminUser && (
+              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                <Crown className="w-3 h-3 mr-1" />Admin Free
+              </Badge>
+            )}
+          </div>
+        </div>
+
         {/* Broker Connection */}
         {renderBrokerConnection()}
         
@@ -1364,6 +1443,9 @@ const AlgoTrading = () => {
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Brain className="w-5 h-5" />
             AI Trading Bots
+            <Badge variant="secondary" className="text-xs ml-2">
+              <Coins className="w-3 h-3 mr-1" />{BOT_TOKEN_COST} tokens/start
+            </Badge>
           </h2>
           
           {renderBotCard(

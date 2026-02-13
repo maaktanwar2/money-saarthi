@@ -37,6 +37,10 @@ class TokenRechargeRequest(BaseModel):
     package_id: str
     transaction_id: Optional[str] = None
 
+class TokenUseRequest(BaseModel):
+    action: str
+    count: int = 1
+
 class PositionAnalysisRequest(BaseModel):
     position: Dict[str, Any]
 
@@ -116,6 +120,20 @@ async def check_can_use_tokens(
     """Check if user has enough tokens for an action"""
     result = token_service.check_can_use(x_user_id, action)
     return {"success": True, **result}
+
+
+@router.post("/tokens/use")
+async def use_tokens(
+    request: TokenUseRequest,
+    x_user_id: str = Header(..., alias="X-User-Id")
+):
+    """Use/deduct tokens for an action (e.g. bot_start)"""
+    try:
+        result = token_service.use_tokens(x_user_id, request.action, request.count)
+        return result
+    except Exception as e:
+        logger.error(f"Error using tokens: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

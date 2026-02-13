@@ -32,6 +32,7 @@ TOKEN_COSTS = {
     "strategy_suggestion": 10,  # Get strategy adjustment
     "risk_assessment": 8,       # Risk analysis
     "market_insight": 3,        # Quick market insight
+    "bot_start": 15,            # Start an algo trading bot
 }
 
 # In-memory storage (replace with database in production)
