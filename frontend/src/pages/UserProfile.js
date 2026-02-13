@@ -291,7 +291,7 @@ export default function UserProfile() {
               <Tabs
                 tabs={profileTabs}
                 activeTab={activeTab}
-                onTabChange={setActiveTab}
+                onChange={setActiveTab}
               />
               {/* Admin tabs - shown below for admins */}
               {userIsAdmin && (
@@ -299,7 +299,7 @@ export default function UserProfile() {
                   <Tabs
                     tabs={adminTabs}
                     activeTab={activeTab}
-                    onTabChange={setActiveTab}
+                    onChange={setActiveTab}
                   />
                 </div>
               )}
