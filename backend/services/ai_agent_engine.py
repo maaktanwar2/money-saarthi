@@ -203,6 +203,11 @@ class AgentDecision:
     scenarios_considered: List[str] = field(default_factory=list)
     risk_assessment: str = ""
     
+    # Hedge plan (from LLM)
+    hedge_plan: Dict = field(default_factory=lambda: {"required": False, "reason": "", "legs": []})
+    # Position management plan
+    position_plan: Dict = field(default_factory=lambda: {"targets": "", "exits": ""})
+    
     # Trade parameters (if action is ENTER/ADJUST)
     trade_params: Dict = field(default_factory=dict)
     
@@ -222,6 +227,8 @@ class AgentDecision:
             "reasoning": self.reasoning,
             "scenarios_considered": self.scenarios_considered,
             "risk_assessment": self.risk_assessment,
+            "hedge_plan": self.hedge_plan,
+            "position_plan": self.position_plan,
             "trade_params": self.trade_params,
             "executed": self.executed,
             "execution_result": self.execution_result,
@@ -665,126 +672,246 @@ class AutonomousAIAgent:
             return None
     
     def _build_thinking_context(self, snap: MarketSnapshot) -> str:
-        """Build a comprehensive context prompt for the LLM brain"""
+        """Build a comprehensive JSON data payload for the LLM risk-manager brain"""
         
         # Recent decisions for memory
         recent_decisions = []
         for d in list(self.decisions)[:5]:
-            recent_decisions.append(f"  [{d.timestamp.strftime('%H:%M') if d.timestamp else '??'}] "
-                                   f"{d.action} {d.strategy.value} @ {d.confidence_score:.0f}% conf")
+            recent_decisions.append({
+                "time": d.timestamp.strftime('%H:%M') if d.timestamp else '??',
+                "action": d.action,
+                "strategy": d.strategy.value,
+                "confidence": round(d.confidence_score),
+                "reasoning_summary": d.reasoning[:120] if d.reasoning else '',
+            })
         
-        # Active positions
-        pos_info = "None" if not self.active_positions else json.dumps(self.active_positions[:3], default=str, indent=2)
+        # Active positions in structured form
+        positions_data = []
+        for pos in self.active_positions[:5]:
+            positions_data.append({
+                "id": pos.get("id", ""),
+                "strategy": pos.get("strategy", ""),
+                "legs": pos.get("legs", []),
+                "current_pnl": pos.get("current_pnl", 0),
+                "target_pnl": pos.get("target_pnl", 0),
+                "stoploss_pnl": pos.get("stoploss_pnl", 0),
+                "entry_time": pos.get("entry_time", ""),
+                "status": pos.get("status", "active"),
+            })
         
         # Performance summary
         perf = self.performance
         
-        # Strategy availability based on performance
-        strategy_notes = []
+        # Strategy performance
+        strategy_perf = {}
         for strat, stats in perf.strategy_stats.items():
             wr = (stats['wins'] / stats['trades'] * 100) if stats['trades'] > 0 else 0
-            strategy_notes.append(f"  {strat}: {stats['trades']} trades, {wr:.0f}% win rate, ₹{stats['pnl']:,.0f}")
+            strategy_perf[strat] = {"trades": stats['trades'], "win_rate": round(wr), "pnl": round(stats['pnl'])}
         
-        prompt = f"""You are an autonomous AI trading agent for Indian NSE F&O markets.
-Your task: Analyze the current market state and decide the BEST action.
-
-═══ CURRENT MARKET STATE ═══
-Symbol: {snap.symbol}
-Time: {snap.timestamp.strftime('%Y-%m-%d %H:%M IST') if snap.timestamp else 'N/A'}
-Session: {snap.session}
-
-PRICE DATA:
-- Spot: {snap.spot_price:.2f}
-- Prev Close: {snap.prev_close:.2f}  
-- Day Change: {snap.day_change_pct:+.2f}%
-- Day Range: {snap.day_low:.0f} - {snap.day_high:.0f} (Range: {snap.intraday_range:.0f} pts)
-- Gap: {snap.gap_type}
-
-TECHNICALS:
-- VWAP: {snap.vwap:.2f} | Spot vs VWAP: {'ABOVE' if snap.spot_price > snap.vwap else 'BELOW'} ({abs(snap.spot_price - snap.vwap):.0f} pts)
-- EMA 9: {snap.ema_9:.2f} | EMA 21: {snap.ema_21:.2f}
-- Trend: {snap.trend} ({snap.trend_strength})
-- Pivots: S2={snap.s2:.0f} | S1={snap.s1:.0f} | P={snap.pivot:.0f} | R1={snap.r1:.0f} | R2={snap.r2:.0f}
-
-VOLATILITY:
-- VIX: {snap.vix:.1f} | IV: {snap.iv:.1f}% | RV: {snap.rv:.1f}%
-- IV Rank: {snap.iv_rank:.0f}/100
-- ATR(14): {snap.atr_14:.0f} pts
-
-OPTIONS:
-- PCR: {snap.pcr:.2f} ({'Bullish' if snap.pcr > 1.1 else 'Bearish' if snap.pcr < 0.8 else 'Neutral'})
-- Max Pain: {snap.max_pain:.0f}
-- Support (PE OI): {snap.support:.0f} | Resistance (CE OI): {snap.resistance:.0f}
-
-═══ AGENT STATE ═══
-Risk Level: {self.config.risk_level.value}
-Capital: ₹{self.config.max_capital:,.0f}
-Active Positions: {len(self.active_positions)}
-{pos_info}
-
-Today's P&L: ₹{perf.daily_pnl:,.0f}
-Total Trades Today: {perf.total_trades}
-Win Rate: {perf.win_rate:.0f}%
-Streak: {perf.current_streak} ({'wins' if perf.current_streak > 0 else 'losses' if perf.current_streak < 0 else 'neutral'})
-Drawdown: ₹{perf.drawdown:,.0f}
-
-Max Daily Loss Limit: ₹{self.config.max_capital * self.config.max_loss_per_day_pct / 100:,.0f}
-Remaining Risk Budget: ₹{(self.config.max_capital * self.config.max_loss_per_day_pct / 100) - abs(min(0, perf.daily_pnl)):,.0f}
-
-RECENT DECISIONS:
-{chr(10).join(recent_decisions) if recent_decisions else '  No previous decisions today'}
-
-STRATEGY PERFORMANCE:
-{chr(10).join(strategy_notes) if strategy_notes else '  No trades yet today'}
-
-═══ AVAILABLE STRATEGIES ═══
-1. SHORT_STRANGLE - Sell OTM CE + PE (best for range-bound, high IV, VIX 12-16)
-2. IRON_CONDOR - Sell OTM spread + buy protection (defined risk, range-bound)
-3. IRON_BUTTERFLY - Sell ATM + buy OTM wings (max premium capture near ATM)
-4. LONG_CE - Buy call (bullish trend, low IV)
-5. LONG_PE - Buy put (bearish trend, low IV)
-6. STRADDLE_BUY - Buy ATM CE + PE (expecting big move, event day)
-7. VWAP_REVERSAL - Counter-trend near VWAP (mean reversion)
-8. HEDGE_OVERLAY - Add protection to existing positions
-9. NO_TRADE - Skip this cycle (uncertain conditions)
-
-═══ YOUR TASK ═══
-Think through these scenarios:
-1. What is the MOST LIKELY market movement in the next 30-60 minutes?
-2. What is the RISK if you're WRONG?
-3. Which strategy gives the BEST risk-adjusted return?
-4. Should you ENTER new, ADJUST existing, EXIT, or WAIT?
-
-Respond in this EXACT JSON format:
-{{
-  "market_regime": "one of: strongly_bullish, bullish, mildly_bullish, range_bound, mildly_bearish, bearish, strongly_bearish, high_volatility",
-  "action": "one of: ENTER, EXIT, ADJUST, HEDGE, WAIT",
-  "strategy": "one of: short_strangle, iron_condor, iron_butterfly, long_ce, long_pe, straddle_buy, vwap_reversal, hedge_overlay, no_trade",
-  "confidence_score": 0-100,
-  "reasoning": "Your detailed reasoning in 2-3 sentences",
-  "scenarios": ["scenario 1 considered", "scenario 2", "scenario 3"],
-  "risk_assessment": "What could go wrong and your hedge plan",
-  "trade_params": {{
-    "strike_ce": 0,
-    "strike_pe": 0,
-    "lots": 1,
-    "target_pct": 50,
-    "stoploss_pct": 30,
-    "expiry": "weekly"
-  }}
-}}"""
+        # Build the structured data snapshot
+        data_payload = {
+            "market_snapshot": {
+                "symbol": snap.symbol,
+                "timestamp": snap.timestamp.strftime('%Y-%m-%d %H:%M IST') if snap.timestamp else 'N/A',
+                "session": snap.session,
+                "spot_price": round(snap.spot_price, 2),
+                "prev_close": round(snap.prev_close, 2),
+                "day_change_pct": round(snap.day_change_pct, 2),
+                "day_open": round(snap.day_open, 2),
+                "day_high": round(snap.day_high, 2),
+                "day_low": round(snap.day_low, 2),
+                "intraday_range": round(snap.intraday_range),
+                "gap_type": snap.gap_type,
+                "vwap": round(snap.vwap, 2),
+                "spot_vs_vwap": "ABOVE" if snap.spot_price > snap.vwap else "BELOW",
+                "spot_vwap_distance": round(abs(snap.spot_price - snap.vwap)),
+                "ema_9": round(snap.ema_9, 2),
+                "ema_21": round(snap.ema_21, 2),
+                "trend": snap.trend,
+                "trend_strength": snap.trend_strength,
+                "vix": round(snap.vix, 1),
+                "iv": round(snap.iv, 1),
+                "rv": round(snap.rv, 1),
+                "iv_rank": round(snap.iv_rank),
+                "atr_14": round(snap.atr_14),
+                "pcr": round(snap.pcr, 2),
+                "max_pain": round(snap.max_pain),
+                "support": round(snap.support),
+                "resistance": round(snap.resistance),
+                "pivots": {
+                    "s2": round(snap.s2), "s1": round(snap.s1),
+                    "pivot": round(snap.pivot),
+                    "r1": round(snap.r1), "r2": round(snap.r2),
+                },
+            },
+            "positions": positions_data,
+            "config": {
+                "risk_level": self.config.risk_level.value,
+                "max_capital": self.config.max_capital,
+                "max_positions": self.config.max_positions,
+                "num_lots": self.config.num_lots,
+                "min_confidence": self.config.min_confidence,
+                "auto_enter": self.config.auto_enter,
+                "auto_exit": self.config.auto_exit,
+                "auto_adjust": self.config.auto_adjust,
+                "use_mock": self.config.use_mock,
+                "max_loss_per_day_pct": self.config.max_loss_per_day_pct,
+                "preferred_expiry": self.config.preferred_expiry,
+            },
+            "performance": {
+                "daily_pnl": round(perf.daily_pnl),
+                "total_trades": perf.total_trades,
+                "winning_trades": perf.winning_trades,
+                "losing_trades": perf.losing_trades,
+                "win_rate": round(perf.win_rate),
+                "current_streak": perf.current_streak,
+                "drawdown": round(perf.drawdown),
+                "max_daily_loss_limit": round(self.config.max_capital * self.config.max_loss_per_day_pct / 100),
+                "remaining_risk_budget": round((self.config.max_capital * self.config.max_loss_per_day_pct / 100) - abs(min(0, perf.daily_pnl))),
+                "strategy_stats": strategy_perf,
+            },
+            "recent_decisions": recent_decisions,
+        }
         
-        return prompt
+        return json.dumps(data_payload, indent=2, default=str)
+    
+    def _get_system_prompt(self) -> str:
+        """Return the comprehensive risk-manager system prompt for Claude"""
+        return """You are an autonomous intraday MARKET ANALYST and RISK MANAGER for index derivatives.
+
+PRIMARY OBJECTIVE
+- Protect capital first through intelligent HEDGING of open positions.
+- Then optimize risk-adjusted returns by selectively adding or adjusting trades.
+- You are conservative by default and aggressively avoid large drawdowns.
+
+MARKET & INSTRUMENTS
+- Market: Indian index derivatives (e.g., NIFTY, BANKNIFTY, FINNIFTY).
+- Instruments: Index options and futures (CE/PE, spreads, strangles, condors, hedge overlays).
+- You never place naked unlimited-risk trades unless config explicitly allows it.
+
+DATA YOU RECEIVE EACH CYCLE
+Every call you get a JSON snapshot (updated roughly every minute) that may include:
+
+- `market_snapshot`: spot price, day change %, VIX, VWAP, PCR, IV rank, session, support/resistance levels, trend.
+- `option_chain`: strikes with LTP, OI, change in OI, IV, volume and any sentiment/flow metrics.
+- `positions`: current open positions with legs (BUY/SELL, strike, premium, quantity, SL/Target, P&L).
+- `config`: risk level, max capital, max positions, lots per trade, min confidence, whether auto_enter/auto_exit/auto_adjust are enabled, whether this is mock mode.
+- `performance`: P&L stats, win rate, drawdown, recent trade history.
+- `events/sentiment` (if provided): upcoming events (expiry, RBI, US data), news flags, special risk warnings.
+
+If some of these fields are missing, you adapt and use what you have.
+You never hallucinate data fields that were not provided.
+
+BEHAVIOUR EACH CYCLE (EVERY MINUTE)
+On every cycle you must:
+
+1. Diagnose market regime
+   - Classify the environment into one of:
+     strongly_bullish, bullish, mildly_bullish, range_bound,
+     mildly_bearish, bearish, strongly_bearish, high_volatility, or unknown.
+   - Use trend, spot vs VWAP, VIX, PCR, IV rank, and option-chain OI shifts to decide.
+   - Think forward: is risk building towards a breakout, reversal, or volatility spike?
+
+2. Read sentiment and scenarios
+   - Combine: price action, intraday structure (ranges, breakouts, failed breakouts),
+     option-chain OI/delta-OI (call/put writing or unwinding), and any event/news flags.
+   - Construct 2-4 plausible scenarios for the next 30-90 minutes (e.g.,
+     "range holds", "upside breakout", "sharp mean-reversion", "event-driven spike").
+   - For each scenario, think: what happens to current positions and overall risk?
+
+3. Evaluate risk on current book
+   - Identify directional exposure (net bullish / bearish / neutral).
+   - Identify volatility exposure qualitatively (benefits from rising IV or falling IV).
+   - Mark dangerous situations:
+     - Large unhedged short options near ATM
+     - Positions close to stop loss
+     - Concentration on one strike or one side
+     - High risk around known events (news, data, expiry).
+
+4. Decide on hedging and action
+   - Your default priority is HEDGE FIRST, TRADE LATER.
+   - Only choose ENTER new trades if risk is controlled and config allows.
+   - Prefer: defined-risk structures (spreads, condors, covered shorts) over naked.
+   - For hedging you can:
+     - Add opposite-side options (e.g., buy OTM PE to hedge short CE).
+     - Convert naked shorts into spreads.
+     - Reduce position size or fully exit.
+   - If risk is already acceptable, you may choose WAIT or small, incremental ADJUST.
+
+5. Respect configuration and risk limits
+   - Never exceed max_capital or max_positions.
+   - Follow risk_level:
+     - conservative: prioritize protection, minimal new risk.
+     - moderate: allow trades when edge is clear and hedged.
+     - aggressive: still manage risk, but more willing to add exposure when signals align.
+   - Respect auto_enter, auto_exit, auto_adjust:
+     - If a feature is disabled, DO NOT propose that action.
+
+6. Output a clear, structured decision
+   You MUST respond only with a single JSON object matching this schema:
+
+   {
+     "action": "ENTER" | "EXIT" | "ADJUST" | "WAIT",
+     "strategy": "short_strangle" | "iron_condor" | "iron_butterfly" | "long_ce" | "long_pe" | "straddle_buy" | "vwap_reversal" | "hedge_overlay" | "no_trade",
+     "market_regime": "strongly_bullish" | "bullish" | "mildly_bullish" | "range_bound" | "mildly_bearish" | "bearish" | "strongly_bearish" | "high_volatility" | "unknown",
+     "confidence_score": <number 0-100>,
+     "reasoning": "<concise explanation; 3-7 sentences, no fluff>",
+     "risk_assessment": "<what can go wrong, worst-case paths, key levels>",
+     "scenarios_considered": ["<plausible path 1>", "<plausible path 2>", "<plausible path 3>"],
+     "hedge_plan": {
+       "required": true | false,
+       "reason": "<why hedge / why no hedge>",
+       "legs": [
+         {
+           "action": "OPEN" | "CLOSE" | "MODIFY",
+           "instrument": "FUT" | "OPT_CE" | "OPT_PE",
+           "direction": "BUY" | "SELL",
+           "strike": <number or null>,
+           "expiry": "<string or null>",
+           "quantity_lots": <number or null>,
+           "notes": "<short human-readable instruction>"
+         }
+       ]
+     },
+     "position_plan": {
+       "targets": "<how to manage targets/SLs overall>",
+       "exits": "<when to cut risk fast>"
+     },
+     "trade_params": {
+       "strike_ce": <number>,
+       "strike_pe": <number>,
+       "lots": <number>,
+       "target_pct": <number>,
+       "stoploss_pct": <number>,
+       "expiry": "weekly" | "monthly"
+     }
+   }
+
+   - Be realistic and conservative with confidence_score.
+   - reasoning must clearly link: market regime -> scenarios -> risk -> chosen action.
+   - If you choose WAIT, still fill reasoning, risk_assessment, and future trigger levels.
+
+RISK & SAFETY RULES
+- Capital protection is more important than catching every move.
+- Avoid over-trading: if recent cycles already adjusted hedges and risk is under control, prefer WAIT.
+- Reduce risk before major known events (news, RBI, global events, expiry close).
+- Prefer smaller, earlier hedges over late, panicked exits.
+- If data looks unreliable or inconsistent, choose WAIT, explain the data issue, and advise caution.
+
+STYLE
+- Think like a professional buy-side risk manager, not a gambler.
+- Always be explicit about what could go wrong and how hedges address that.
+- Never output anything except the JSON object described above."""
     
     async def _call_claude(self, prompt: str) -> Optional[str]:
-        """Call Claude API for reasoning"""
+        """Call Claude API for reasoning with comprehensive risk-manager system prompt"""
         api_key = os.environ.get('ANTHROPIC_API_KEY', '')
         
         if not api_key:
             return None
         
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=45) as client:
                 response = await client.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -794,13 +921,9 @@ Respond in this EXACT JSON format:
                     },
                     json={
                         "model": "claude-sonnet-4-20250514",
-                        "max_tokens": 1000,
-                        "temperature": 0.3,
-                        "system": (
-                            "You are an expert Indian F&O trading agent brain. "
-                            "You think in probabilities, manage risk first, and only trade with edge. "
-                            "You MUST respond with valid JSON only. No other text."
-                        ),
+                        "max_tokens": 2000,
+                        "temperature": 0.2,
+                        "system": self._get_system_prompt(),
                         "messages": [{"role": "user", "content": prompt}]
                     }
                 )
@@ -841,9 +964,26 @@ Respond in this EXACT JSON format:
             decision.action = data.get("action", "WAIT")
             decision.confidence_score = float(data.get("confidence_score", 0))
             decision.reasoning = data.get("reasoning", "")
-            decision.scenarios_considered = data.get("scenarios", [])
+            decision.scenarios_considered = data.get("scenarios_considered", data.get("scenarios", []))
             decision.risk_assessment = data.get("risk_assessment", "")
             decision.trade_params = data.get("trade_params", {})
+            
+            # Parse hedge plan
+            hedge_raw = data.get("hedge_plan", {})
+            if isinstance(hedge_raw, dict):
+                decision.hedge_plan = {
+                    "required": hedge_raw.get("required", False),
+                    "reason": hedge_raw.get("reason", ""),
+                    "legs": hedge_raw.get("legs", []),
+                }
+            
+            # Parse position plan
+            pos_plan_raw = data.get("position_plan", {})
+            if isinstance(pos_plan_raw, dict):
+                decision.position_plan = {
+                    "targets": pos_plan_raw.get("targets", ""),
+                    "exits": pos_plan_raw.get("exits", ""),
+                }
             
             # Map confidence level
             score = decision.confidence_score

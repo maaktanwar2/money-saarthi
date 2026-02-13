@@ -655,6 +655,66 @@ const LatestDecision = ({ decision, snapshot }) => {
             ))}
           </div>
         )}
+
+        {/* Hedge Plan */}
+        {decision.hedge_plan && (decision.hedge_plan.required || decision.hedge_plan.reason) && (
+          <div className="mt-3 bg-purple-500/5 rounded-lg p-3 border border-purple-500/10">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-semibold text-purple-300">Hedge Plan</span>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded-full",
+                decision.hedge_plan.required ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+              )}>
+                {decision.hedge_plan.required ? '⚠️ Required' : '✅ Not Required'}
+              </span>
+            </div>
+            {decision.hedge_plan.reason && (
+              <p className="text-xs text-slate-400 mb-2">{decision.hedge_plan.reason}</p>
+            )}
+            {decision.hedge_plan.legs?.length > 0 && (
+              <div className="space-y-1">
+                {decision.hedge_plan.legs.map((leg, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center gap-2 text-[10px] px-2.5 py-1.5 rounded-lg",
+                    leg.direction === 'BUY' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'
+                  )}>
+                    <span className={cn("font-bold", leg.direction === 'BUY' ? 'text-green-400' : 'text-red-400')}>
+                      {leg.action} {leg.direction}
+                    </span>
+                    <span className="text-slate-300">
+                      {leg.instrument}{leg.strike ? ` @ ${leg.strike}` : ''}
+                    </span>
+                    {leg.quantity_lots && <span className="text-slate-500">x{leg.quantity_lots}L</span>}
+                    {leg.notes && <span className="text-slate-500 ml-auto">{leg.notes}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Position Plan */}
+        {decision.position_plan && (decision.position_plan.targets || decision.position_plan.exits) && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {decision.position_plan.targets && (
+              <div className="bg-emerald-500/5 rounded-lg p-2.5 border border-emerald-500/10">
+                <div className="text-[10px] text-emerald-400 mb-1 font-semibold flex items-center gap-1">
+                  <Target className="w-3 h-3" /> Targets / SL
+                </div>
+                <p className="text-[11px] text-slate-400">{decision.position_plan.targets}</p>
+              </div>
+            )}
+            {decision.position_plan.exits && (
+              <div className="bg-red-500/5 rounded-lg p-2.5 border border-red-500/10">
+                <div className="text-[10px] text-red-400 mb-1 font-semibold flex items-center gap-1">
+                  <XCircle className="w-3 h-3" /> Exit Triggers
+                </div>
+                <p className="text-[11px] text-slate-400">{decision.position_plan.exits}</p>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
