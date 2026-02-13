@@ -98,7 +98,7 @@ const NAV_ITEMS = [
     id: 'tokens',
     label: 'AI Tokens',
     icon: Coins,
-    path: '/tokens',
+    path: '/profile',
     description: 'Buy tokens for AI features',
   },
   {

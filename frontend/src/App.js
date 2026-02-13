@@ -338,8 +338,7 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const Login = lazy(() => import('./pages/Login'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 
-// AI & Token pages
-const TokensPage = lazy(() => import('./pages/TokensPage'));
+// AI pages
 const AlgoTrading = lazy(() => import('./pages/AlgoTrading'));
 
 function AppRouter() {
@@ -382,9 +381,9 @@ function AppRouter() {
         <Route path="/advisor" element={<Navigate to="/algo" replace />} />
         <Route path="/ai" element={<Navigate to="/algo" replace />} />
         
-        {/* Token Recharge */}
-        <Route path="/tokens" element={<SubscriptionRoute><TokensPage /></SubscriptionRoute>} />
-        <Route path="/recharge" element={<Navigate to="/tokens" replace />} />
+        {/* Token Recharge - merged into profile */}
+        <Route path="/tokens" element={<Navigate to="/profile" replace />} />
+        <Route path="/recharge" element={<Navigate to="/profile" replace />} />
         
         {/* Algo Trading - AI Bots */}
         <Route path="/algo" element={<SubscriptionRoute><AlgoTrading /></SubscriptionRoute>} />
