@@ -1,0 +1,2394 @@
+{
+  "backtest_info": {
+    "title": "Full Year NIFTY Delta Neutral Strategy Comparison",
+    "period": "Jan 2024 - Jan 2025",
+    "data_source": "Actual NIFTY prices (NSE/Yahoo Finance)",
+    "total_expiry_cycles": 55,
+    "lot_size": 75,
+    "factors": [
+      "Real NIFTY OHLC data",
+      "Slippage: ATM 0.5%, OTM 1.5%, Deep OTM 2.5%",
+      "Brokerage: \u20b940/lot",
+      "STT: 0.0625%",
+      "Major events: Budget, Elections, RBI MPC, Fed",
+      "Realized volatility \u2192 IV estimation",
+      "Volatility smile pricing"
+    ]
+  },
+  "strategies": {
+    "iron_condor": {
+      "name": "Iron Condor",
+      "emoji": "\ud83e\udd85",
+      "description": "Sell 200 OTM CE+PE, Buy 400 OTM wings. Defined risk, moderate premium.",
+      "statistics": {
+        "total_trades": 55,
+        "winning_trades": 37,
+        "losing_trades": 18,
+        "win_rate": 67.3,
+        "total_pnl": 163352,
+        "avg_pnl": 2970,
+        "avg_win": 6933,
+        "avg_loss": -5176,
+        "max_win": 12173,
+        "max_loss": -8944,
+        "profit_factor": 2.75,
+        "max_drawdown": 16650,
+        "sharpe_ratio": 3.43,
+        "roi_percent": 181.5,
+        "monthly_roi": 14.0,
+        "margin_required": 90000,
+        "profitable_months": 9,
+        "total_months": 13
+      },
+      "monthly_returns": [
+        {
+          "month": "2024-01",
+          "pnl": -976,
+          "return_pct": -1.1
+        },
+        {
+          "month": "2024-02",
+          "pnl": 36937,
+          "return_pct": 41.0
+        },
+        {
+          "month": "2024-03",
+          "pnl": 20025,
+          "return_pct": 22.2
+        },
+        {
+          "month": "2024-04",
+          "pnl": 11475,
+          "return_pct": 12.8
+        },
+        {
+          "month": "2024-05",
+          "pnl": -2160,
+          "return_pct": -2.4
+        },
+        {
+          "month": "2024-06",
+          "pnl": 19309,
+          "return_pct": 21.5
+        },
+        {
+          "month": "2024-07",
+          "pnl": 25408,
+          "return_pct": 28.2
+        },
+        {
+          "month": "2024-08",
+          "pnl": 4975,
+          "return_pct": 5.5
+        },
+        {
+          "month": "2024-09",
+          "pnl": -1427,
+          "return_pct": -1.6
+        },
+        {
+          "month": "2024-10",
+          "pnl": 17392,
+          "return_pct": 19.3
+        },
+        {
+          "month": "2024-11",
+          "pnl": -1540,
+          "return_pct": -1.7
+        },
+        {
+          "month": "2024-12",
+          "pnl": 20520,
+          "return_pct": 22.8
+        },
+        {
+          "month": "2025-01",
+          "pnl": 13414,
+          "return_pct": 14.9
+        }
+      ],
+      "equity_curve": [
+        0,
+        4322,
+        8667,
+        4601,
+        -976,
+        10021,
+        17210,
+        24263,
+        30163,
+        35961,
+        38508,
+        44346,
+        50162,
+        55986,
+        62431,
+        61570,
+        67461,
+        70080,
+        76014,
+        81951,
+        74245,
+        65301,
+        74115,
+        83785,
+        82997,
+        84610,
+        94925,
+        104211,
+        114829,
+        110018,
+        106957,
+        116170,
+        107993,
+        114993,
+        121621,
+        114906,
+        106642,
+        113566,
+        111688,
+        106230,
+        111914,
+        122630,
+        130958,
+        143131,
+        136282,
+        131034,
+        129418,
+        137990,
+        144391,
+        150745,
+        157062,
+        149938,
+        143905,
+        148415,
+        154443,
+        163352
+      ],
+      "event_performance": {
+        "event_trades": 13,
+        "event_pnl": 49566.0,
+        "event_win_rate": 61.5,
+        "normal_trades": 42,
+        "normal_pnl": 113786.0,
+        "normal_win_rate": 69.0
+      },
+      "sample_trades": [
+        {
+          "entry_date": "2024-01-04",
+          "exit_date": "2024-01-11",
+          "dte": 7,
+          "spot_entry": 21518,
+          "spot_exit": 21622,
+          "spot_move_pct": 0.48,
+          "max_spot": 21660,
+          "min_spot": 21137,
+          "range_pts": 523,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 4658.0,
+          "costs": 335.0,
+          "net_pnl": 4322.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21700,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 195.7,
+              "exit": 0
+            },
+            {
+              "strike": 21300,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 125.9,
+              "exit": 0
+            },
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 129.8,
+              "exit": 0
+            },
+            {
+              "strike": 21100,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 129.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-11",
+          "exit_date": "2024-01-18",
+          "dte": 7,
+          "spot_entry": 21622,
+          "spot_exit": 21571,
+          "spot_move_pct": -0.24,
+          "max_spot": 21864,
+          "min_spot": 21436,
+          "range_pts": 428,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 4680.0,
+          "costs": 335.0,
+          "net_pnl": 4345.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21800,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 196.6,
+              "exit": 0
+            },
+            {
+              "strike": 21400,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 126.5,
+              "exit": 0
+            },
+            {
+              "strike": 22000,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 130.4,
+              "exit": 0
+            },
+            {
+              "strike": 21200,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 130.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-18",
+          "exit_date": "2024-01-25",
+          "dte": 7,
+          "spot_entry": 21571,
+          "spot_exit": 21238,
+          "spot_move_pct": -1.54,
+          "max_spot": 21757,
+          "min_spot": 21107,
+          "range_pts": 650,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": -3731.0,
+          "costs": 335.0,
+          "net_pnl": -4066.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21750,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 196.2,
+              "exit": 0
+            },
+            {
+              "strike": 21350,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 126.2,
+              "exit": 112
+            },
+            {
+              "strike": 21950,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 130.1,
+              "exit": 0
+            },
+            {
+              "strike": 21150,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 130.1,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-25",
+          "exit_date": "2024-02-01",
+          "dte": 7,
+          "spot_entry": 21238,
+          "spot_exit": 21853,
+          "spot_move_pct": 2.9,
+          "max_spot": 21973,
+          "min_spot": 21107,
+          "range_pts": 866,
+          "iv": 16.5,
+          "event": "Union Budget",
+          "gross_pnl": -5238.0,
+          "costs": 338.0,
+          "net_pnl": -5577.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21450,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 193.1,
+              "exit": 403
+            },
+            {
+              "strike": 21050,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 193.1,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 128.1,
+              "exit": 203
+            },
+            {
+              "strike": 20850,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 128.1,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-01",
+          "exit_date": "2024-02-08",
+          "dte": 7,
+          "spot_entry": 21853,
+          "spot_exit": 21855,
+          "spot_move_pct": 0.01,
+          "max_spot": 22040,
+          "min_spot": 21489,
+          "range_pts": 551,
+          "iv": 18.6,
+          "event": "Union Budget",
+          "gross_pnl": 11338.0,
+          "costs": 341.0,
+          "net_pnl": 10997.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22050,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 224.3,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 224.3,
+              "exit": 0
+            },
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 21450,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 148.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-08",
+          "exit_date": "2024-02-15",
+          "dte": 7,
+          "spot_entry": 21855,
+          "spot_exit": 21910,
+          "spot_move_pct": 0.25,
+          "max_spot": 22040,
+          "min_spot": 21595,
+          "range_pts": 445,
+          "iv": 12.4,
+          "event": null,
+          "gross_pnl": 7523.0,
+          "costs": 334.0,
+          "net_pnl": 7189.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22050,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 98.7,
+              "exit": 0
+            },
+            {
+              "strike": 21450,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 98.7,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-15",
+          "exit_date": "2024-02-22",
+          "dte": 7,
+          "spot_entry": 21910,
+          "spot_exit": 22040,
+          "spot_move_pct": 0.59,
+          "max_spot": 22198,
+          "min_spot": 21595,
+          "range_pts": 603,
+          "iv": 12.1,
+          "event": null,
+          "gross_pnl": 7386.0,
+          "costs": 334.0,
+          "net_pnl": 7053.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22100,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 146.1,
+              "exit": 0
+            },
+            {
+              "strike": 21700,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 146.1,
+              "exit": 0
+            },
+            {
+              "strike": 22300,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 96.9,
+              "exit": 0
+            },
+            {
+              "strike": 21500,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 96.9,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-22",
+          "exit_date": "2024-02-29",
+          "dte": 7,
+          "spot_entry": 22040,
+          "spot_exit": 22005,
+          "spot_move_pct": -0.16,
+          "max_spot": 22215,
+          "min_spot": 21966,
+          "range_pts": 249,
+          "iv": 10.1,
+          "event": null,
+          "gross_pnl": 6231.0,
+          "costs": 332.0,
+          "net_pnl": 5900.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 123.3,
+              "exit": 0
+            },
+            {
+              "strike": 21850,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 123.3,
+              "exit": 0
+            },
+            {
+              "strike": 22450,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 81.8,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 81.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-29",
+          "exit_date": "2024-03-07",
+          "dte": 7,
+          "spot_entry": 22005,
+          "spot_exit": 21930,
+          "spot_move_pct": -0.34,
+          "max_spot": 22227,
+          "min_spot": 21873,
+          "range_pts": 354,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 6130.0,
+          "costs": 331.0,
+          "net_pnl": 5798.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22200,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 121.3,
+              "exit": 0
+            },
+            {
+              "strike": 21800,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 121.3,
+              "exit": 0
+            },
+            {
+              "strike": 22400,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 80.4,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 80.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-03-07",
+          "exit_date": "2024-03-14",
+          "dte": 7,
+          "spot_entry": 21930,
+          "spot_exit": 22146,
+          "spot_move_pct": 0.98,
+          "max_spot": 22267,
+          "min_spot": 21810,
+          "range_pts": 457,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 2877.0,
+          "costs": 329.0,
+          "net_pnl": 2547.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22150,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 77.8,
+              "exit": 0
+            },
+            {
+              "strike": 21750,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 120.9,
+              "exit": 0
+            },
+            {
+              "strike": 22350,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 80.1,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 80.1,
+              "exit": 0
+            }
+          ]
+        }
+      ],
+      "score": 71.5
+    },
+    "iron_butterfly": {
+      "name": "Iron Butterfly",
+      "emoji": "\ud83e\udd8b",
+      "description": "Sell ATM CE+PE, Buy 300 OTM wings. Highest premium, defined risk.",
+      "statistics": {
+        "total_trades": 55,
+        "winning_trades": 22,
+        "losing_trades": 33,
+        "win_rate": 40.0,
+        "total_pnl": -213983,
+        "avg_pnl": -3891,
+        "avg_win": 4527,
+        "avg_loss": -9502,
+        "max_win": 10905,
+        "max_loss": -15961,
+        "profit_factor": 0.32,
+        "max_drawdown": 226588,
+        "sharpe_ratio": -3.38,
+        "roi_percent": -237.8,
+        "monthly_roi": -18.3,
+        "margin_required": 90000,
+        "profitable_months": 1,
+        "total_months": 13
+      },
+      "monthly_returns": [
+        {
+          "month": "2024-01",
+          "pnl": -12731,
+          "return_pct": -14.1
+        },
+        {
+          "month": "2024-02",
+          "pnl": 15398,
+          "return_pct": 17.1
+        },
+        {
+          "month": "2024-03",
+          "pnl": -7365,
+          "return_pct": -8.2
+        },
+        {
+          "month": "2024-04",
+          "pnl": -13443,
+          "return_pct": -14.9
+        },
+        {
+          "month": "2024-05",
+          "pnl": -12754,
+          "return_pct": -14.2
+        },
+        {
+          "month": "2024-06",
+          "pnl": -7246,
+          "return_pct": -8.1
+        },
+        {
+          "month": "2024-07",
+          "pnl": -1316,
+          "return_pct": -1.5
+        },
+        {
+          "month": "2024-08",
+          "pnl": -31646,
+          "return_pct": -35.2
+        },
+        {
+          "month": "2024-09",
+          "pnl": -30323,
+          "return_pct": -33.7
+        },
+        {
+          "month": "2024-10",
+          "pnl": -35959,
+          "return_pct": -40.0
+        },
+        {
+          "month": "2024-11",
+          "pnl": -39068,
+          "return_pct": -43.4
+        },
+        {
+          "month": "2024-12",
+          "pnl": -15064,
+          "return_pct": -16.7
+        },
+        {
+          "month": "2025-01",
+          "pnl": -22466,
+          "return_pct": -25.0
+        }
+      ],
+      "equity_curve": [
+        0,
+        1744,
+        10809,
+        -549,
+        -12731,
+        -1885,
+        1177,
+        -1525,
+        1746,
+        2667,
+        -4764,
+        -4853,
+        -1220,
+        -4698,
+        -362,
+        -15478,
+        -18141,
+        -10872,
+        -4566,
+        -730,
+        -15794,
+        -30895,
+        -20351,
+        -24786,
+        -32403,
+        -38141,
+        -27236,
+        -20132,
+        -24141,
+        -39457,
+        -55418,
+        -54164,
+        -68275,
+        -71103,
+        -64555,
+        -79451,
+        -93574,
+        -101426,
+        -115529,
+        -127517,
+        -134969,
+        -134308,
+        -137385,
+        -136843,
+        -149849,
+        -163577,
+        -176453,
+        -175615,
+        -178374,
+        -181396,
+        -176288,
+        -191517,
+        -206259,
+        -215779,
+        -214335,
+        -213983
+      ],
+      "event_performance": {
+        "event_trades": 13,
+        "event_pnl": -47540.0,
+        "event_win_rate": 53.8,
+        "normal_trades": 42,
+        "normal_pnl": -166443.0,
+        "normal_win_rate": 35.7
+      },
+      "sample_trades": [
+        {
+          "entry_date": "2024-01-04",
+          "exit_date": "2024-01-11",
+          "dte": 7,
+          "spot_entry": 21518,
+          "spot_exit": 21622,
+          "spot_move_pct": 0.48,
+          "max_spot": 21660,
+          "min_spot": 21137,
+          "range_pts": 523,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 2084.0,
+          "costs": 339.0,
+          "net_pnl": 1744.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21500,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 213.6,
+              "exit": 122
+            },
+            {
+              "strike": 21500,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 195.7,
+              "exit": 0
+            },
+            {
+              "strike": 21800,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 129.8,
+              "exit": 0
+            },
+            {
+              "strike": 21200,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 129.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-11",
+          "exit_date": "2024-01-18",
+          "dte": 7,
+          "spot_entry": 21622,
+          "spot_exit": 21571,
+          "spot_move_pct": -0.24,
+          "max_spot": 21864,
+          "min_spot": 21436,
+          "range_pts": 428,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 9405.0,
+          "costs": 339.0,
+          "net_pnl": 9065.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21600,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 218.5,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 196.6,
+              "exit": 29
+            },
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 130.4,
+              "exit": 0
+            },
+            {
+              "strike": 21300,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 130.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-18",
+          "exit_date": "2024-01-25",
+          "dte": 7,
+          "spot_entry": 21571,
+          "spot_exit": 21238,
+          "spot_move_pct": -1.54,
+          "max_spot": 21757,
+          "min_spot": 21107,
+          "range_pts": 650,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": -11018.0,
+          "costs": 339.0,
+          "net_pnl": -11358.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21550,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 217.1,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 196.2,
+              "exit": 312
+            },
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 130.1,
+              "exit": 0
+            },
+            {
+              "strike": 21250,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 130.1,
+              "exit": 12
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-25",
+          "exit_date": "2024-02-01",
+          "dte": 7,
+          "spot_entry": 21238,
+          "spot_exit": 21853,
+          "spot_move_pct": 2.9,
+          "max_spot": 21973,
+          "min_spot": 21107,
+          "range_pts": 866,
+          "iv": 16.5,
+          "event": "Union Budget",
+          "gross_pnl": -11843.0,
+          "costs": 339.0,
+          "net_pnl": -12182.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21250,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 193.1,
+              "exit": 603
+            },
+            {
+              "strike": 21250,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 205.1,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 128.1,
+              "exit": 303
+            },
+            {
+              "strike": 20950,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 128.1,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-01",
+          "exit_date": "2024-02-08",
+          "dte": 7,
+          "spot_entry": 21853,
+          "spot_exit": 21855,
+          "spot_move_pct": 0.01,
+          "max_spot": 22040,
+          "min_spot": 21489,
+          "range_pts": 551,
+          "iv": 18.6,
+          "event": "Union Budget",
+          "gross_pnl": 11187.0,
+          "costs": 341.0,
+          "net_pnl": 10846.0,
+          "exit_reason": "breach_risk",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 227.3,
+              "exit": 5
+            },
+            {
+              "strike": 21850,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 224.3,
+              "exit": 0
+            },
+            {
+              "strike": 22150,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 148.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-08",
+          "exit_date": "2024-02-15",
+          "dte": 7,
+          "spot_entry": 21855,
+          "spot_exit": 21910,
+          "spot_move_pct": 0.25,
+          "max_spot": 22040,
+          "min_spot": 21595,
+          "range_pts": 445,
+          "iv": 12.4,
+          "event": null,
+          "gross_pnl": 3396.0,
+          "costs": 334.0,
+          "net_pnl": 3062.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 153.8,
+              "exit": 60
+            },
+            {
+              "strike": 21850,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 22150,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 98.7,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 98.7,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-15",
+          "exit_date": "2024-02-22",
+          "dte": 7,
+          "spot_entry": 21910,
+          "spot_exit": 22040,
+          "spot_move_pct": 0.59,
+          "max_spot": 22198,
+          "min_spot": 21595,
+          "range_pts": 603,
+          "iv": 12.1,
+          "event": null,
+          "gross_pnl": -2367.0,
+          "costs": 334.0,
+          "net_pnl": -2702.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 156.1,
+              "exit": 140
+            },
+            {
+              "strike": 21900,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 146.1,
+              "exit": 0
+            },
+            {
+              "strike": 22200,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 96.9,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 96.9,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-22",
+          "exit_date": "2024-02-29",
+          "dte": 7,
+          "spot_entry": 22040,
+          "spot_exit": 22005,
+          "spot_move_pct": -0.16,
+          "max_spot": 22215,
+          "min_spot": 21966,
+          "range_pts": 249,
+          "iv": 10.1,
+          "event": null,
+          "gross_pnl": 3603.0,
+          "costs": 332.0,
+          "net_pnl": 3271.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22050,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 123.3,
+              "exit": 0
+            },
+            {
+              "strike": 22050,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 133.2,
+              "exit": 45
+            },
+            {
+              "strike": 22350,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 81.8,
+              "exit": 0
+            },
+            {
+              "strike": 21750,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 81.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-29",
+          "exit_date": "2024-03-07",
+          "dte": 7,
+          "spot_entry": 22005,
+          "spot_exit": 21930,
+          "spot_move_pct": -0.34,
+          "max_spot": 22227,
+          "min_spot": 21873,
+          "range_pts": 354,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 1253.0,
+          "costs": 332.0,
+          "net_pnl": 921.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 22000,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 126.3,
+              "exit": 0
+            },
+            {
+              "strike": 22000,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 121.3,
+              "exit": 70
+            },
+            {
+              "strike": 22300,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 80.4,
+              "exit": 0
+            },
+            {
+              "strike": 21700,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 80.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-03-07",
+          "exit_date": "2024-03-14",
+          "dte": 7,
+          "spot_entry": 21930,
+          "spot_exit": 22146,
+          "spot_move_pct": 0.98,
+          "max_spot": 22267,
+          "min_spot": 21810,
+          "range_pts": 457,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": -7099.0,
+          "costs": 332.0,
+          "net_pnl": -7431.0,
+          "exit_reason": "expiry",
+          "margin": 90000,
+          "legs": [
+            {
+              "strike": 21950,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 120.9,
+              "exit": 196
+            },
+            {
+              "strike": 21950,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 140.8,
+              "exit": 0
+            },
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "BUY",
+              "entry": 80.1,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "PE",
+              "action": "BUY",
+              "entry": 80.1,
+              "exit": 0
+            }
+          ]
+        }
+      ],
+      "score": -20.3
+    },
+    "short_strangle": {
+      "name": "Short Strangle",
+      "emoji": "\ud83d\udc0d",
+      "description": "Sell 300 OTM CE+PE naked. Widest profit zone, unlimited risk.",
+      "statistics": {
+        "total_trades": 55,
+        "winning_trades": 48,
+        "losing_trades": 7,
+        "win_rate": 87.3,
+        "total_pnl": 489159,
+        "avg_pnl": 8894,
+        "avg_win": 14250,
+        "avg_loss": -27837,
+        "max_win": 36981,
+        "max_loss": -42000,
+        "profit_factor": 3.51,
+        "max_drawdown": 56806,
+        "sharpe_ratio": 4.11,
+        "roi_percent": 362.3,
+        "monthly_roi": 27.9,
+        "margin_required": 135000,
+        "profitable_months": 13,
+        "total_months": 13
+      },
+      "monthly_returns": [
+        {
+          "month": "2024-01",
+          "pnl": 32812,
+          "return_pct": 24.3
+        },
+        {
+          "month": "2024-02",
+          "pnl": 72887,
+          "return_pct": 54.0
+        },
+        {
+          "month": "2024-03",
+          "pnl": 46273,
+          "return_pct": 34.3
+        },
+        {
+          "month": "2024-04",
+          "pnl": 36061,
+          "return_pct": 26.7
+        },
+        {
+          "month": "2024-05",
+          "pnl": 16492,
+          "return_pct": 12.2
+        },
+        {
+          "month": "2024-06",
+          "pnl": 7578,
+          "return_pct": 5.6
+        },
+        {
+          "month": "2024-07",
+          "pnl": 69661,
+          "return_pct": 51.6
+        },
+        {
+          "month": "2024-08",
+          "pnl": 7500,
+          "return_pct": 5.6
+        },
+        {
+          "month": "2024-09",
+          "pnl": 7236,
+          "return_pct": 5.4
+        },
+        {
+          "month": "2024-10",
+          "pnl": 33206,
+          "return_pct": 24.6
+        },
+        {
+          "month": "2024-11",
+          "pnl": 49090,
+          "return_pct": 36.4
+        },
+        {
+          "month": "2024-12",
+          "pnl": 61243,
+          "return_pct": 45.4
+        },
+        {
+          "month": "2025-01",
+          "pnl": 49120,
+          "return_pct": 36.4
+        }
+      ],
+      "equity_curve": [
+        0,
+        18716,
+        37524,
+        55387,
+        32812,
+        54292,
+        68490,
+        82427,
+        94160,
+        105699,
+        117198,
+        128812,
+        140384,
+        151972,
+        164748,
+        176316,
+        188033,
+        199822,
+        211621,
+        223424,
+        229092,
+        204525,
+        241506,
+        268909,
+        226909,
+        212103,
+        232279,
+        250486,
+        272818,
+        281764,
+        255636,
+        273705,
+        275427,
+        289264,
+        302389,
+        309677,
+        282809,
+        296500,
+        310233,
+        272321,
+        292389,
+        313331,
+        329706,
+        353434,
+        355222,
+        365247,
+        378796,
+        395639,
+        408331,
+        420933,
+        433464,
+        440039,
+        447606,
+        459694,
+        471671,
+        489159
+      ],
+      "event_performance": {
+        "event_trades": 13,
+        "event_pnl": 117448.0,
+        "event_win_rate": 76.9,
+        "normal_trades": 42,
+        "normal_pnl": 371711.0,
+        "normal_win_rate": 90.5
+      },
+      "sample_trades": [
+        {
+          "entry_date": "2024-01-04",
+          "exit_date": "2024-01-11",
+          "dte": 7,
+          "spot_entry": 21518,
+          "spot_exit": 21622,
+          "spot_move_pct": 0.48,
+          "max_spot": 21660,
+          "min_spot": 21137,
+          "range_pts": 523,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 18888.0,
+          "costs": 172.0,
+          "net_pnl": 18716.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 21800,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 125.9,
+              "exit": 0
+            },
+            {
+              "strike": 21200,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 125.9,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-11",
+          "exit_date": "2024-01-18",
+          "dte": 7,
+          "spot_entry": 21622,
+          "spot_exit": 21571,
+          "spot_move_pct": -0.24,
+          "max_spot": 21864,
+          "min_spot": 21436,
+          "range_pts": 428,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 18979.0,
+          "costs": 172.0,
+          "net_pnl": 18808.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 126.5,
+              "exit": 0
+            },
+            {
+              "strike": 21300,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 126.5,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-18",
+          "exit_date": "2024-01-25",
+          "dte": 7,
+          "spot_entry": 21571,
+          "spot_exit": 21238,
+          "spot_move_pct": -1.54,
+          "max_spot": 21757,
+          "min_spot": 21107,
+          "range_pts": 650,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 18035.0,
+          "costs": 172.0,
+          "net_pnl": 17863.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 126.2,
+              "exit": 0
+            },
+            {
+              "strike": 21250,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 126.2,
+              "exit": 12
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-25",
+          "exit_date": "2024-02-01",
+          "dte": 7,
+          "spot_entry": 21238,
+          "spot_exit": 21853,
+          "spot_move_pct": 2.9,
+          "max_spot": 21973,
+          "min_spot": 21107,
+          "range_pts": 866,
+          "iv": 16.5,
+          "event": "Union Budget",
+          "gross_pnl": -22404.0,
+          "costs": 172.0,
+          "net_pnl": -22575.0,
+          "exit_reason": "stop_loss",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 21550,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 124.3,
+              "exit": 303
+            },
+            {
+              "strike": 20950,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 124.3,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-01",
+          "exit_date": "2024-02-08",
+          "dte": 7,
+          "spot_entry": 21853,
+          "spot_exit": 21855,
+          "spot_move_pct": 0.01,
+          "max_spot": 22040,
+          "min_spot": 21489,
+          "range_pts": 551,
+          "iv": 18.6,
+          "event": "Union Budget",
+          "gross_pnl": 21654.0,
+          "costs": 174.0,
+          "net_pnl": 21480.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22150,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 144.4,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 144.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-08",
+          "exit_date": "2024-02-15",
+          "dte": 7,
+          "spot_entry": 21855,
+          "spot_exit": 21910,
+          "spot_move_pct": 0.25,
+          "max_spot": 22040,
+          "min_spot": 21595,
+          "range_pts": 445,
+          "iv": 12.4,
+          "event": null,
+          "gross_pnl": 14367.0,
+          "costs": 169.0,
+          "net_pnl": 14198.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22150,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 95.8,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 95.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-15",
+          "exit_date": "2024-02-22",
+          "dte": 7,
+          "spot_entry": 21910,
+          "spot_exit": 22040,
+          "spot_move_pct": 0.59,
+          "max_spot": 22198,
+          "min_spot": 21595,
+          "range_pts": 603,
+          "iv": 12.1,
+          "event": null,
+          "gross_pnl": 14106.0,
+          "costs": 169.0,
+          "net_pnl": 13937.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22200,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 94.0,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 94.0,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-22",
+          "exit_date": "2024-02-29",
+          "dte": 7,
+          "spot_entry": 22040,
+          "spot_exit": 22005,
+          "spot_move_pct": -0.16,
+          "max_spot": 22215,
+          "min_spot": 21966,
+          "range_pts": 249,
+          "iv": 10.1,
+          "event": null,
+          "gross_pnl": 11900.0,
+          "costs": 167.0,
+          "net_pnl": 11733.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22350,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 79.3,
+              "exit": 0
+            },
+            {
+              "strike": 21750,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 79.3,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-29",
+          "exit_date": "2024-03-07",
+          "dte": 7,
+          "spot_entry": 22005,
+          "spot_exit": 21930,
+          "spot_move_pct": -0.34,
+          "max_spot": 22227,
+          "min_spot": 21873,
+          "range_pts": 354,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 11706.0,
+          "costs": 167.0,
+          "net_pnl": 11539.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22300,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 78.0,
+              "exit": 0
+            },
+            {
+              "strike": 21700,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 78.0,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-03-07",
+          "exit_date": "2024-03-14",
+          "dte": 7,
+          "spot_entry": 21930,
+          "spot_exit": 22146,
+          "spot_move_pct": 0.98,
+          "max_spot": 22267,
+          "min_spot": 21810,
+          "range_pts": 457,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 11667.0,
+          "costs": 167.0,
+          "net_pnl": 11499.0,
+          "exit_reason": "expiry",
+          "margin": 135000,
+          "legs": [
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 77.8,
+              "exit": 0
+            },
+            {
+              "strike": 21650,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 77.8,
+              "exit": 0
+            }
+          ]
+        }
+      ],
+      "score": 95.1
+    },
+    "straddle_hedge": {
+      "name": "Straddle + Hedge",
+      "emoji": "\ud83d\udee1\ufe0f",
+      "description": "Sell ATM straddle, buy protection when 200pt breach. Adaptive risk.",
+      "statistics": {
+        "total_trades": 55,
+        "winning_trades": 29,
+        "losing_trades": 26,
+        "win_rate": 52.7,
+        "total_pnl": -308192,
+        "avg_pnl": -5603,
+        "avg_win": 9950,
+        "avg_loss": -22951,
+        "max_win": 32034,
+        "max_loss": -108819,
+        "profit_factor": 0.48,
+        "max_drawdown": 366030,
+        "sharpe_ratio": -1.79,
+        "roi_percent": -292.9,
+        "monthly_roi": -22.5,
+        "margin_required": 105218,
+        "profitable_months": 4,
+        "total_months": 13
+      },
+      "monthly_returns": [
+        {
+          "month": "2024-01",
+          "pnl": -21340,
+          "return_pct": -20.3
+        },
+        {
+          "month": "2024-02",
+          "pnl": 41267,
+          "return_pct": 39.2
+        },
+        {
+          "month": "2024-03",
+          "pnl": 9900,
+          "return_pct": 9.4
+        },
+        {
+          "month": "2024-04",
+          "pnl": -8097,
+          "return_pct": -7.7
+        },
+        {
+          "month": "2024-05",
+          "pnl": -100333,
+          "return_pct": -95.4
+        },
+        {
+          "month": "2024-06",
+          "pnl": -58070,
+          "return_pct": -55.2
+        },
+        {
+          "month": "2024-07",
+          "pnl": 25269,
+          "return_pct": 24.0
+        },
+        {
+          "month": "2024-08",
+          "pnl": -29280,
+          "return_pct": -27.8
+        },
+        {
+          "month": "2024-09",
+          "pnl": -51648,
+          "return_pct": -49.1
+        },
+        {
+          "month": "2024-10",
+          "pnl": -76223,
+          "return_pct": -72.4
+        },
+        {
+          "month": "2024-11",
+          "pnl": -53174,
+          "return_pct": -50.5
+        },
+        {
+          "month": "2024-12",
+          "pnl": 34454,
+          "return_pct": 32.7
+        },
+        {
+          "month": "2025-01",
+          "pnl": -20917,
+          "return_pct": -19.9
+        }
+      ],
+      "equity_curve": [
+        0,
+        8836,
+        24778,
+        4559,
+        -21340,
+        -2390,
+        6030,
+        -969,
+        14725,
+        19927,
+        16721,
+        21034,
+        29055,
+        29827,
+        38887,
+        20058,
+        21730,
+        33361,
+        44147,
+        44301,
+        30216,
+        -78603,
+        -79507,
+        -74025,
+        -126155,
+        -136673,
+        -104639,
+        -90866,
+        -89288,
+        -111404,
+        -145031,
+        -124821,
+        -142957,
+        -140684,
+        -120278,
+        -132947,
+        -165493,
+        -192332,
+        -229232,
+        -266325,
+        -280005,
+        -271456,
+        -268555,
+        -275380,
+        -290770,
+        -312755,
+        -321729,
+        -303199,
+        -292546,
+        -290757,
+        -272403,
+        -287275,
+        -307482,
+        -320753,
+        -314912,
+        -308192
+      ],
+      "event_performance": {
+        "event_trades": 13,
+        "event_pnl": -150595.0,
+        "event_win_rate": 46.2,
+        "normal_trades": 42,
+        "normal_pnl": -157597.0,
+        "normal_win_rate": 54.8
+      },
+      "sample_trades": [
+        {
+          "entry_date": "2024-01-04",
+          "exit_date": "2024-01-11",
+          "dte": 7,
+          "spot_entry": 21518,
+          "spot_exit": 21622,
+          "spot_move_pct": 0.48,
+          "max_spot": 21660,
+          "min_spot": 21137,
+          "range_pts": 523,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 9095.0,
+          "costs": 259.0,
+          "net_pnl": 8836.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21500,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 213.6,
+              "exit": 122
+            },
+            {
+              "strike": 21500,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 195.7,
+              "exit": 0
+            },
+            {
+              "strike": 21200,
+              "type": "PE",
+              "action": "BUY_HEDGE",
+              "entry": 166.0,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-11",
+          "exit_date": "2024-01-18",
+          "dte": 7,
+          "spot_entry": 21622,
+          "spot_exit": 21571,
+          "spot_move_pct": -0.24,
+          "max_spot": 21864,
+          "min_spot": 21436,
+          "range_pts": 428,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": 16202.0,
+          "costs": 259.0,
+          "net_pnl": 15942.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21600,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 218.5,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 196.6,
+              "exit": 29
+            },
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 170.1,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-18",
+          "exit_date": "2024-01-25",
+          "dte": 7,
+          "spot_entry": 21571,
+          "spot_exit": 21238,
+          "spot_move_pct": -1.54,
+          "max_spot": 21757,
+          "min_spot": 21107,
+          "range_pts": 650,
+          "iv": 16.5,
+          "event": null,
+          "gross_pnl": -19880.0,
+          "costs": 339.0,
+          "net_pnl": -20219.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 117000.0,
+          "legs": [
+            {
+              "strike": 21550,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 217.1,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 196.2,
+              "exit": 312
+            },
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 169.3,
+              "exit": 0
+            },
+            {
+              "strike": 21250,
+              "type": "PE",
+              "action": "BUY_HEDGE",
+              "entry": 209.0,
+              "exit": 12
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-01-25",
+          "exit_date": "2024-02-01",
+          "dte": 7,
+          "spot_entry": 21238,
+          "spot_exit": 21853,
+          "spot_move_pct": 2.9,
+          "max_spot": 21973,
+          "min_spot": 21107,
+          "range_pts": 866,
+          "iv": 16.5,
+          "event": "Union Budget",
+          "gross_pnl": -25640.0,
+          "costs": 259.0,
+          "net_pnl": -25899.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21250,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 193.1,
+              "exit": 603
+            },
+            {
+              "strike": 21250,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 205.1,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 440.1,
+              "exit": 303
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-01",
+          "exit_date": "2024-02-08",
+          "dte": 7,
+          "spot_entry": 21853,
+          "spot_exit": 21855,
+          "spot_move_pct": 0.01,
+          "max_spot": 22040,
+          "min_spot": 21489,
+          "range_pts": 551,
+          "iv": 18.6,
+          "event": "Union Budget",
+          "gross_pnl": 19212.0,
+          "costs": 261.0,
+          "net_pnl": 18950.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 227.3,
+              "exit": 5
+            },
+            {
+              "strike": 21850,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 224.3,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "BUY_HEDGE",
+              "entry": 190.5,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-08",
+          "exit_date": "2024-02-15",
+          "dte": 7,
+          "spot_entry": 21855,
+          "spot_exit": 21910,
+          "spot_move_pct": 0.25,
+          "max_spot": 22040,
+          "min_spot": 21595,
+          "range_pts": 445,
+          "iv": 12.4,
+          "event": null,
+          "gross_pnl": 8674.0,
+          "costs": 254.0,
+          "net_pnl": 8420.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21850,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 153.8,
+              "exit": 60
+            },
+            {
+              "strike": 21850,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 148.8,
+              "exit": 0
+            },
+            {
+              "strike": 21550,
+              "type": "PE",
+              "action": "BUY_HEDGE",
+              "entry": 127.0,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-15",
+          "exit_date": "2024-02-22",
+          "dte": 7,
+          "spot_entry": 21910,
+          "spot_exit": 22040,
+          "spot_move_pct": 0.59,
+          "max_spot": 22198,
+          "min_spot": 21595,
+          "range_pts": 603,
+          "iv": 12.1,
+          "event": null,
+          "gross_pnl": -6664.0,
+          "costs": 334.0,
+          "net_pnl": -6999.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 117000.0,
+          "legs": [
+            {
+              "strike": 21900,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 156.1,
+              "exit": 140
+            },
+            {
+              "strike": 21900,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 146.1,
+              "exit": 0
+            },
+            {
+              "strike": 22200,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 126.7,
+              "exit": 0
+            },
+            {
+              "strike": 21600,
+              "type": "PE",
+              "action": "BUY_HEDGE",
+              "entry": 124.4,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-22",
+          "exit_date": "2024-02-29",
+          "dte": 7,
+          "spot_entry": 22040,
+          "spot_exit": 22005,
+          "spot_move_pct": -0.16,
+          "max_spot": 22215,
+          "min_spot": 21966,
+          "range_pts": 249,
+          "iv": 10.1,
+          "event": null,
+          "gross_pnl": 15866.0,
+          "costs": 172.0,
+          "net_pnl": 15694.0,
+          "exit_reason": "expiry",
+          "margin": 90000.0,
+          "legs": [
+            {
+              "strike": 22050,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 123.3,
+              "exit": 0
+            },
+            {
+              "strike": 22050,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 133.2,
+              "exit": 45
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-02-29",
+          "exit_date": "2024-03-07",
+          "dte": 7,
+          "spot_entry": 22005,
+          "spot_exit": 21930,
+          "spot_move_pct": -0.34,
+          "max_spot": 22227,
+          "min_spot": 21873,
+          "range_pts": 354,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": 5453.0,
+          "costs": 252.0,
+          "net_pnl": 5202.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 22000,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 126.3,
+              "exit": 0
+            },
+            {
+              "strike": 22000,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 121.3,
+              "exit": 70
+            },
+            {
+              "strike": 22300,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 104.8,
+              "exit": 0
+            }
+          ]
+        },
+        {
+          "entry_date": "2024-03-07",
+          "exit_date": "2024-03-14",
+          "dte": 7,
+          "spot_entry": 21930,
+          "spot_exit": 22146,
+          "spot_move_pct": 0.98,
+          "max_spot": 22267,
+          "min_spot": 21810,
+          "range_pts": 457,
+          "iv": 10,
+          "event": null,
+          "gross_pnl": -2954.0,
+          "costs": 252.0,
+          "net_pnl": -3206.0,
+          "exit_reason": "hedged_expiry",
+          "margin": 103500.0,
+          "legs": [
+            {
+              "strike": 21950,
+              "type": "CE",
+              "action": "SELL",
+              "entry": 120.9,
+              "exit": 196
+            },
+            {
+              "strike": 21950,
+              "type": "PE",
+              "action": "SELL",
+              "entry": 140.8,
+              "exit": 0
+            },
+            {
+              "strike": 22250,
+              "type": "CE",
+              "action": "BUY_HEDGE",
+              "entry": 105.0,
+              "exit": 0
+            }
+          ]
+        }
+      ],
+      "score": -17.9
+    }
+  },
+  "comparison": {
+    "best_pnl": "Short Strangle",
+    "best_winrate": "Short Strangle",
+    "best_sharpe": "Short Strangle",
+    "best_risk_adjusted": "Short Strangle",
+    "recommendation": "Short Strangle",
+    "scores": {
+      "iron_condor": 71.5,
+      "iron_butterfly": -20.3,
+      "short_strangle": 95.1,
+      "straddle_hedge": -17.9
+    }
+  }
+}

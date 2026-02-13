@@ -1056,3 +1056,62 @@ async def calculate_position_size(
         result["total_premium"] = f"₹{premium_per_lot * recommended_lots:,.0f}"
     
     return result
+
+
+# ==========================================
+# FULL YEAR BACKTEST COMPARISON
+# ==========================================
+
+@router.get("/backtest/full-year-comparison")
+async def get_full_year_backtest():
+    """
+    Get full year NIFTY Delta Neutral Strategy Comparison results.
+    Compares Iron Condor, Iron Butterfly, Short Strangle, Straddle+Hedge
+    on real NIFTY data (Jan 2024 - Jan 2025).
+    """
+    import json
+    import os
+    
+    try:
+        results_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "full_year_strategy_comparison.json")
+        
+        if not os.path.exists(results_path):
+            # Run backtest if results don't exist
+            try:
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+                from run_full_year_strategy_comparison import run_full_year_comparison
+                results = run_full_year_comparison()
+                return {"success": True, "data": results}
+            except Exception as run_err:
+                logger.error(f"Backtest run error: {run_err}")
+                raise HTTPException(status_code=500, detail=f"Failed to run backtest: {str(run_err)}")
+        
+        with open(results_path, "r") as f:
+            results = json.load(f)
+        
+        return {"success": True, "data": results}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Backtest results error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/backtest/run-comparison")
+async def run_backtest_comparison():
+    """
+    Re-run the full year backtest comparison (admin only).
+    Generates fresh results from real NIFTY data.
+    """
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+        from run_full_year_strategy_comparison import run_full_year_comparison
+        results = run_full_year_comparison()
+        return {"success": True, "message": "Backtest completed", "data": results}
+    except Exception as e:
+        logger.error(f"Backtest run error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
