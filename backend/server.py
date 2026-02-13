@@ -6926,24 +6926,34 @@ async def get_nse_option_chain(symbol: str = "NIFTY"):
 @api_router.get("/ltp/levels/{symbol}")
 async def get_ltp_levels(symbol: str = "NIFTY"):
     """
-    Calculate LTP-style level lines (EOS, EOR, Diversions, CMP) from live option chain.
+    Calculate LTP-style level lines (EOS, EOR, Diversions, CMP) from option chain.
     Uses max Put OI strike as support (EOS) and max Call OI strike as resistance (EOR).
-    Diversions are strike-step spaced levels between EOS and EOR.
+    Falls back to simulated option chain if NSE is unavailable.
     """
     try:
         symbol = symbol.upper()
         strike_step = 100 if symbol == "BANKNIFTY" else 50
 
-        # Fetch live option chain
-        data = await NSEIndia.get_option_chain(symbol)
+        # Fetch option chain — try NSE first, fallback to simulated
+        data = None
+        source = "nse_live"
+        try:
+            data = await NSEIndia.get_option_chain(symbol)
+        except Exception:
+            pass
 
+        # Use simulated data as fallback (same as /nse/option-chain endpoint)
         if not data or not data.get("records"):
-            raise HTTPException(status_code=503, detail="NSE option chain unavailable")
-
-        records = data.get("records", {})
-        filtered = data.get("filtered", {})
-        spot = records.get("underlyingValue", 0)
-        chain = filtered.get("data", [])
+            sim = await _generate_simulated_option_chain(symbol)
+            # Build a chain list from simulated response
+            spot = sim.get("underlying_value", 0)
+            chain = sim.get("data", [])
+            source = sim.get("source", "simulated")
+        else:
+            records = data.get("records", {})
+            filtered = data.get("filtered", {})
+            spot = records.get("underlyingValue", 0)
+            chain = filtered.get("data", [])
 
         if not chain or spot == 0:
             raise HTTPException(status_code=503, detail="No option chain data available")
@@ -6997,7 +7007,7 @@ async def get_ltp_levels(symbol: str = "NIFTY"):
             "strike_step": strike_step,
             "price_min": min_level - 3 * strike_step,
             "price_max": max_level + 3 * strike_step,
-            "source": "nse_live"
+            "source": source
         }
 
     except HTTPException:

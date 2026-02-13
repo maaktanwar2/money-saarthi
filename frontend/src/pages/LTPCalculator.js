@@ -248,9 +248,18 @@ export default function LTPCalculator() {
     return { callStrike, putStrike, maxCallOI, maxPutOI };
   }, [optionChainData]);
 
+  // Auto-fill COA support/resistance from maxOI when API levels not available
+  useEffect(() => {
+    if (!ltpLevels) {
+      if (maxOI.putStrike && !supportLevel) setSupportLevel(String(maxOI.putStrike));
+      if (maxOI.callStrike && !resistanceLevel) setResistanceLevel(String(maxOI.callStrike));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxOI.putStrike, maxOI.callStrike, ltpLevels]);
+
   // Effective levels: prefer backend API levels, fallback to frontend coaLevels
   const effectiveLevels = useMemo(() => {
-    if (ltpLevels && ltpLevels.EOS && ltpLevels.EOR && ltpLevels.spot) {
+    if (ltpLevels && ltpLevels.EOS && ltpLevels.EOR) {
       return {
         EOS: ltpLevels.EOS,
         EOR: ltpLevels.EOR,
@@ -261,7 +270,7 @@ export default function LTPCalculator() {
         eorExt: ltpLevels.eor_ext,
         maxCallOI: ltpLevels.max_call_oi,
         maxPutOI: ltpLevels.max_put_oi,
-        source: 'api',
+        source: ltpLevels.source === 'nse_live' ? 'api' : 'simulated',
       };
     }
     if (coaLevels) return { ...coaLevels, source: 'manual' };
@@ -1213,6 +1222,7 @@ export default function LTPCalculator() {
                       📍 Live LTP Levels
                       <Badge className="bg-orange-500/20 text-orange-400">EOS / EOR / Diversions / CMP</Badge>
                       {effectiveLevels.source === 'api' && <Badge className="bg-green-500/20 text-green-400 text-[10px]">🟢 NSE Live OI</Badge>}
+                      {effectiveLevels.source === 'simulated' && <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">🔵 Simulated</Badge>}
                       {effectiveLevels.source === 'manual' && <Badge className="bg-yellow-500/20 text-yellow-400 text-[10px]">Manual</Badge>}
                     </CardTitle>
                   </CardHeader>
