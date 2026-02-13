@@ -22904,6 +22904,16 @@ except ImportError as e:
 except Exception as e:
     logging.error(f"❌ Error loading AI Agent routes: {e}")
 
+# ==================== TRADEFINDER ADVANCED ROUTES ====================
+try:
+    from routes.tradefinder_routes import router as tradefinder_router
+    app.include_router(tradefinder_router)
+    logging.info("✅ TradeFinder Advanced routes loaded successfully")
+except ImportError as e:
+    logging.warning(f"⚠️ TradeFinder routes not loaded: {e}")
+except Exception as e:
+    logging.error(f"❌ Error loading TradeFinder routes: {e}")
+
 # Include the router in the main app (MUST be after all routes are defined)
 app.include_router(api_router)
 
