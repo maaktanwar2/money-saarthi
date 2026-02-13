@@ -102,6 +102,14 @@ const NAV_ITEMS = [
     description: 'Buy tokens for AI features',
   },
   {
+    id: 'ltp-calculator',
+    label: 'LTP Calculator',
+    icon: Target,
+    path: '/ltp-calculator',
+    badge: 'New',
+    description: 'P&L, Option Chain, COA, Trade Finder',
+  },
+  {
     id: 'calculators',
     label: 'Calculators',
     icon: Calculator,
