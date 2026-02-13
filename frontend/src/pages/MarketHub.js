@@ -33,12 +33,7 @@ const LiveIndicesTicker = () => {
         ).slice(0, 8);
         setIndices(filtered.length > 0 ? filtered : allIndices.slice(0, 8));
       } catch {
-        setIndices([
-          { name: 'NIFTY 50', last: 23850, pChange: 0.52 },
-          { name: 'BANK NIFTY', last: 51250, pChange: -0.18 },
-          { name: 'NIFTY IT', last: 35420, pChange: 0.85 },
-          { name: 'INDIA VIX', last: 13.85, pChange: -2.5 },
-        ]);
+        setIndices([]);
       } finally {
         setLoading(false);
       }
@@ -101,7 +96,6 @@ const FIIDIISection = () => {
         const response = await fetchAPI(`/fii-dii-data?timeframe=${timeframe}`);
         // API returns an array, get first element
         const cashData = Array.isArray(response) ? response[0] : response;
-        console.log('FII/DII Data:', cashData);
         setData({
           cash: {
             fii_buy: Number(cashData?.fii_buy) || 0,
@@ -115,7 +109,7 @@ const FIIDIISection = () => {
       } catch (err) {
         console.error('FII/DII fetch error:', err);
         setData({
-          cash: { fii_buy: 12500, fii_sell: 11200, fii_net: 1300, dii_buy: 8900, dii_sell: 9500, dii_net: -600 },
+          cash: { fii_buy: 0, fii_sell: 0, fii_net: 0, dii_buy: 0, dii_sell: 0, dii_net: 0 },
         });
       } finally {
         setLoading(false);
@@ -320,12 +314,7 @@ const SectorHeatmap = () => {
         const data = await fetchAPI('/scanners/fno-by-sector');
         setSectorData(data || {});
       } catch {
-        setSectorData({
-          'Financial Services': { stocks: [], avg_change: 0.17, trend: 'Bullish' },
-          'Information Technology': { stocks: [], avg_change: -0.55, trend: 'Bearish' },
-          'Healthcare & Pharmaceuticals': { stocks: [], avg_change: 0.71, trend: 'Bullish' },
-          'Automobile & Auto Components': { stocks: [], avg_change: 0.01, trend: 'Bullish' },
-        });
+        setSectorData({});
       } finally {
         setLoading(false);
       }
@@ -499,7 +488,7 @@ const MarketBreadth = () => {
         const breadthData = await fetchAPI('/nse/market-breadth');
         setBreadth(breadthData);
       } catch {
-        setBreadth({ advances: 1245, declines: 892, unchanged: 63, advanceDeclineRatio: 1.40, newHighs: 45, newLows: 12 });
+        setBreadth({ advances: 0, declines: 0, unchanged: 0, advanceDeclineRatio: 0, newHighs: 0, newLows: 0 });
       } finally {
         setLoading(false);
       }
@@ -600,7 +589,7 @@ const IndiaVIX = () => {
         const data = await fetchAPI('/nse/india-vix');
         setVix(data);
       } catch {
-        setVix({ value: 13.85, change: -0.52, pChange: -3.62, high: 14.25, low: 13.60 });
+        setVix({ value: 0, change: 0, pChange: 0, high: 0, low: 0 });
       } finally {
         setLoading(false);
       }
@@ -696,18 +685,7 @@ const TopMovers = () => {
           losers: response?.losers?.slice(0, 5) || []
         });
       } catch {
-        setData({
-          gainers: [
-            { symbol: 'TATASTEEL', lastPrice: 145.50, pChange: 4.52 },
-            { symbol: 'HINDALCO', lastPrice: 625.80, pChange: 3.85 },
-            { symbol: 'INFY', lastPrice: 1520.25, pChange: 2.92 },
-          ],
-          losers: [
-            { symbol: 'KOTAKBANK', lastPrice: 1785.40, pChange: -2.45 },
-            { symbol: 'HDFCBANK', lastPrice: 1620.75, pChange: -1.85 },
-            { symbol: 'ICICIBANK', lastPrice: 1025.60, pChange: -1.52 },
-          ]
-        });
+        setData({ gainers: [], losers: [] });
       } finally {
         setLoading(false);
       }
@@ -815,22 +793,7 @@ const TopDeliveries = () => {
           low: response?.low_delivery || []
         });
       } catch {
-        setData({
-          high: [
-            { symbol: 'BHARTIARTL', price: 1992.40, change_pct: -1.65, traded_volume: 7464725, delivered_qty: 6002661, delivery_pct: 80.41, signal: 'Distribution' },
-            { symbol: 'HDFCAMC', price: 2762.30, change_pct: 1.37, traded_volume: 2931893, delivered_qty: 2310202, delivery_pct: 78.80, signal: 'Strong Accumulation' },
-            { symbol: 'HDFCBANK', price: 949.70, change_pct: -0.36, traded_volume: 24366770, delivered_qty: 18291924, delivery_pct: 75.07, signal: 'Selling Pressure' },
-            { symbol: 'SUNPHARMA', price: 1702.60, change_pct: -0.11, traded_volume: 3952775, delivered_qty: 2954964, delivery_pct: 74.76, signal: 'Selling Pressure' },
-            { symbol: 'GODREJCP', price: 1170.20, change_pct: 1.25, traded_volume: 2605761, delivered_qty: 1883754, delivery_pct: 72.29, signal: 'Strong Accumulation' },
-            { symbol: 'SBIN', price: 1073.50, change_pct: 0.50, traded_volume: 7312276, delivered_qty: 5107562, delivery_pct: 69.85, signal: 'Accumulation' },
-          ],
-          low: [
-            { symbol: 'ADANIENT', price: 2236.60, change_pct: 0.38, traded_volume: 2051918, delivered_qty: 395002, delivery_pct: 19.25, signal: 'Intraday Heavy' },
-            { symbol: 'ANGELONE', price: 2645.00, change_pct: -1.55, traded_volume: 1390887, delivered_qty: 264936, delivery_pct: 19.05, signal: 'Intraday Heavy' },
-            { symbol: 'EXIDEIND', price: 336.80, change_pct: -1.38, traded_volume: 8494116, delivered_qty: 1499368, delivery_pct: 17.65, signal: 'Intraday Heavy' },
-            { symbol: 'KAYNES', price: 3616.10, change_pct: -4.32, traded_volume: 2778461, delivered_qty: 405532, delivery_pct: 14.60, signal: 'Intraday Heavy' },
-          ]
-        });
+        setData({ high: [], low: [] });
       } finally {
         setLoading(false);
       }
@@ -959,10 +922,7 @@ const Week52HighLow = () => {
           lows: response?.near_52_week_low?.slice(0, 5) || response?.lows?.slice(0, 5) || []
         });
       } catch {
-        setData({
-          highs: [{ symbol: 'RELIANCE', lastPrice: 2950.50 }, { symbol: 'TCS', lastPrice: 4125.80 }],
-          lows: [{ symbol: 'IDEA', lastPrice: 12.50 }, { symbol: 'YESBANK', lastPrice: 18.25 }]
-        });
+        setData({ highs: [], lows: [] });
       } finally {
         setLoading(false);
       }
@@ -1035,11 +995,7 @@ const VolumeShockers = () => {
         const response = await fetchAPI('/nse/volume-shockers');
         setStocks(response?.data?.slice(0, 5) || response?.slice(0, 5) || []);
       } catch {
-        setStocks([
-          { symbol: 'ADANIENT', lastPrice: 2450.50, pChange: 5.2, volumeRatio: 4.5 },
-          { symbol: 'TATAMOTORS', lastPrice: 850.25, pChange: 3.8, volumeRatio: 3.8 },
-          { symbol: 'BHARTIARTL', lastPrice: 1250.80, pChange: 2.1, volumeRatio: 3.2 },
-        ]);
+        setStocks([]);
       } finally {
         setLoading(false);
       }

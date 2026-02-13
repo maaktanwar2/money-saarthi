@@ -11,13 +11,14 @@ import { getUserSubscription, hasProAccess, PLANS } from './Pricing';
 // USER PROFILE PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Admin emails - users with these emails get super rights
+// Admin emails - validated server-side, client hint for UI routing
 const ADMIN_EMAILS = [
   'maaktanwar@gmail.com',
   'admin@moneysaarthi.com',
   'superadmin@moneysaarthi.com'
 ];
 
+// Admin check - used by AdminPanel for access control
 export const isAdmin = (email) => {
   if (!email) return false;
   return ADMIN_EMAILS.includes(email.toLowerCase());

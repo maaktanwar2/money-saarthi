@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Coins, Package, Zap, Crown, Star, Check,
   CreditCard, Smartphone, Building, MessageCircle,
-  ArrowRight, History, AlertCircle, Sparkles,
+  ArrowRight, History, AlertCircle,
   Brain, Target, BarChart3, ShieldCheck
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';

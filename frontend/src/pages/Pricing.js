@@ -11,9 +11,6 @@ import {
   Crown, 
   Zap, 
   Shield, 
-  TrendingUp, 
-  BarChart3, 
-  Brain,
   Sparkles,
   Clock,
   Users,
@@ -35,21 +32,21 @@ import {
 // PRICING PAGE - Subscription Plans
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Default Payment Configuration (fallback)
+// Default Payment Configuration (loaded from admin settings)
 const DEFAULT_PAYMENT_CONFIG = {
-  upiId: '', // Your UPI ID - UPDATE THIS
+  upiId: '',
   merchantName: 'Money Saarthi',
   bankDetails: {
     accountName: 'Money Saarthi',
-    accountNumber: 'XXXXXXXXXXXX', // UPDATE THIS
-    ifscCode: 'SBIN0XXXXXX', // UPDATE THIS
-    bankName: 'State Bank of India',
+    accountNumber: '',
+    ifscCode: '',
+    bankName: '',
   },
-  phonepeNumber: '919818856552', // UPDATE THIS
-  gpayNumber: '919818856552', // UPDATE THIS
-  paytmNumber: '919818856552', // UPDATE THIS
-  whatsappNumber: '919818856552', // UPDATE THIS for support
-  razorpayKey: 'rzp_test_YourTestKeyHere',
+  phonepeNumber: '',
+  gpayNumber: '',
+  paytmNumber: '',
+  whatsappNumber: '',
+  razorpayKey: '',
   razorpayEnabled: false,
 };
 
@@ -293,7 +290,7 @@ export default function Pricing() {
     const amountInPaise = amount * 100;
 
     const options = {
-      key: paymentConfig.razorpayKey || 'rzp_test_YourTestKeyHere',
+      key: paymentConfig.razorpayKey,
       amount: amountInPaise,
       currency: 'INR',
       name: 'Money Saarthi',

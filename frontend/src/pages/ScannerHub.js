@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Zap, Filter, BarChart3, Activity,
   ArrowUpRight, ArrowDownRight, Target, Clock, ChevronRight,
-  Eye, Star, BookOpen, CheckCircle, AlertCircle, Info,
-  RefreshCw, Download, Settings2, Search
+  Star, BookOpen, CheckCircle, AlertCircle, Info,
+  RefreshCw, Download, Settings2
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { 

@@ -157,22 +157,13 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   
   const connectBroker = async () => {
-    console.log('🔌 Connect broker called');
-    console.log('  - Broker:', selectedBroker);
-    console.log('  - Token length:', brokerToken?.length);
-    console.log('  - Client ID:', clientId);
-    console.log('  - Sandbox mode:', isSandbox);
-    console.log('  - API URL:', API_BASE_URL);
-    
     if (!brokerToken.trim()) {
-      console.log('❌ No token provided');
       toast({ title: 'Error', description: `Please enter your ${selectedBroker === 'upstox' ? 'Upstox' : 'Dhan'} access token`, variant: 'destructive' });
       return;
     }
     
     // Sandbox only applies to Dhan
     if (selectedBroker === 'dhan' && isSandbox && !clientId.trim()) {
-      console.log('❌ Sandbox mode but no client ID');
       toast({ title: 'Error', description: 'Please enter your Sandbox Client ID', variant: 'destructive' });
       return;
     }
@@ -189,9 +180,6 @@ const AlgoTrading = () => {
       ? `${API_BASE_URL}/api/upstox/validate-token`
       : `${API_BASE_URL}/api/dhan/validate-token`;
     
-    console.log('📡 Calling API:', validateEndpoint);
-    console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
-    
     try {
       const response = await fetch(validateEndpoint, {
         method: 'POST',
@@ -199,9 +187,7 @@ const AlgoTrading = () => {
         body: JSON.stringify(requestBody)
       });
       
-      console.log('📥 Response status:', response.status);
       const data = await response.json();
-      console.log('📦 Response data:', data);
       
       if (data.valid) {
         localStorage.setItem('ms_broker_token', brokerToken);
@@ -218,7 +204,6 @@ const AlgoTrading = () => {
         });
         fetchBotStatuses();
       } else {
-        console.log('❌ Token invalid:', data.error);
         toast({ title: 'Invalid Token', description: data.error || 'Token validation failed', variant: 'destructive' });
       }
     } catch (error) {

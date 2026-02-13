@@ -28,10 +28,6 @@ import {
 } from 'lucide-react';
 import { cn, storage } from '../lib/utils';
 
-// Pro routes that require subscription
-const PRO_ROUTES = ['/signals', '/options', '/journal', '/backtest', '/market'];
-// Note: /ai-advisor is FREE for all users (Dhan Connect)
-
 // Check if user has pro access
 const checkProAccess = () => {
   try {

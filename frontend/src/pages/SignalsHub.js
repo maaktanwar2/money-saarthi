@@ -3,8 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, TrendingUp, TrendingDown, Target, Clock, Filter,
-  RefreshCw, Download, Star, AlertCircle, CheckCircle,
-  BarChart3, Activity, Eye, ChevronRight, Info
+  RefreshCw, Star, AlertCircle, CheckCircle,
+  BarChart3, Activity, ChevronRight, Info
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import {
@@ -256,13 +256,17 @@ const SignalDetailModal = ({ signal, onClose }) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE METRICS
 // ═══════════════════════════════════════════════════════════════════════════════
-const PerformanceMetrics = () => {
+const PerformanceMetrics = ({ signals = [] }) => {
+  const totalSignals = signals.length;
+  const avgConfidence = totalSignals > 0 ? Math.round(signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / totalSignals) : 0;
+  const avgReturn = totalSignals > 0 ? (signals.reduce((sum, s) => sum + (s.riskReward || 0), 0) / totalSignals).toFixed(1) : '0';
+  const buyCount = signals.filter(s => s.type === 'BUY').length;
   const metrics = {
-    totalSignals: 1245,
-    accuracy: 68,
-    avgReturn: 3.2,
-    winStreak: 5,
-    profitFactor: 2.1,
+    totalSignals,
+    accuracy: avgConfidence,
+    avgReturn,
+    buySignals: buyCount,
+    sellSignals: totalSignals - buyCount,
   };
 
   return (
@@ -270,27 +274,27 @@ const PerformanceMetrics = () => {
       <Card className="p-4">
         <div className="text-xs text-muted-foreground mb-1">Total Signals</div>
         <div className="text-2xl font-bold">{metrics.totalSignals}</div>
-        <div className="text-xs text-muted-foreground">Last 30 days</div>
+        <div className="text-xs text-muted-foreground">Active now</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
+        <div className="text-xs text-muted-foreground mb-1">Avg Confidence</div>
         <div className="text-2xl font-bold text-primary">{metrics.accuracy}%</div>
-        <div className="text-xs text-bullish">+2.1% vs last month</div>
+        <div className="text-xs text-muted-foreground">AI confidence score</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Return</div>
-        <div className="text-2xl font-bold text-bullish">+{metrics.avgReturn}%</div>
-        <div className="text-xs text-muted-foreground">Per winning trade</div>
+        <div className="text-xs text-muted-foreground mb-1">Avg Risk:Reward</div>
+        <div className="text-2xl font-bold text-bullish">{metrics.avgReturn}x</div>
+        <div className="text-xs text-muted-foreground">Per trade</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Win Streak</div>
-        <div className="text-2xl font-bold">{metrics.winStreak}</div>
-        <div className="text-xs text-bullish">🔥 On fire!</div>
+        <div className="text-xs text-muted-foreground mb-1">Buy Signals</div>
+        <div className="text-2xl font-bold text-bullish">{metrics.buySignals}</div>
+        <div className="text-xs text-muted-foreground">Long opportunities</div>
       </Card>
       <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Profit Factor</div>
-        <div className="text-2xl font-bold text-primary">{metrics.profitFactor}x</div>
-        <div className="text-xs text-muted-foreground">Gross P / Gross L</div>
+        <div className="text-xs text-muted-foreground mb-1">Sell Signals</div>
+        <div className="text-2xl font-bold text-bearish">{metrics.sellSignals}</div>
+        <div className="text-xs text-muted-foreground">Short opportunities</div>
       </Card>
     </div>
   );
@@ -342,7 +346,7 @@ const SignalsHub = () => {
             triggers: ['Positive momentum', 'Volume confirmation', stock.score_details?.ema_aligned ? 'EMA aligned' : 'Price action', 'Relative strength'],
             backtestWinRate: Math.min(stock.score || 65, 85),
             avgHolding: 'Same day',
-            similarTrades: Math.floor(Math.random() * 100) + 50,
+            similarTrades: Math.min((stock.score || 65) + 30, 100),
           });
         });
         
@@ -363,7 +367,7 @@ const SignalsHub = () => {
             triggers: ['Negative momentum', 'Volume selling', 'Below VWAP', 'Sector weakness'],
             backtestWinRate: Math.min(stock.score || 60, 80),
             avgHolding: 'Same day',
-            similarTrades: Math.floor(Math.random() * 80) + 30,
+            similarTrades: Math.min((stock.score || 60) + 20, 80),
           });
         });
         
@@ -384,107 +388,19 @@ const SignalsHub = () => {
             triggers: ['Technical setup', 'Volume pattern', 'Trend alignment', 'Support/Resistance'],
             backtestWinRate: Math.min(stock.score || 68, 82),
             avgHolding: '2-5 days',
-            similarTrades: Math.floor(Math.random() * 120) + 60,
+            similarTrades: Math.min((stock.score || 68) + 40, 120),
           });
         });
         
-        setSignals(stockSignals.length > 0 ? stockSignals : getMockSignals());
+        setSignals(stockSignals);
       } catch (error) {
         console.error('Error fetching signals:', error);
-        setSignals(getMockSignals());
+        setSignals([]);
       } finally {
         setLoading(false);
       }
     };
     
-    const getMockSignals = () => [
-          {
-            id: 1,
-            symbol: 'RELIANCE',
-            type: 'BUY',
-            strategy: 'Momentum Breakout',
-            entry: 2845,
-            target: 2920,
-            stopLoss: 2810,
-            confidence: 82,
-            timeframe: 'Swing',
-            riskReward: 2.14,
-            reason: 'Breaking out of 2-week consolidation with strong volume. RSI shows bullish momentum. FII buying detected in derivatives.',
-            triggers: ['Price above 20 EMA', 'Volume 2x average', 'RSI at 62', 'Bullish MACD crossover'],
-            backtestWinRate: 71,
-            avgHolding: '3-4 days',
-            similarTrades: 156,
-          },
-          {
-            id: 2,
-            symbol: 'INFY',
-            type: 'SELL',
-            strategy: 'Overbought Reversal',
-            entry: 1585,
-            target: 1520,
-            stopLoss: 1605,
-            confidence: 74,
-            timeframe: 'Intraday',
-            riskReward: 3.25,
-            reason: 'RSI overbought at 78, hitting upper Bollinger Band. Previous resistance zone. Weak global tech sentiment.',
-            triggers: ['RSI > 75', 'At resistance', 'Bearish divergence', 'IT sector weakness'],
-            backtestWinRate: 68,
-            avgHolding: 'Same day',
-            similarTrades: 89,
-          },
-          {
-            id: 3,
-            symbol: 'TATASTEEL',
-            type: 'BUY',
-            strategy: 'Support Bounce',
-            entry: 155.50,
-            target: 165,
-            stopLoss: 152,
-            confidence: 78,
-            timeframe: 'Swing',
-            riskReward: 2.71,
-            reason: 'Strong support zone confluence with 50 EMA. Metal sector showing strength. China stimulus positive for metals.',
-            triggers: ['At 50 EMA support', 'Bullish hammer candle', 'Sector rotation positive', 'Volume spike'],
-            backtestWinRate: 73,
-            avgHolding: '4-5 days',
-            similarTrades: 134,
-          },
-          {
-            id: 4,
-            symbol: 'HDFCBANK',
-            type: 'BUY',
-            strategy: 'Pullback Entry',
-            entry: 1688,
-            target: 1750,
-            stopLoss: 1665,
-            confidence: 71,
-            timeframe: 'Positional',
-            riskReward: 2.7,
-            reason: 'Healthy pullback to 20 EMA in uptrend. Banking sector bullish. FII accumulation visible in options data.',
-            triggers: ['Pullback to 20 EMA', 'Uptrend intact', 'BANK NIFTY bullish', 'Put writing at support'],
-            backtestWinRate: 69,
-            avgHolding: '1-2 weeks',
-            similarTrades: 112,
-          },
-          {
-            id: 5,
-            symbol: 'BHARTIARTL',
-            type: 'BUY',
-            strategy: 'Trend Continuation',
-            entry: 1425,
-            target: 1500,
-            stopLoss: 1395,
-            confidence: 76,
-            timeframe: 'Swing',
-            riskReward: 2.5,
-            reason: 'Strong uptrend with higher highs and higher lows. Telecom sector outperformance. 5G rollout catalyst.',
-            triggers: ['Above all key EMAs', 'Trend strength high', 'Relative strength', 'Institutional buying'],
-            backtestWinRate: 70,
-            avgHolding: '5-7 days',
-            similarTrades: 98,
-          },
-        ];
-
     fetchSignals();
     const interval = setInterval(fetchSignals, 60000);
     return () => clearInterval(interval);
@@ -503,9 +419,9 @@ const SignalsHub = () => {
     <PageLayout>
       <PageHeader
         title="Trade Signals"
-        description="AI-generated signals with backtested accuracy and confidence scores"
-        accuracy={68}
-        trades={1245}
+        description="AI-generated signals with confidence scores"
+        accuracy={signals.length > 0 ? Math.round(signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length) : null}
+        trades={signals.length}
         breadcrumbs={[
           { label: 'Dashboard', link: '/' },
           { label: 'Signals' },
@@ -519,7 +435,7 @@ const SignalsHub = () => {
       />
 
       {/* Performance Metrics */}
-      <PerformanceMetrics />
+      <PerformanceMetrics signals={signals} />
 
       {/* Filters */}
       <Section className="mb-6">

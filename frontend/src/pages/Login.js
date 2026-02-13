@@ -14,14 +14,14 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '517321998192
 // LOGIN PAGE - With Google & Apple Login
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Admin emails with super rights
-export const ADMIN_EMAILS = [
+// Admin emails - validated server-side, client hint only for UI routing
+const ADMIN_EMAILS = [
   'maaktanwar@gmail.com',
   'admin@moneysaarthi.com',
   'superadmin@moneysaarthi.com'
 ];
 
-export const isAdmin = (email) => {
+const isAdmin = (email) => {
   if (!email) return false;
   return ADMIN_EMAILS.includes(email.toLowerCase());
 };
@@ -49,12 +49,6 @@ export const saveUserToStorage = (user) => {
     isAdmin: isAdmin(user.email),
     subscription: subscription,
   };
-  
-  console.log('💾 Saving user to storage:', { 
-    email: userWithAdmin.email, 
-    isAdmin: userWithAdmin.isAdmin,
-    subscription: userWithAdmin.subscription
-  });
   
   localStorage.setItem('ms_user', JSON.stringify(userWithAdmin));
   // Also save to admin user list for tracking
@@ -171,15 +165,11 @@ export default function Login() {
         if (data.session_id) {
           localStorage.setItem('authToken', data.session_id);
           sessionStorage.setItem('authToken', data.session_id);
-          console.log('✅ Session token stored for API auth');
         }
-        console.log('✅ Backend user data:', data.user);
         return data;
       }
-      console.warn('Backend auth failed:', response.status);
       return null;
     } catch (err) {
-      console.warn('Backend auth error (will use local auth):', err.message);
       return null;
     }
   };
@@ -211,7 +201,6 @@ export default function Login() {
             billingCycle: 'monthly',
           };
         }
-        console.log('📊 Subscription from backend:', subscription);
       }
       
       const user = saveUserToStorage({
@@ -409,10 +398,10 @@ export default function Login() {
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'AI Signals', value: '94%', desc: 'Accuracy' },
-              { label: 'Active Users', value: '10K+', desc: 'Traders' },
-              { label: 'Daily Signals', value: '50+', desc: 'Generated' },
-              { label: 'Markets', value: '500+', desc: 'Covered' },
+              { label: 'AI Signals', value: 'Real-time', desc: 'Analysis' },
+              { label: 'Scanners', value: '15+', desc: 'Pre-built' },
+              { label: 'F&O Stocks', value: '200+', desc: 'Tracked' },
+              { label: 'Analytics', value: 'Pro', desc: 'Grade Tools' },
             ].map(stat => (
               <div key={stat.label} className="glass p-4 rounded-xl">
                 <div className="text-2xl font-bold text-primary">{stat.value}</div>
@@ -425,15 +414,15 @@ export default function Login() {
         {/* Testimonial */}
         <div className="relative z-10 glass p-6 rounded-xl">
           <p className="text-sm italic mb-3">
-            "Money Saarthi transformed my trading. The AI signals are incredibly accurate!"
+            "Smart options analytics, live market data, and AI-powered insights — all in one platform."
           </p>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-sm font-bold">RS</span>
+              <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-sm">Rahul Sharma</div>
-              <div className="text-xs text-muted-foreground">Professional Trader</div>
+              <div className="font-medium text-sm">Money Saarthi</div>
+              <div className="text-xs text-muted-foreground">AI-Powered Trading Platform</div>
             </div>
           </div>
         </div>
@@ -611,9 +600,9 @@ export default function Login() {
             </p>
           </Card>
 
-          {/* Admin Hint */}
+          {/* Footer */}
           <p className="text-center text-xs text-muted-foreground mt-4">
-            Admin access: Use <span className="text-primary">maaktanwar@gmail.com</span> for super rights
+            By continuing, you agree to our Terms of Service & Privacy Policy
           </p>
         </motion.div>
       </div>

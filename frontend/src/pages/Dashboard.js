@@ -4,16 +4,15 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Activity, BarChart3, 
-  ScanSearch, LineChart, Brain, Calculator,
-  ArrowRight, Zap, Target, Users, Clock,
-  ChevronRight, Sparkles, Shield, Eye
+  ScanSearch, LineChart, Brain,
+  Zap, Target, Users,
+  ChevronRight, Sparkles, Shield
 } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Spinner } from '../components/ui';
-import { TradingAreaChart, Sparkline } from '../components/ui/Charts';
 import { 
-  cn, formatINR, formatNumber, formatPercent, 
-  getChangeColor, fetchAPI, getMarketSession 
+  cn, formatINR, formatNumber, 
+  fetchAPI, getMarketSession 
 } from '../lib/utils';
 
 // Get user's first name from localStorage
@@ -52,14 +51,7 @@ const MarketOverview = () => {
         }
       } catch (error) {
         console.error('Market Overview fetch error:', error);
-        setIndices([
-          { symbol: 'NIFTY 50', name: 'NIFTY 50', last: 25727, change: 639, pChange: 2.55 },
-          { symbol: 'NIFTY BANK', name: 'NIFTY BANK', last: 60041, change: 1422, pChange: 2.43 },
-          { symbol: 'NIFTY MIDCAP 50', name: 'NIFTY MIDCAP 50', last: 17013, change: 464, pChange: 2.80 },
-          { symbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE', last: 27674, change: 875, pChange: 3.27 },
-          { symbol: 'INDIA VIX', name: 'INDIA VIX', last: 12.9, change: -0.97, pChange: -6.99 },
-          { symbol: 'SENSEX', name: 'SENSEX', last: 84500, change: 2100, pChange: 2.55 },
-        ]);
+        setIndices([]);
       } finally {
         setLoading(false);
       }
@@ -142,7 +134,7 @@ const QUICK_TOOLS = [
     path: '/scanners',
     color: 'emerald',
     accuracy: 72,
-    trades: 15420,
+    trades: '15K+',
   },
   {
     id: 'options',
@@ -170,7 +162,7 @@ const QUICK_TOOLS = [
     path: '/signals',
     color: 'amber',
     accuracy: 68,
-    trades: 8540,
+    trades: '8K+',
   },
   {
     id: 'market',
@@ -295,21 +287,9 @@ const TopMovers = () => {
         setGainers(refineMovers(rawGainers, true));
         setLosers(refineMovers(rawLosers, false));
       } catch (error) {
-        // Fallback data - strong movers only
-        setGainers([
-          { symbol: 'TATAMOTORS', price: 985.50, change_pct: 5.85, volume_ratio: 2.1, score: 78 },
-          { symbol: 'ADANIENT', price: 2450.30, change_pct: 4.52, volume_ratio: 1.8, score: 72 },
-          { symbol: 'HINDALCO', price: 625.80, change_pct: 3.89, volume_ratio: 1.6, score: 68 },
-          { symbol: 'WIPRO', price: 458.25, change_pct: 3.45, volume_ratio: 1.5, score: 65 },
-          { symbol: 'JSWSTEEL', price: 892.60, change_pct: 3.12, volume_ratio: 1.4, score: 62 },
-        ]);
-        setLosers([
-          { symbol: 'HDFC', price: 1580.40, change_pct: -2.85, volume_ratio: 1.9, score: 70 },
-          { symbol: 'ICICIBANK', price: 1125.80, change_pct: -2.12, volume_ratio: 1.7, score: 65 },
-          { symbol: 'KOTAK', price: 1785.30, change_pct: -2.05, volume_ratio: 1.5, score: 60 },
-          { symbol: 'SBILIFE', price: 1420.60, change_pct: -2.01, volume_ratio: 1.4, score: 58 },
-          { symbol: 'AXISBANK', price: 1095.25, change_pct: -1.95, volume_ratio: 1.3, score: 55 },
-        ]);
+        // Show empty state on API failure instead of fake data
+        setGainers([]);
+        setLosers([]);
       } finally {
         setLoading(false);
       }
@@ -485,10 +465,8 @@ const FIIDIIData = () => {
           },
         });
       } catch (error) {
-        setData({
-          fii: { buyValue: 12500, sellValue: 11200, netValue: 1300 },
-          dii: { buyValue: 8900, sellValue: 9500, netValue: -600 },
-        });
+        // Show empty state instead of fake FII/DII data
+        setData(null);
       } finally {
         setLoading(false);
       }
@@ -586,24 +564,6 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      {/* Site Banner */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="mb-8"
-      >
-        <Card className="p-6 bg-gradient-to-r from-[#D4A574]/10 via-[#C9956C]/5 to-transparent border-[#D4A574]/20">
-          <div className="flex items-center gap-6">
-            <img src="/logo.png" alt="Money Saarthi" className="w-24 h-24 object-contain" />
-            <div>
-              <h2 className="text-3xl font-bold" style={{ color: '#D4A574' }}>Money Saarthi</h2>
-              <p className="text-muted-foreground text-sm">AI@Market Intelligence • Your trusted trading companion</p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-
       {/* Market Overview */}
       <Section title="Market Overview" className="mb-8">
         <MarketOverview />
@@ -660,7 +620,7 @@ const Dashboard = () => {
                 <h3 className="text-xl font-semibold flex items-center gap-2">
                   AI Trade Advisor
                   <Badge variant="default" className="bg-violet-500/20 text-violet-400 border-violet-500/30">
-                    New
+                    AI
                   </Badge>
                 </h3>
                 <p className="text-muted-foreground">
@@ -668,7 +628,7 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <Link to="/advisor">
+            <Link to="/algo">
               <Button variant="gradient" className="whitespace-nowrap">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Open Advisor
