@@ -6923,6 +6923,90 @@ async def get_nse_option_chain(symbol: str = "NIFTY"):
         return await _generate_simulated_option_chain(symbol)
 
 
+@api_router.get("/ltp/levels/{symbol}")
+async def get_ltp_levels(symbol: str = "NIFTY"):
+    """
+    Calculate LTP-style level lines (EOS, EOR, Diversions, CMP) from live option chain.
+    Uses max Put OI strike as support (EOS) and max Call OI strike as resistance (EOR).
+    Diversions are strike-step spaced levels between EOS and EOR.
+    """
+    try:
+        symbol = symbol.upper()
+        strike_step = 100 if symbol == "BANKNIFTY" else 50
+
+        # Fetch live option chain
+        data = await NSEIndia.get_option_chain(symbol)
+
+        if not data or not data.get("records"):
+            raise HTTPException(status_code=503, detail="NSE option chain unavailable")
+
+        records = data.get("records", {})
+        filtered = data.get("filtered", {})
+        spot = records.get("underlyingValue", 0)
+        chain = filtered.get("data", [])
+
+        if not chain or spot == 0:
+            raise HTTPException(status_code=503, detail="No option chain data available")
+
+        # Find max Call OI strike (resistance) and max Put OI strike (support)
+        max_call_oi = 0
+        max_put_oi = 0
+        eos = 0  # support - max put OI strike
+        eor = 0  # resistance - max call OI strike
+
+        for row in chain:
+            call_oi = row.get("CE", {}).get("openInterest", 0) or 0
+            put_oi = row.get("PE", {}).get("openInterest", 0) or 0
+            strike = row.get("strikePrice", 0)
+            if call_oi > max_call_oi:
+                max_call_oi = call_oi
+                eor = strike
+            if put_oi > max_put_oi:
+                max_put_oi = put_oi
+                eos = strike
+
+        if eos == 0 or eor == 0:
+            raise HTTPException(status_code=404, detail="Could not determine support/resistance from OI")
+
+        # Calculate diversions between EOS & EOR
+        min_level = min(eos, eor)
+        max_level = max(eos, eor)
+        diversions = []
+        k = min_level + strike_step
+        while k < max_level:
+            diversions.append(k)
+            k += strike_step
+
+        if not diversions:
+            diversions.append((eos + eor) / 2)
+
+        # Extended levels
+        eos_ext = eos - strike_step
+        eor_ext = eor + strike_step
+
+        return {
+            "symbol": symbol,
+            "spot": spot,
+            "EOS": eos,
+            "EOR": eor,
+            "diversions": diversions,
+            "eos_ext": eos_ext,
+            "eor_ext": eor_ext,
+            "max_call_oi": max_call_oi,
+            "max_put_oi": max_put_oi,
+            "strike_step": strike_step,
+            "price_min": min_level - 3 * strike_step,
+            "price_max": max_level + 3 * strike_step,
+            "source": "nse_live"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error calculating LTP levels: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Cache for last known good option chain data
 _option_chain_cache = {}
 _option_chain_cache_time = {}

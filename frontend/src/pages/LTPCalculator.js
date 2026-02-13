@@ -236,6 +236,13 @@ export default function LTPCalculator() {
     return { callStrike, putStrike, maxCallOI, maxPutOI };
   }, [optionChainData]);
 
+  // Auto-fill COA support/resistance from max OI strikes
+  useEffect(() => {
+    if (maxOI.putStrike && !supportLevel) setSupportLevel(String(maxOI.putStrike));
+    if (maxOI.callStrike && !resistanceLevel) setResistanceLevel(String(maxOI.callStrike));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxOI.putStrike, maxOI.callStrike]);
+
   const oiChartData = useMemo(() => {
     return optionChainData.map(row => ({
       strike: row.strike,
@@ -303,6 +310,47 @@ export default function LTPCalculator() {
   const matchedCOA2 = useMemo(() => {
     return COA2_SCENARIOS.find(s => s.callOI === callOITrend && s.putOI === putOITrend);
   }, [callOITrend, putOITrend]);
+
+  // ════════════════════════════════════════════════
+  // COA LEVEL LINES (EOS / EOR / Diversions / CMP)
+  // ════════════════════════════════════════════════
+  const strikeStep = useMemo(
+    () => (selectedIndex === 'BANKNIFTY' ? 100 : 50),
+    [selectedIndex]
+  );
+
+  const coaLevels = useMemo(() => {
+    const s = Number(supportLevel);
+    const r = Number(resistanceLevel);
+    if (!s || !r || !spotPrice) return null;
+
+    const EOS = s;
+    const EOR = r;
+    const min = Math.min(EOS, EOR);
+    const max = Math.max(EOS, EOR);
+
+    // Build diversion lines between EOS & EOR at strike-step intervals
+    const rawStrikes = [];
+    for (let k = min + strikeStep; k < max; k += strikeStep) {
+      rawStrikes.push(k);
+    }
+
+    const diversions = [];
+    if (rawStrikes.length === 0) {
+      diversions.push((EOS + EOR) / 2);
+    } else {
+      // Place diversions at each raw strike between support & resistance
+      rawStrikes.forEach(v => diversions.push(v));
+    }
+
+    return {
+      EOS,
+      EOR,
+      diversions,
+      priceMin: min - 3 * strikeStep,
+      priceMax: max + 3 * strikeStep,
+    };
+  }, [supportLevel, resistanceLevel, spotPrice, strikeStep]);
 
   // ════════════════════════════════════════════════
   // TRADE FINDER
@@ -1079,6 +1127,96 @@ export default function LTPCalculator() {
                   </Card>
                 </div>
               </div>
+
+              {/* ── Live LTP Levels Chart ── */}
+              {coaLevels && (
+                <Card className="glass-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      📍 Live LTP Levels
+                      <Badge className="bg-orange-500/20 text-orange-400">EOS / EOR / Diversions / CMP</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={[
+                          { idx: 0, price: coaLevels.priceMin },
+                          { idx: 1, price: coaLevels.priceMax },
+                        ]}>
+                          <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="3 3" horizontal={false} />
+                          <XAxis dataKey="idx" hide />
+                          <YAxis
+                            domain={[coaLevels.priceMin, coaLevels.priceMax]}
+                            tick={{ fill: CHART_COLORS.text, fontSize: 10 }}
+                            tickFormatter={(v) => v.toFixed(0)}
+                            width={55}
+                          />
+
+                          {/* CMP (Current Market Price) */}
+                          <ReferenceLine
+                            y={spotPrice}
+                            stroke={CHART_COLORS.spot}
+                            strokeWidth={2.5}
+                            strokeDasharray="6 3"
+                            label={{ value: `CMP ${spotPrice.toFixed(0)}`, position: 'right', fill: CHART_COLORS.spot, fontSize: 11, fontWeight: 700 }}
+                          />
+
+                          {/* EOS (Support) */}
+                          <ReferenceLine
+                            y={coaLevels.EOS}
+                            stroke="#22c55e"
+                            strokeWidth={2}
+                            label={{ value: `EOS ${coaLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }}
+                          />
+
+                          {/* EOR (Resistance) */}
+                          <ReferenceLine
+                            y={coaLevels.EOR}
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            label={{ value: `EOR ${coaLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }}
+                          />
+
+                          {/* Diversions: D1, D2, D3... */}
+                          {coaLevels.diversions.map((level, idx) => (
+                            <ReferenceLine
+                              key={idx}
+                              y={level}
+                              stroke="#eab308"
+                              strokeDasharray="4 4"
+                              strokeWidth={1.2}
+                              label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: '#eab308', fontSize: 10 }}
+                            />
+                          ))}
+
+                          <Tooltip contentStyle={ChartTooltipStyle} formatter={(value) => [`${value.toFixed(0)}`, 'Price']} />
+                          <Line type="monotone" dataKey="price" stroke="transparent" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Level legend */}
+                    <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-0.5 bg-green-500 rounded" />
+                        <span className="text-green-400">EOS (Support)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-0.5 bg-red-500 rounded" />
+                        <span className="text-red-400">EOR (Resistance)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-0.5 bg-yellow-500 rounded" style={{ borderTop: '1px dashed #eab308' }} />
+                        <span className="text-yellow-400">Diversions (D1, D2…)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-0.5 bg-orange-500 rounded" style={{ borderTop: '2px dashed #f97316' }} />
+                        <span className="text-orange-400">CMP (Spot)</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="glass-card">
                 <CardHeader><CardTitle className="text-sm">COA 1.0 — All 9 Scenarios Quick Reference</CardTitle></CardHeader>
