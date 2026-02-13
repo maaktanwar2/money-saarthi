@@ -359,7 +359,9 @@ export const addAnnouncement = (announcement) => {
 
 const defaultPaymentConfig = {
   merchantName: 'Money Saarthi',
-  razorpayEnabled: true,
+  upiEnabled: true,
+  upiNumber: '9818856552',
+  payeeName: 'mspay',
 };
 
 // Get payment config
@@ -394,7 +396,7 @@ const defaultConfig = {
   cacheTTL: 300,
   maxConcurrentUsers: 1000,
   maintenanceMode: false,
-  razorpayTestMode: true,
+  upiPayment: true,
 };
 
 // Get system config

@@ -18,7 +18,8 @@ import {
   Star,
   ArrowRight,
   BadgeCheck,
-  CreditCard,
+  Smartphone,
+  Copy,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -27,7 +28,9 @@ import {
 // PRICING PAGE - Subscription Plans
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Razorpay is the only payment gateway
+// UPI Payment — simple pay-to-number flow
+// UPI details fetched from backend (admin can change anytime)
+const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay' };
 
 // Plan configurations
 export const PLANS = {
@@ -138,8 +141,10 @@ export default function Pricing() {
   const [user, setUser] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [paymentId, setPaymentId] = useState('');
+  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [upiConfig, setUpiConfig] = useState(DEFAULT_UPI);
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('ms_user') || 'null');
@@ -147,19 +152,10 @@ export default function Pricing() {
     if (storedUser?.subscription?.plan) {
       setCurrentPlan(storedUser.subscription.plan);
     }
-  }, []);
-
-  // Load Razorpay script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
+    // Fetch UPI config from backend
+    API.get('/payment/upi-config').then(res => {
+      if (res.data?.upi_number) setUpiConfig(res.data);
+    }).catch(() => {});
   }, []);
 
   // Helper to get redirect URL after subscription
@@ -183,85 +179,57 @@ export default function Pricing() {
 
     setSelectedPlan(PLANS[planId]);
     setShowPaymentModal(true);
-    setPaymentSuccess(false);
-    setPaymentId('');
+    setPaymentSubmitted(false);
+    setTransactionId('');
   };
 
-  // Handle Razorpay payment via backend order creation
-  const handleRazorpayPayment = async () => {
-    if (!selectedPlan) return;
-    setLoading(true);
+  // Copy UPI number to clipboard
+  const copyUpiNumber = () => {
+    navigator.clipboard.writeText(upiConfig.upi_number);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-    const planId = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+  // Submit UTR after manual payment
+  const handlePaymentSubmit = async () => {
+    if (!transactionId.trim()) {
+      alert('Please enter the Transaction ID / UTR Number');
+      return;
+    }
+
+    setLoading(true);
     const amount = billingCycle === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
 
     try {
-      // Create order on backend
-      const orderRes = await API.post('/payment/create-order', { plan_id: planId, amount: amount * 100 });
-      const orderData = orderRes.data;
-
-      const options = {
-        key: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency || 'INR',
-        name: 'Money Saarthi',
-        description: `${selectedPlan.name} Plan - ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-        order_id: orderData.order_id,
-        handler: async function (response) {
-          try {
-            // Verify on backend
-            const verifyRes = await API.post('/payment/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            if (verifyRes.data.success) {
-              const expiresAt = verifyRes.data.subscription_end || new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 86400000).toISOString();
-
-              saveSubscription({
-                plan: selectedPlan.id,
-                status: 'active',
-                expiresAt,
-                billingCycle,
-                paymentId: response.razorpay_payment_id,
-                subscribedAt: new Date().toISOString(),
-              });
-
-              addTransaction({
-                user: user?.name || 'Unknown',
-                email: user?.email,
-                amount,
-                plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
-                status: 'success',
-                paymentId: response.razorpay_payment_id,
-                paymentMethod: 'razorpay',
-              });
-
-              updateUser(user?.email, { plan: 'pro', billingCycle, revenue: amount });
-
-              setCurrentPlan(selectedPlan.id);
-              setPaymentId(response.razorpay_payment_id);
-              setPaymentSuccess(true);
-            } else {
-              alert('Payment verification failed. Please contact support.');
-            }
-          } catch {
-            alert('Payment verification failed. Please contact support.');
-          }
-          setLoading(false);
-        },
-        prefill: { name: user?.name || '', email: user?.email || '' },
-        theme: { color: '#10b981' },
-        modal: { ondismiss: () => setLoading(false) },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      // Submit to backend for admin verification
+      await API.post('/payment/upi/submit', {
+        plan_id: billingCycle === 'yearly' ? 'yearly' : 'monthly',
+        utr_number: transactionId.trim(),
+        amount,
+      });
     } catch {
-      alert('Unable to initiate payment. Please try again later.');
-      setLoading(false);
+      // Even if backend fails, record locally
     }
+
+    // Record transaction locally
+    addTransaction({
+      user: user?.name || 'Unknown',
+      email: user?.email,
+      amount,
+      plan: `Pro ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}`,
+      status: 'pending',
+      paymentMethod: 'upi',
+      transactionId: transactionId.trim(),
+    });
+
+    updateUser(user?.email, {
+      plan: 'pro',
+      billingCycle,
+      subscriptionStatus: 'pending',
+    });
+
+    setPaymentSubmitted(true);
+    setLoading(false);
   };
 
   const formatPrice = (price) => {
@@ -272,7 +240,7 @@ export default function Pricing() {
     }).format(price);
   };
 
-  // Payment Modal Component (Razorpay only)
+  // Payment Modal Component (Simple UPI)
   const PaymentModal = () => {
     if (!showPaymentModal || !selectedPlan) return null;
 
@@ -312,20 +280,20 @@ export default function Pricing() {
               </div>
             </div>
 
-            {paymentSuccess ? (
+            {paymentSubmitted ? (
               /* Success State */
               <div className="p-8 text-center">
                 <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Payment Successful!</h3>
+                <h3 className="text-xl font-bold mb-2">Payment Details Submitted!</h3>
                 <p className="text-muted-foreground mb-4">
-                  Welcome to Money Saarthi Pro! Your subscription is now active.
+                  Your payment is being verified. You'll get access within a few hours.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4 text-left mb-6">
-                  <p className="text-sm"><strong>Payment ID:</strong> {paymentId}</p>
+                  <p className="text-sm"><strong>Transaction ID:</strong> {transactionId}</p>
                   <p className="text-sm"><strong>Amount:</strong> {formatPrice(amount)}</p>
-                  <p className="text-sm"><strong>Plan:</strong> {selectedPlan.name} ({billingCycle === 'yearly' ? 'Yearly' : 'Monthly'})</p>
+                  <p className="text-sm"><strong>Status:</strong> <span className="text-amber-500">Pending Verification</span></p>
                 </div>
                 <Button
                   className="w-full"
@@ -338,55 +306,74 @@ export default function Pricing() {
                 </Button>
               </div>
             ) : (
-              /* Razorpay Payment */
+              /* UPI Payment Flow */
               <div className="p-6">
                 <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-xl p-6 text-center">
-                    <CreditCard className="w-14 h-14 mx-auto mb-4 text-primary" />
-                    <p className="font-semibold text-lg mb-1">Secure Payment via Razorpay</p>
-                    <p className="text-sm text-muted-foreground">
-                      Credit/Debit Cards, Net Banking, UPI, Wallets
+                  {/* Step 1: Pay to number */}
+                  <div className="bg-muted/50 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">1</div>
+                      <p className="font-semibold">Pay via UPI to this number</p>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 bg-background rounded-xl border border-border">
+                      <Smartphone className="w-8 h-8 text-primary flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-2xl font-bold font-mono tracking-wider">{upiConfig.upi_number}</p>
+                        <p className="text-xs text-muted-foreground">Payee: {upiConfig.payee_name}</p>
+                      </div>
+                      <button
+                        onClick={copyUpiNumber}
+                        className="p-2 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-muted-foreground" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Open PhonePe, Google Pay, Paytm or any UPI app and pay <strong>{formatPrice(amount)}</strong> to this number
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      { label: 'Cards', icon: '💳' },
-                      { label: 'UPI', icon: '📱' },
-                      { label: 'NetBanking', icon: '🏦' },
-                      { label: 'Wallets', icon: '👛' },
-                    ].map((m) => (
-                      <div key={m.label} className="text-center p-3 rounded-lg bg-muted/30 border border-border">
-                        <span className="text-xl block mb-1">{m.icon}</span>
-                        <span className="text-xs text-muted-foreground">{m.label}</span>
-                      </div>
-                    ))}
+                  {/* Step 2: Enter UTR */}
+                  <div className="bg-muted/50 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">2</div>
+                      <p className="font-semibold">Enter Transaction ID / UTR</p>
+                    </div>
+                    <input
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      placeholder="Enter 12-digit UTR number"
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Find this in your UPI app's transaction history / receipt
+                    </p>
                   </div>
 
                   <Button
                     className="w-full h-12 text-base"
-                    onClick={handleRazorpayPayment}
-                    disabled={loading}
+                    onClick={handlePaymentSubmit}
+                    disabled={loading || !transactionId.trim()}
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Processing...
+                        Submitting...
                       </span>
                     ) : (
                       <>
-                        <CreditCard className="w-5 h-5 mr-2" />
-                        Pay {formatPrice(amount)}
+                        <CheckCircle2 className="w-5 h-5 mr-2" />
+                        Submit Payment
                       </>
                     )}
                   </Button>
 
                   <p className="text-xs text-center text-muted-foreground">
-                    Payments are secured by Razorpay. Your card details are never stored.
+                    Your subscription will be activated after payment verification.
                   </p>
                 </div>
 
-                {/* Close button */}
                 <button
                   onClick={() => setShowPaymentModal(false)}
                   className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
@@ -678,11 +665,11 @@ export default function Pricing() {
               },
               {
                 q: 'What payment methods do you accept?',
-                a: 'We accept all major payment methods via Razorpay — Credit/Debit Cards, Net Banking, UPI, and Digital Wallets. All payments are processed instantly.',
+                a: 'We accept UPI payments via any app — PhonePe, Google Pay, Paytm, or any banking UPI app. Just pay to our number and enter the transaction ID.',
               },
               {
                 q: 'How long does payment verification take?',
-                a: 'All payments are verified instantly via Razorpay. Your subscription is activated immediately after successful payment.',
+                a: 'Most payments are verified within a few hours. You will receive access once your payment is confirmed.',
               },
               {
                 q: 'Is there a refund policy?',

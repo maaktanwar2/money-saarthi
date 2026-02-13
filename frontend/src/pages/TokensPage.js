@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Coins, Package, Zap, Crown, Star, Check,
-  CreditCard,
+  Smartphone, Copy, CheckCircle2,
   ArrowRight, History, AlertCircle,
   Brain, Target, BarChart3, ShieldCheck
 } from 'lucide-react';
@@ -117,63 +117,43 @@ const TokenPackageCard = ({ pkg, isPopular, isSelected, onSelect }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PAYMENT MODAL (Razorpay Only)
+// PAYMENT MODAL (Simple UPI)
 // ═══════════════════════════════════════════════════════════════════════════════
-const PaymentModal = ({ pkg, onClose, onSuccess }) => {
-  const [loading, setLoading] = useState(false);
+const DEFAULT_UPI = { upi_number: '9818856552', payee_name: 'mspay' };
 
-  const handleRazorpayPayment = async () => {
+const PaymentModal = ({ pkg, onClose, onSuccess }) => {
+  const [transactionId, setTransactionId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [upiConfig, setUpiConfig] = useState(DEFAULT_UPI);
+
+  useEffect(() => {
+    API.get('/payment/upi-config').then(res => {
+      if (res.data?.upi_number) setUpiConfig(res.data);
+    }).catch(() => {});
+  }, []);
+
+  const copyNumber = () => {
+    navigator.clipboard.writeText(upiConfig.upi_number);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSubmit = async () => {
+    if (!transactionId.trim()) return;
     setLoading(true);
     try {
-      // Create order on backend (reuse payment create-order or direct recharge)
-      // For tokens, we'll use Razorpay checkout and then call rechargeTokens on success
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = async () => {
-        try {
-          // Try to create order via backend
-          const orderRes = await API.post('/payment/create-order', {
-            plan_id: `token_${pkg.id}`,
-            amount: pkg.price * 100,
-          });
-          const orderData = orderRes.data;
-
-          const options = {
-            key: orderData.key_id,
-            amount: orderData.amount || pkg.price * 100,
-            currency: 'INR',
-            name: 'Money Saarthi',
-            description: `${pkg.name} - ${pkg.tokens} AI Tokens`,
-            order_id: orderData.order_id,
-            handler: async function (response) {
-              try {
-                // Verify payment and add tokens
-                const result = await rechargeTokens(pkg.id, response.razorpay_payment_id);
-                if (result.success) {
-                  onSuccess(result);
-                } else {
-                  alert(result.error || 'Token recharge failed after payment. Contact support.');
-                }
-              } catch {
-                alert('Token recharge failed. Contact support with your payment ID: ' + response.razorpay_payment_id);
-              }
-              setLoading(false);
-            },
-            theme: { color: '#10b981' },
-            modal: { ondismiss: () => setLoading(false) },
-          };
-
-          const razorpay = new window.Razorpay(options);
-          razorpay.open();
-        } catch {
-          // Fallback: open Razorpay without backend order (client-side key)
-          alert('Unable to initiate payment. Please try again later.');
-          setLoading(false);
-        }
-      };
-      document.body.appendChild(script);
-    } catch {
-      alert('Payment initialization failed. Please try again.');
+      const result = await rechargeTokens(pkg.id, transactionId.trim());
+      if (result.success) {
+        setSubmitted(true);
+        setTimeout(() => onSuccess(result), 1500);
+      } else {
+        alert(result.error || 'Submission failed. Try again.');
+      }
+    } catch (err) {
+      alert(err.message || 'Error submitting payment');
+    } finally {
       setLoading(false);
     }
   };
@@ -201,49 +181,63 @@ const PaymentModal = ({ pkg, onClose, onSuccess }) => {
           </p>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Payment Info */}
-          <div className="bg-muted/50 rounded-xl p-6 text-center">
-            <CreditCard className="w-12 h-12 mx-auto mb-3 text-primary" />
-            <p className="font-semibold text-lg mb-1">Secure Payment via Razorpay</p>
-            <p className="text-sm text-muted-foreground">
-              Credit/Debit Cards, Net Banking, UPI, Wallets
-            </p>
+        {submitted ? (
+          <div className="p-8 text-center">
+            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold mb-2">Payment Submitted!</h3>
+            <p className="text-muted-foreground">Tokens will be added after verification.</p>
           </div>
+        ) : (
+          <div className="p-6 space-y-5">
+            {/* Step 1: Pay */}
+            <div className="bg-secondary/50 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">1</div>
+                <p className="font-semibold">Pay via UPI to this number</p>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-background rounded-xl border border-border">
+                <Smartphone className="w-8 h-8 text-primary flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-2xl font-bold font-mono tracking-wider">{upiConfig.upi_number}</p>
+                  <p className="text-xs text-muted-foreground">Payee: {upiConfig.payee_name}</p>
+                </div>
+                <button onClick={copyNumber} className="p-2 rounded-lg hover:bg-muted">
+                  {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-muted-foreground" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Pay <strong>₹{pkg.price}</strong> using PhonePe, GPay, Paytm or any UPI app
+              </p>
+            </div>
 
-          <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
-            <p className="text-sm font-medium">Amount to Pay: <span className="text-primary text-xl font-bold">₹{pkg.price}</span></p>
+            {/* Step 2: Enter UTR */}
+            <div className="bg-secondary/50 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">2</div>
+                <p className="font-semibold">Enter Transaction ID / UTR</p>
+              </div>
+              <input
+                type="text"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                placeholder="Enter 12-digit UTR number"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+              />
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={!transactionId.trim() || loading}
+              className="w-full h-12 text-base"
+            >
+              {loading ? 'Submitting...' : 'Submit Payment'}
+            </Button>
+
+            <button onClick={onClose} className="w-full text-sm text-muted-foreground hover:text-foreground">
+              Cancel
+            </button>
           </div>
-
-          <Button
-            onClick={handleRazorpayPayment}
-            disabled={loading}
-            className="w-full h-12 text-base"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Processing...
-              </span>
-            ) : (
-              <>
-                <CreditCard className="w-5 h-5 mr-2" />
-                Pay ₹{pkg.price}
-              </>
-            )}
-          </Button>
-
-          <p className="text-xs text-center text-muted-foreground">
-            Payments are secured by Razorpay. Your card details are never stored.
-          </p>
-
-          <button
-            onClick={onClose}
-            className="w-full text-sm text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </button>
-        </div>
+        )}
       </motion.div>
     </motion.div>
   );

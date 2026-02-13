@@ -1699,9 +1699,9 @@ MARKET_EVENTS = [
 # Super Admin Email - loaded from environment variable
 SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'maaktanwar@gmail.com')
 
-# Razorpay Configuration (Add your keys later)
-RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
-RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+# UPI Payment Configuration
+UPI_NUMBER = os.environ.get('UPI_NUMBER', '9818856552')
+UPI_PAYEE_NAME = os.environ.get('UPI_PAYEE_NAME', 'mspay')
 
 
 # ==================== MODELS ====================
@@ -1844,14 +1844,10 @@ class AdminUserUpdate(BaseModel):
     is_paid: Optional[bool] = None
     subscription_days: Optional[int] = None
 
-class PaymentOrder(BaseModel):
+class UPIPaymentSubmit(BaseModel):
     plan_id: str
-    amount: int
-
-class PaymentVerify(BaseModel):
-    razorpay_order_id: str
-    razorpay_payment_id: str
-    razorpay_signature: str
+    utr_number: str
+    amount: Optional[float] = None
 
 
 # ==================== AUTH HELPER ====================
@@ -3331,146 +3327,165 @@ async def get_admin_stats(admin: User = Depends(get_admin_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==================== PAYMENT ROUTES (RAZORPAY) ====================
+# ==================== PAYMENT ROUTES (Simple UPI) ====================
 
-async def get_razorpay_keys():
-    """Get Razorpay keys from database or environment"""
-    settings = await db.settings.find_one({"key": "payment"}, {"_id": 0})
+async def get_upi_config():
+    """Get UPI config from database or environment"""
+    settings = await db.settings.find_one({"key": "upi_config"}, {"_id": 0})
     if settings and settings.get("value"):
-        key_id = settings["value"].get("razorpay_key_id") or RAZORPAY_KEY_ID
-        key_secret = settings["value"].get("razorpay_key_secret") or RAZORPAY_KEY_SECRET
-        return key_id, key_secret
-    return RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+        return {
+            "upi_number": settings["value"].get("upi_number") or UPI_NUMBER,
+            "payee_name": settings["value"].get("payee_name") or UPI_PAYEE_NAME
+        }
+    return {"upi_number": UPI_NUMBER, "payee_name": UPI_PAYEE_NAME}
 
-@api_router.post("/payment/create-order")
-async def create_payment_order(
-    order: PaymentOrder,
+@api_router.get("/payment/upi-config")
+async def get_upi_config_endpoint():
+    """Public endpoint - returns UPI number and payee name for payment"""
+    return await get_upi_config()
+
+@api_router.post("/payment/upi/submit")
+async def submit_upi_payment(
+    payment: UPIPaymentSubmit,
     current_user: User = Depends(get_current_user)
 ):
-    """Create Razorpay order for subscription or token purchase"""
+    """Submit UPI payment with UTR number for admin verification"""
     try:
-        key_id, key_secret = await get_razorpay_keys()
-        
-        if not key_id or not key_secret:
-            raise HTTPException(status_code=503, detail="Payment gateway not configured. Contact admin.")
-        
-        import razorpay
-        client = razorpay.Client(auth=(key_id, key_secret))
+        if not payment.utr_number or len(payment.utr_number.strip()) < 6:
+            raise HTTPException(status_code=400, detail="Invalid UTR number")
         
         # Define subscription plans
         plans = {
-            "monthly": {"amount": 89900, "days": 30, "name": "Monthly Plan", "has_full_package": False},
-            "yearly": {"amount": 499900, "days": 365, "name": "Yearly Plan", "has_full_package": False},
-            "full_package": {"amount": 499900, "days": 365, "name": "Full Package (Yearly)", "has_full_package": True},
+            "monthly": {"amount": 899, "days": 30, "name": "Monthly Plan", "has_full_package": False},
+            "yearly": {"amount": 4999, "days": 365, "name": "Yearly Plan", "has_full_package": False},
+            "full_package": {"amount": 4999, "days": 365, "name": "Full Package (Yearly)", "has_full_package": True},
             # Token packages
-            "token_starter": {"amount": 9900, "days": 0, "name": "Starter Token Pack"},
-            "token_basic": {"amount": 29900, "days": 0, "name": "Pro Token Pack"},
-            "token_pro": {"amount": 59900, "days": 0, "name": "Premium Token Pack"},
-            "token_unlimited": {"amount": 99900, "days": 0, "name": "Unlimited Token Pack"},
+            "token_starter": {"amount": 99, "days": 0, "name": "Starter Token Pack"},
+            "token_basic": {"amount": 299, "days": 0, "name": "Pro Token Pack"},
+            "token_pro": {"amount": 599, "days": 0, "name": "Premium Token Pack"},
+            "token_unlimited": {"amount": 999, "days": 0, "name": "Unlimited Token Pack"},
         }
         
-        plan = plans.get(order.plan_id)
-        if not plan:
-            # Accept any plan_id with explicit amount from frontend
-            plan = {"amount": order.amount, "days": 0, "name": order.plan_id}
+        plan = plans.get(payment.plan_id, {"amount": payment.amount or 0, "days": 0, "name": payment.plan_id})
         
-        # Create Razorpay order
-        razorpay_order = client.order.create({
-            "amount": plan["amount"],
-            "currency": "INR",
-            "receipt": f"order_{current_user.user_id}_{order.plan_id}",
-            "notes": {
-                "user_id": current_user.user_id,
-                "plan_id": order.plan_id,
-                "plan_days": plan["days"],
-                "has_full_package": str(plan["has_full_package"])
-            }
-        })
-        
-        return {
-            "order_id": razorpay_order["id"],
-            "amount": plan["amount"],
-            "currency": "INR",
-            "key_id": key_id,
-            "plan_name": plan["name"]
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Error creating payment order: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/payment/verify")
-async def verify_payment(
-    payment: PaymentVerify,
-    current_user: User = Depends(get_current_user)
-):
-    """Verify Razorpay payment and activate subscription"""
-    try:
-        key_id, key_secret = await get_razorpay_keys()
-        
-        if not key_id or not key_secret:
-            raise HTTPException(status_code=503, detail="Payment gateway not configured")
-        
-        import razorpay
-        import hmac
-        import hashlib
-        
-        client = razorpay.Client(auth=(key_id, key_secret))
-        
-        # Verify signature
-        message = f"{payment.razorpay_order_id}|{payment.razorpay_payment_id}"
-        generated_signature = hmac.new(
-            key_secret.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
-        
-        if generated_signature != payment.razorpay_signature:
-            raise HTTPException(status_code=400, detail="Invalid payment signature")
-        
-        # Get order details to find plan
-        order = client.order.fetch(payment.razorpay_order_id)
-        plan_days = int(order.get("notes", {}).get("plan_days", 30))
-        plan_id = order.get("notes", {}).get("plan_id", "monthly")
-        has_full_package = order.get("notes", {}).get("has_full_package", "False") == "True"
-        
-        # Update user subscription
-        subscription_end = datetime.now(timezone.utc) + timedelta(days=plan_days)
-        
-        await db.users.update_one(
-            {"user_id": current_user.user_id},
-            {"$set": {
-                "is_paid": True,
-                "has_full_package": has_full_package,
-                "subscription_type": plan_id,
-                "subscription_end": subscription_end.isoformat()
-            }}
-        )
-        
-        # Store payment record
-        await db.payments.insert_one({
+        # Store payment for admin verification
+        payment_record = {
             "user_id": current_user.user_id,
-            "order_id": payment.razorpay_order_id,
-            "payment_id": payment.razorpay_payment_id,
-            "amount": order.get("amount", 0) / 100,
-            "plan_id": plan_id,
-            "plan_days": plan_days,
-            "has_full_package": has_full_package,
+            "email": current_user.email,
+            "utr_number": payment.utr_number.strip(),
+            "plan_id": payment.plan_id,
+            "plan_name": plan["name"],
+            "amount": plan["amount"],
+            "plan_days": plan.get("days", 0),
+            "has_full_package": plan.get("has_full_package", False),
+            "status": "pending",
             "created_at": datetime.now(timezone.utc).isoformat()
-        })
+        }
+        
+        await db.upi_payments.insert_one(payment_record)
         
         return {
             "success": True,
-            "message": "Payment successful! Subscription activated.",
-            "subscription_end": subscription_end.isoformat()
+            "message": "Payment submitted! Tokens/subscription will be activated after verification.",
+            "status": "pending"
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error verifying payment: {e}")
+        logging.error(f"Error submitting UPI payment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/payments/pending")
+async def get_pending_payments(admin: User = Depends(get_admin_user)):
+    """Get all pending UPI payments for admin review"""
+    try:
+        payments = await db.upi_payments.find({"status": "pending"}).sort("created_at", -1).to_list(100)
+        for p in payments:
+            p["_id"] = str(p["_id"])
+        return {"payments": payments}
+    except Exception as e:
+        logging.error(f"Error fetching pending payments: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/payments/approve/{payment_id}")
+async def approve_payment(payment_id: str, admin: User = Depends(get_admin_user)):
+    """Approve a pending UPI payment and activate subscription/tokens"""
+    try:
+        from bson import ObjectId
+        payment_record = await db.upi_payments.find_one({"_id": ObjectId(payment_id)})
+        if not payment_record:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        if payment_record["status"] != "pending":
+            raise HTTPException(status_code=400, detail="Payment already processed")
+        
+        plan_days = payment_record.get("plan_days", 0)
+        plan_id = payment_record.get("plan_id", "")
+        has_full_package = payment_record.get("has_full_package", False)
+        user_id = payment_record["user_id"]
+        
+        # If subscription plan (has days > 0)
+        if plan_days > 0:
+            subscription_end = datetime.now(timezone.utc) + timedelta(days=plan_days)
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "is_paid": True,
+                    "has_full_package": has_full_package,
+                    "subscription_type": plan_id,
+                    "subscription_end": subscription_end.isoformat()
+                }}
+            )
+        
+        # If token purchase
+        token_packages = {
+            "token_starter": 100,
+            "token_basic": 500,
+            "token_pro": 1500,
+            "token_unlimited": 5000,
+        }
+        tokens_to_add = token_packages.get(plan_id, 0)
+        if tokens_to_add > 0:
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$inc": {"ai_tokens": tokens_to_add}}
+            )
+        
+        # Mark payment as approved
+        await db.upi_payments.update_one(
+            {"_id": ObjectId(payment_id)},
+            {"$set": {
+                "status": "approved",
+                "approved_by": admin.email,
+                "approved_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {"success": True, "message": f"Payment approved. User {user_id} activated."}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error approving payment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/payments/reject/{payment_id}")
+async def reject_payment(payment_id: str, admin: User = Depends(get_admin_user)):
+    """Reject a pending UPI payment"""
+    try:
+        from bson import ObjectId
+        await db.upi_payments.update_one(
+            {"_id": ObjectId(payment_id)},
+            {"$set": {
+                "status": "rejected",
+                "rejected_by": admin.email,
+                "rejected_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"success": True, "message": "Payment rejected."}
+    except Exception as e:
+        logging.error(f"Error rejecting payment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4887,61 +4902,49 @@ async def get_theme_presets(admin: User = Depends(get_admin_user)):
     }
 
 
-# ==================== ADMIN PAYMENT SETTINGS ====================
+# ==================== ADMIN UPI SETTINGS ====================
 
-class PaymentSettings(BaseModel):
-    razorpay_key_id: Optional[str] = None
-    razorpay_key_secret: Optional[str] = None
+class UPISettings(BaseModel):
+    upi_number: Optional[str] = None
+    payee_name: Optional[str] = None
 
 @api_router.get("/admin/settings/payment")
 async def get_payment_settings(admin: User = Depends(get_admin_user)):
-    """Get payment gateway settings"""
-    settings = await db.settings.find_one({"key": "payment"}, {"_id": 0})
-    
-    # First check database, then fall back to environment
-    if settings and settings.get("value"):
-        db_key_id = settings["value"].get("razorpay_key_id", "")
-        db_key_secret = settings["value"].get("razorpay_key_secret", "")
-        return {
-            "razorpay_key_id": db_key_id,
-            "razorpay_key_secret": "***" if db_key_secret else "",
-            "is_configured": bool(db_key_id and db_key_secret)
-        }
-    
+    """Get UPI payment settings"""
+    config = await get_upi_config()
     return {
-        "razorpay_key_id": RAZORPAY_KEY_ID or "",
-        "razorpay_key_secret": "***" if RAZORPAY_KEY_SECRET else "",
-        "is_configured": bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+        "upi_number": config["upi_number"],
+        "payee_name": config["payee_name"],
+        "is_configured": bool(config["upi_number"])
     }
 
 @api_router.put("/admin/settings/payment")
 async def update_payment_settings(
-    settings: PaymentSettings,
+    settings: UPISettings,
     admin: User = Depends(get_admin_user)
 ):
-    """Update payment gateway settings - Admin only"""
+    """Update UPI payment settings - Admin only. Change number anytime."""
     update_data = {}
     
-    if settings.razorpay_key_id is not None:
-        update_data["razorpay_key_id"] = settings.razorpay_key_id
-    
-    if settings.razorpay_key_secret is not None and settings.razorpay_key_secret != "***":
-        update_data["razorpay_key_secret"] = settings.razorpay_key_secret
+    if settings.upi_number is not None:
+        update_data["upi_number"] = settings.upi_number
+    if settings.payee_name is not None:
+        update_data["payee_name"] = settings.payee_name
     
     if update_data:
-        existing = await db.settings.find_one({"key": "payment"}, {"_id": 0})
+        existing = await db.settings.find_one({"key": "upi_config"}, {"_id": 0})
         if existing and existing.get("value"):
             merged = {**existing["value"], **update_data}
         else:
             merged = update_data
         
         await db.settings.update_one(
-            {"key": "payment"},
-            {"$set": {"key": "payment", "value": merged}},
+            {"key": "upi_config"},
+            {"$set": {"key": "upi_config", "value": merged}},
             upsert=True
         )
     
-    return {"message": "Payment settings updated successfully"}
+    return {"message": "UPI settings updated successfully"}
 
 
 # ==================== ADMIN CONTENT MANAGEMENT ====================
