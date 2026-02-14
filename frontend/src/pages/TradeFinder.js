@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui';
-import { fetchAPI } from '../lib/utils';
+import { fetchAPI, isMarketHours } from '../lib/utils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -20,17 +20,6 @@ const TABS = [
   { id: 'blocks',    label: '🧱 OI Blocks',         desc: 'Candle-wise momentum' },
   { id: 'swing',     label: '📈 Swing Spectrum',    desc: 'Breakout & NR7 scanners' },
 ];
-
-const isMarketHours = () => {
-  const now = new Date();
-  const istOffset = 5.5 * 60;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const ist = new Date(utc + istOffset * 60000);
-  const day = ist.getDay();
-  if (day === 0 || day === 6) return false;
-  const t = ist.getHours() * 60 + ist.getMinutes();
-  return t >= 555 && t <= 930;
-};
 
 const ChartTooltipStyle = {
   backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px',

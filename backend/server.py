@@ -260,22 +260,6 @@ async def health_check():
 async def api_health_check():
     return {"status": "healthy", "service": "money-saarthi-api"}
 
-@api_router.get("/debug/users-count")
-async def debug_users_count():
-    """Debug: Get count of users (public for troubleshooting)"""
-    try:
-        users_count = await db.users.count_documents({})
-        sessions_count = await db.user_sessions.count_documents({})
-        # Get all users with basic info
-        all_users = await db.users.find({}, {"email": 1, "name": 1, "last_login": 1, "created_at": 1, "is_admin": 1, "is_paid": 1, "_id": 0}).to_list(100)
-        return {
-            "total_users": users_count,
-            "active_sessions": sessions_count,
-            "users": all_users
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
 # ==================== DATA SOURCE STATUS ENDPOINT ====================
 @api_router.get("/data-source/status")
 async def get_data_source_status():

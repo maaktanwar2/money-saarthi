@@ -5,6 +5,15 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html"
   ],
+  // Safelist dynamic color classes used via template literals in AIAgent, TradeFinder, LTPCalculator
+  safelist: [
+    {
+      pattern: /^(bg|text|border)-(emerald|blue|purple|green|red|amber|cyan|slate|gray|yellow|violet|orange|indigo)-(300|400|500|600)\/(5|10|20|40)$/,
+    },
+    {
+      pattern: /^(bg|text|border)-(emerald|blue|purple|green|red|amber|cyan|slate|gray|yellow|violet|orange|indigo)-(300|400|500|600)$/,
+    },
+  ],
   theme: {
   	extend: {
   		borderRadius: {

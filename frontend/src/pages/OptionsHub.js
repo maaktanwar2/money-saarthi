@@ -13,7 +13,7 @@ import {
   Button, Badge, Input, Select, Spinner
 } from '../components/ui';
 import { TradingAreaChart, TradingBarChart } from '../components/ui/Charts';
-import { cn, formatINR, formatNumber, fetchAPI, getChangeColor } from '../lib/utils';
+import { cn, formatINR, formatNumber, fetchAPI, getChangeColor, isMarketHours } from '../lib/utils';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIG
@@ -34,17 +34,6 @@ const TOOLS = [
 ];
 
 const REFRESH_INTERVAL = 30000; // 30 seconds
-
-const isMarketHours = () => {
-  const now = new Date();
-  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  const hours = ist.getHours();
-  const minutes = ist.getMinutes();
-  const day = ist.getDay();
-  if (day === 0 || day === 6) return false;
-  const timeInMins = hours * 60 + minutes;
-  return timeInMins >= 555 && timeInMins <= 930; // 9:15 AM - 3:30 PM
-};
 
 const formatTime = (isoString) => {
   if (!isoString) return '';

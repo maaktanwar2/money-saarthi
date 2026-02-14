@@ -27,7 +27,7 @@ export {
 } from './useScannerDataEnhanced';
 
 // WebSocket Hooks
-export { useWebSocket, useLivePrice, useLivePrices, ConnectionStatus } from './useWebSocket';
+export { useWebSocket, ConnectionStatus } from './useWebSocket';
 
 // Toast Hook
 export { useToast, toast } from './use-toast';

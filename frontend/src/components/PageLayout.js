@@ -11,27 +11,23 @@ export const PageLayout = ({ children }) => {
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Sync sidebar state
+  // Sync sidebar state via custom event (no polling)
   useEffect(() => {
     const handleStorageChange = () => {
       setSidebarCollapsed(storage.get('sidebarCollapsed', false));
     };
+    const handleSidebarToggle = (e) => {
+      setSidebarCollapsed(e.detail.collapsed);
+    };
     
     window.addEventListener('storage', handleStorageChange);
-    
-    // Custom event for same-tab updates
-    const checkInterval = setInterval(() => {
-      const current = storage.get('sidebarCollapsed', false);
-      if (current !== sidebarCollapsed) {
-        setSidebarCollapsed(current);
-      }
-    }, 100);
+    window.addEventListener('sidebarToggle', handleSidebarToggle);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(checkInterval);
+      window.removeEventListener('sidebarToggle', handleSidebarToggle);
     };
-  }, [sidebarCollapsed]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

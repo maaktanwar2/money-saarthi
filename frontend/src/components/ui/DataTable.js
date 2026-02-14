@@ -1,5 +1,5 @@
 // Data Table Component - Professional trading table with sorting, filtering
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronUp, ChevronDown, Search, Filter, 
@@ -23,6 +23,9 @@ export const DataTable = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when data or search changes
+  useEffect(() => { setCurrentPage(1); }, [data, searchQuery]);
 
   // Filter data based on search
   const filteredData = useMemo(() => {

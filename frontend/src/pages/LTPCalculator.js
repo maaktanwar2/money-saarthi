@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge } from '../components/ui';
-import { formatINR, fetchAPI } from '../lib/utils';
+import { formatINR, fetchAPI, isMarketHours } from '../lib/utils';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine
@@ -53,18 +53,6 @@ const transformOptionChainData = (apiData, spot) => {
       },
     };
   });
-};
-
-/** Check if current time is during Indian market hours (9:15–15:30 IST, weekdays) */
-const isMarketHours = () => {
-  const now = new Date();
-  const istOffset = 5.5 * 60;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const ist = new Date(utc + istOffset * 60000);
-  const day = ist.getDay();
-  if (day === 0 || day === 6) return false;
-  const t = ist.getHours() * 60 + ist.getMinutes();
-  return t >= 555 && t <= 930; // 9:15=555, 15:30=930
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

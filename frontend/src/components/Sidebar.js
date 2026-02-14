@@ -27,7 +27,7 @@ import {
   Coins,
   Layers,
 } from 'lucide-react';
-import { cn, storage } from '../lib/utils';
+import { cn, storage, isAdmin as isAdminCheck } from '../lib/utils';
 
 // Check if user has pro access
 const checkProAccess = () => {
@@ -55,7 +55,7 @@ const NAV_ITEMS = [
     id: 'scanners',
     label: 'Scanners',
     icon: ScanSearch,
-    path: '/scanners',
+    path: '/signals',
     badge: '15+',
     description: 'Stock screeners & filters',
   },
@@ -176,19 +176,12 @@ const BOTTOM_ITEMS = [
   },
 ];
 
-// Admin email check
-const ADMIN_EMAILS = [
-  'maaktanwar@gmail.com',
-  'admin@moneysaarthi.com',
-  'superadmin@moneysaarthi.com'
-];
-
 const isUserAdmin = () => {
   try {
     const stored = localStorage.getItem('ms_user');
     if (stored) {
       const user = JSON.parse(stored);
-      return user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+      return isAdminCheck(user?.email);
     }
   } catch (e) {}
   return false;
@@ -291,6 +284,8 @@ export const Sidebar = () => {
 
   useEffect(() => {
     storage.set('sidebarCollapsed', collapsed);
+    // Dispatch custom event so PageLayout can sync without polling
+    window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { collapsed } }));
   }, [collapsed]);
 
   useEffect(() => {
@@ -305,8 +300,8 @@ export const Sidebar = () => {
     // Listen for storage changes (when user logs in/out)
     window.addEventListener('storage', updateStatus);
     
-    // Also check periodically in case of same-tab changes
-    const interval = setInterval(updateStatus, 1000);
+    // Also check periodically in case of same-tab changes (60s is plenty)
+    const interval = setInterval(updateStatus, 60000);
     
     return () => {
       window.removeEventListener('storage', updateStatus);

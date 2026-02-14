@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, Chrome, Apple } from 'lucide-react';
 import { Button, Input, Card } from '../components/ui';
-import { cn } from '../lib/utils';
+import { cn, isAdmin } from '../lib/utils';
 import { saveUserToList, getAllUsers } from '../services/adminService';
 import { API } from '../config/api';
 
@@ -13,18 +13,6 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '517321998192
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN PAGE - With Google & Apple Login
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// Admin emails - validated server-side, client hint only for UI routing
-const ADMIN_EMAILS = [
-  'maaktanwar@gmail.com',
-  'admin@moneysaarthi.com',
-  'superadmin@moneysaarthi.com'
-];
-
-const isAdmin = (email) => {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.toLowerCase());
-};
 
 export const saveUserToStorage = (user) => {
   // Check if user already exists with subscription in users list (for fallback)

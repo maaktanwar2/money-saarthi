@@ -57,7 +57,7 @@ class DateRangeRequest(BaseModel):
 async def get_token_balance(x_user_id: str = Header(..., alias="X-User-Id")):
     """Get user's current token balance"""
     try:
-        balance = token_service.get_balance(x_user_id)
+        balance = await token_service.get_balance(x_user_id)
         return {"success": True, **balance}
     except Exception as e:
         logger.error(f"Error getting balance: {e}")
@@ -83,7 +83,7 @@ async def recharge_tokens(
 ):
     """Add tokens after successful payment"""
     try:
-        result = token_service.add_tokens(
+        result = await token_service.add_tokens(
             x_user_id, 
             request.package_id, 
             request.transaction_id
@@ -105,7 +105,7 @@ async def get_token_history(
 ):
     """Get user's token usage history"""
     try:
-        history = token_service.get_usage_history(x_user_id, limit)
+        history = await token_service.get_usage_history(x_user_id, limit)
         return {"success": True, "history": history}
     except Exception as e:
         logger.error(f"Error getting history: {e}")
@@ -118,7 +118,7 @@ async def check_can_use_tokens(
     x_user_id: str = Header(..., alias="X-User-Id")
 ):
     """Check if user has enough tokens for an action"""
-    result = token_service.check_can_use(x_user_id, action)
+    result = await token_service.check_can_use(x_user_id, action)
     return {"success": True, **result}
 
 
@@ -129,7 +129,7 @@ async def use_tokens(
 ):
     """Use/deduct tokens for an action (e.g. bot_start)"""
     try:
-        result = token_service.use_tokens(x_user_id, request.action, request.count)
+        result = await token_service.use_tokens(x_user_id, request.action, request.count)
         return result
     except Exception as e:
         logger.error(f"Error using tokens: {e}")
@@ -150,7 +150,7 @@ async def analyze_user_trades(
     Consumes 20 tokens for full portfolio analysis
     """
     # Check token balance first
-    can_use = token_service.check_can_use(x_user_id, "portfolio_review")
+    can_use = await token_service.check_can_use(x_user_id, "portfolio_review")
     if not can_use["can_use"]:
         return {
             "success": False,
@@ -171,7 +171,7 @@ async def analyze_user_trades(
         analysis_result = await ai_advisor.analyze_trades(trades_data)
         
         # Consume tokens on success
-        token_result = token_service.use_tokens(x_user_id, "portfolio_review")
+        token_result = await token_service.use_tokens(x_user_id, "portfolio_review")
         
         return {
             "success": True,
@@ -203,7 +203,7 @@ async def analyze_single_position(
     Consumes 10 tokens
     """
     # Check token balance
-    can_use = token_service.check_can_use(x_user_id, "strategy_suggestion")
+    can_use = await token_service.check_can_use(x_user_id, "strategy_suggestion")
     if not can_use["can_use"]:
         return {
             "success": False,
@@ -219,7 +219,7 @@ async def analyze_single_position(
         
         if suggestion_result["success"]:
             # Consume tokens
-            token_result = token_service.use_tokens(x_user_id, "strategy_suggestion")
+            token_result = await token_service.use_tokens(x_user_id, "strategy_suggestion")
             
             return {
                 "success": True,
@@ -303,7 +303,7 @@ async def generate_scalping_strategy(
     Generate AI-powered scalping strategy
     Consumes 10 tokens
     """
-    can_use = token_service.check_can_use(x_user_id, "strategy_suggestion")
+    can_use = await token_service.check_can_use(x_user_id, "strategy_suggestion")
     if not can_use["can_use"]:
         return {
             "success": False,
@@ -331,7 +331,7 @@ async def generate_scalping_strategy(
             }
         
         if result["success"]:
-            token_result = token_service.use_tokens(x_user_id, "strategy_suggestion")
+            token_result = await token_service.use_tokens(x_user_id, "strategy_suggestion")
             result["tokens_used"] = token_result.get("tokens_used", 0)
             result["remaining_balance"] = token_result.get("remaining_balance", 0)
         
@@ -356,7 +356,7 @@ async def generate_trading_signal(
     Generate real-time trading signal
     Consumes 5 tokens
     """
-    can_use = token_service.check_can_use(x_user_id, "trade_analysis")
+    can_use = await token_service.check_can_use(x_user_id, "trade_analysis")
     if not can_use["can_use"]:
         return {
             "success": False,
@@ -380,7 +380,7 @@ async def generate_trading_signal(
             }
         
         if result.get("success"):
-            token_result = token_service.use_tokens(x_user_id, "trade_analysis")
+            token_result = await token_service.use_tokens(x_user_id, "trade_analysis")
             result["tokens_used"] = token_result.get("tokens_used", 0)
             result["remaining_balance"] = token_result.get("remaining_balance", 0)
         
@@ -401,7 +401,7 @@ async def deep_portfolio_analysis(
     Uses advanced prompts for comprehensive insights
     Consumes 20 tokens
     """
-    can_use = token_service.check_can_use(x_user_id, "portfolio_review")
+    can_use = await token_service.check_can_use(x_user_id, "portfolio_review")
     if not can_use["can_use"]:
         return {
             "success": False,
@@ -425,7 +425,7 @@ async def deep_portfolio_analysis(
             analysis_result = await ai_advisor.analyze_trades(trades_data)
         
         # Consume tokens
-        token_result = token_service.use_tokens(x_user_id, "portfolio_review")
+        token_result = await token_service.use_tokens(x_user_id, "portfolio_review")
         
         return {
             "success": True,

@@ -323,7 +323,6 @@ const SubscriptionRoute = ({ children }) => {
 import Dashboard from './pages/Dashboard';
 
 // Lazy loaded pages
-const ScannerHub = lazy(() => import('./pages/ScannerHub'));
 const OptionsHub = lazy(() => import('./pages/OptionsHub'));
 const SignalsHub = lazy(() => import('./pages/SignalsHub'));
 const MarketHub = lazy(() => import('./pages/MarketHub'));
@@ -334,6 +333,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 
 // User & Admin pages
 const UserProfile = lazy(() => import('./pages/UserProfile'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Login = lazy(() => import('./pages/Login'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 
@@ -360,9 +360,9 @@ function AppRouter() {
         <Route path="/" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
         <Route path="/dashboard" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
         
-        {/* Scanner Hub - All scanners */}
-        <Route path="/scanners" element={<SubscriptionRoute><ScannerHub /></SubscriptionRoute>} />
-        <Route path="/scanners/*" element={<Navigate to="/scanners" replace />} />
+        {/* Scanner Hub - redirects to Signals */}
+        <Route path="/scanners" element={<Navigate to="/signals" replace />} />
+        <Route path="/scanners/*" element={<Navigate to="/signals" replace />} />
         
         {/* Options Hub - Chain, Greeks, OI, Payoff */}
         <Route path="/options" element={<SubscriptionRoute><OptionsHub /></SubscriptionRoute>} />
@@ -416,10 +416,10 @@ function AppRouter() {
         {/* Settings */}
         <Route path="/settings" element={<SubscriptionRoute><Settings /></SubscriptionRoute>} />
         
-        {/* User Profile & Admin (merged) */}
+        {/* User Profile & Admin */}
         <Route path="/profile" element={<SubscriptionRoute><UserProfile /></SubscriptionRoute>} />
         <Route path="/user" element={<Navigate to="/profile" replace />} />
-        <Route path="/admin" element={<Navigate to="/profile" replace />} />
+        <Route path="/admin" element={<SubscriptionRoute><AdminPanel /></SubscriptionRoute>} />
         
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />

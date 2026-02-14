@@ -106,6 +106,13 @@ export const Header = ({ onMenuClick }) => {
   const [tokenBalance, setTokenBalance] = useState(null);
   const marketSession = getMarketSession();
 
+  // Get user info (must be before useEffect that references it)
+  const user = (() => {
+    try { return JSON.parse(localStorage.getItem('ms_user') || '{}'); } catch { return {}; }
+  })();
+  const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const photoURL = user.photoURL || user.picture || null;
+
   // Fetch token balance
   useEffect(() => {
     const loadTokens = async () => {
@@ -118,14 +125,7 @@ export const Header = ({ onMenuClick }) => {
     loadTokens();
     const interval = setInterval(loadTokens, 60000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Get user info
-  const user = (() => {
-    try { return JSON.parse(localStorage.getItem('ms_user') || '{}'); } catch { return {}; }
-  })();
-  const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const photoURL = user.photoURL || user.picture || null;
+  }, [user?.email]);
 
   const handleLogout = () => {
     localStorage.removeItem('ms_user');

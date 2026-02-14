@@ -5,6 +5,35 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED CONSTANTS & UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Admin emails — single source of truth (client hint only, validated server-side) */
+export const ADMIN_EMAILS = [
+  'maaktanwar@gmail.com',
+  'admin@moneysaarthi.com',
+  'superadmin@moneysaarthi.com',
+];
+
+/** Check if email is admin (client-side hint only) */
+export const isAdmin = (email) => {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+};
+
+/** Check if current time is during Indian market hours (9:15–15:30 IST, weekdays) */
+export const isMarketHours = () => {
+  const now = new Date();
+  const istOffset = 5.5 * 60;
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + istOffset * 60000);
+  const day = ist.getDay();
+  if (day === 0 || day === 6) return false;
+  const t = ist.getHours() * 60 + ist.getMinutes();
+  return t >= 555 && t <= 930; // 9:15=555, 15:30=930
+};
+
 /**
  * Format Indian currency (INR)
  */
