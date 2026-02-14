@@ -25,6 +25,7 @@ import {
   Sparkles,
   Bot,
   Coins,
+  Layers,
 } from 'lucide-react';
 import { cn, storage } from '../lib/utils';
 
@@ -84,6 +85,15 @@ const NAV_ITEMS = [
     badge: 'Pro',
     isPro: true,
     description: 'FII/DII, sectors, breadth',
+  },
+  {
+    id: 'sectors',
+    label: 'Sector Map',
+    icon: Layers,
+    path: '/sectors',
+    badge: 'Pro',
+    isPro: true,
+    description: 'All stocks by sector',
   },
   {
     id: 'ai-agent',
