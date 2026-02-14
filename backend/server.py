@@ -7389,6 +7389,177 @@ async def get_nse_sector_performance():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== F&O SECTOR PERFORMANCE ====================
+
+# 11 NSE F&O Sectors with index names, symbols, and constituent stocks
+FNO_SECTORS = {
+    "banking": {
+        "name": "Banking",
+        "index_name": "NIFTY BANK",
+        "index_symbol": "BANKNIFTY",
+        "stocks": ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK",
+                   "INDUSINDBK", "BANDHANBNK", "FEDERALBNK", "IDFCFIRSTB",
+                   "PNB", "BANKBARODA", "CANBK"]
+    },
+    "financial_services": {
+        "name": "Financial Services",
+        "index_name": "NIFTY FINANCIAL SERVICES",
+        "index_symbol": "FINNIFTY",
+        "stocks": ["HDFCBANK", "BAJFINANCE", "SBILIFE", "HDFCLIFE",
+                   "ICICIPRULI", "BAJAJFINSV", "ICICIGI", "CHOLAFIN"]
+    },
+    "it": {
+        "name": "IT",
+        "index_name": "NIFTY IT",
+        "index_symbol": "NIFTYIT",
+        "stocks": ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM",
+                   "LTIM", "MPHASIS", "COFORGE", "PERSISTENT"]
+    },
+    "auto": {
+        "name": "Auto",
+        "index_name": "NIFTY AUTO",
+        "index_symbol": "NIFTYAUTO",
+        "stocks": ["TATAMOTORS", "M&M", "MARUTI", "BAJAJ-AUTO",
+                   "EICHERMOT", "HEROMOTOCO", "ASHOKLEY", "ESCORTS"]
+    },
+    "pharma": {
+        "name": "Pharma",
+        "index_name": "NIFTY PHARMA",
+        "index_symbol": "NIFTYPHARMA",
+        "stocks": ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB",
+                   "BIOCON", "LUPIN", "TORNTPHARM", "AUROPHARMA"]
+    },
+    "fmcg": {
+        "name": "FMCG",
+        "index_name": "NIFTY FMCG",
+        "index_symbol": "NIFTYFMCG",
+        "stocks": ["HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA",
+                   "DABUR", "GODREJCP", "MARICO", "COLPAL"]
+    },
+    "metal": {
+        "name": "Metal",
+        "index_name": "NIFTY METAL",
+        "index_symbol": "NIFTYMETAL",
+        "stocks": ["TATASTEEL", "HINDALCO", "JSWSTEEL", "VEDL",
+                   "HINDZINC", "COALINDIA", "SAIL", "NMDC", "NATIONALUM"]
+    },
+    "energy": {
+        "name": "Energy",
+        "index_name": "NIFTY ENERGY",
+        "index_symbol": "NIFTYENERGY",
+        "stocks": ["RELIANCE", "ONGC", "POWERGRID", "NTPC",
+                   "COALINDIA", "ADANIGREEN", "ADANIPOWER"]
+    },
+    "realty": {
+        "name": "Realty",
+        "index_name": "NIFTY REALTY",
+        "index_symbol": "NIFTYREALTY",
+        "stocks": ["DLF", "GODREJPROP", "OBEROIRLTY", "PRESTIGE",
+                   "BRIGADE", "PHOENIXLTD"]
+    },
+    "media": {
+        "name": "Media",
+        "index_name": "NIFTY MEDIA",
+        "index_symbol": "NIFTYMEDIA",
+        "stocks": ["ZEEL", "SUNTV", "PVRINOX", "NAZARA", "HATHWAY"]
+    },
+    "psu_bank": {
+        "name": "PSU Bank",
+        "index_name": "NIFTY PSU BANK",
+        "index_symbol": "NIFTYPSUBANK",
+        "stocks": ["SBIN", "PNB", "BANKBARODA", "CANBK", "UNIONBANK",
+                   "INDIANB", "MAHABANK", "CENTRALBK"]
+    }
+}
+
+
+@api_router.get("/fno/sectors/performance")
+async def get_fno_sector_performance():
+    """
+    Get F&O Sector Performance - 11 NSE sectoral indices with live data
+    Returns sector index LTP, change, change%, status, constituent stocks
+    """
+    cache_key = "fno_sector_performance"
+    if cache_key in SECTOR_CACHE:
+        return SECTOR_CACHE[cache_key]
+
+    try:
+        # Fetch all NSE indices in one call
+        indices_data = await NSEIndia.get_all_indices()
+
+        # Build lookup: index name -> data
+        index_lookup = {}
+        if indices_data:
+            for idx in indices_data:
+                idx_name = (idx.get("index") or idx.get("indexSymbol") or "").upper()
+                index_lookup[idx_name] = idx
+
+        sectors_result = []
+        for sector_id, cfg in FNO_SECTORS.items():
+            idx_name = cfg["index_name"].upper()
+            idx = index_lookup.get(idx_name, {})
+
+            ltp = float(idx.get("last", 0) or 0)
+            prev_close = float(idx.get("previousClose", 0) or 0)
+            change = float(idx.get("variation", 0) or 0)
+            change_pct = float(idx.get("percentChange", 0) or 0)
+
+            # Determine status
+            if change_pct > 0.3:
+                status = "bullish"
+            elif change_pct < -0.3:
+                status = "bearish"
+            else:
+                status = "neutral"
+
+            sectors_result.append({
+                "id": sector_id,
+                "name": cfg["name"],
+                "index_name": cfg["index_name"],
+                "index_symbol": cfg["index_symbol"],
+                "ltp": round(ltp, 2),
+                "prev_close": round(prev_close, 2),
+                "change": round(change, 2),
+                "change_percent": round(change_pct, 2),
+                "open": float(idx.get("open", 0) or 0),
+                "high": float(idx.get("high", 0) or 0),
+                "low": float(idx.get("low", 0) or 0),
+                "year_high": float(idx.get("yearHigh", 0) or 0),
+                "year_low": float(idx.get("yearLow", 0) or 0),
+                "advances": int(idx.get("advances", 0) or 0),
+                "declines": int(idx.get("declines", 0) or 0),
+                "pe": idx.get("pe", ""),
+                "pb": idx.get("pb", ""),
+                "stocks_count": len(cfg["stocks"]),
+                "high_weightage_stocks": cfg["stocks"][:3],
+                "all_stocks": cfg["stocks"],
+                "status": status,
+                "change_30d": float(idx.get("perChange30d", 0) or 0),
+                "change_365d": float(idx.get("perChange365d", 0) or 0),
+            })
+
+        # Sort by change_percent descending
+        sectors_result.sort(key=lambda x: x["change_percent"], reverse=True)
+
+        result = {
+            "last_updated": datetime.now(timezone.utc).isoformat(),
+            "total_sectors": len(sectors_result),
+            "sectors": sectors_result,
+            "market_mood": {
+                "bullish": len([s for s in sectors_result if s["status"] == "bullish"]),
+                "bearish": len([s for s in sectors_result if s["status"] == "bearish"]),
+                "neutral": len([s for s in sectors_result if s["status"] == "neutral"]),
+            }
+        }
+
+        SECTOR_CACHE[cache_key] = result
+        return result
+
+    except Exception as e:
+        logging.error(f"Error fetching F&O sector performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/nse/52week-high-low")
 async def get_nse_52week_high_low(index: str = "NIFTY 500"):
     """

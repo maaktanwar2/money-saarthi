@@ -343,6 +343,7 @@ const LTPCalculator = lazy(() => import('./pages/LTPCalculator'));
 const TradeFinder = lazy(() => import('./pages/TradeFinder'));
 const AIAgent = lazy(() => import('./pages/AIAgent'));
 const Sectors = lazy(() => import('./pages/Sectors'));
+const SectorPerformance = lazy(() => import('./pages/SectorPerformance'));
 
 function AppRouter() {
   return (
@@ -379,6 +380,9 @@ function AppRouter() {
         
         {/* Sectors - All stocks by sector */}
         <Route path="/sectors" element={<SubscriptionRoute><Sectors /></SubscriptionRoute>} />
+        
+        {/* Sector Performance - F&O sectoral index performance */}
+        <Route path="/sector-performance" element={<SubscriptionRoute><SectorPerformance /></SubscriptionRoute>} />
         <Route path="/fii-dii" element={<Navigate to="/market" replace />} />
         
         {/* Redirect old AI Advisor routes to Algo Trading */}

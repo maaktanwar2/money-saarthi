@@ -96,6 +96,15 @@ const NAV_ITEMS = [
     description: 'All stocks by sector',
   },
   {
+    id: 'sector-performance',
+    label: 'Sector Performance',
+    icon: BarChart3,
+    path: '/sector-performance',
+    badge: 'New',
+    isPro: true,
+    description: 'F&O sectoral index performance',
+  },
+  {
     id: 'ai-agent',
     label: 'AI Agent',
     icon: Brain,
