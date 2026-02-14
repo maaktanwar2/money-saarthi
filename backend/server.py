@@ -1489,86 +1489,107 @@ async def get_stock_quotes(symbols: List[str]):
                 results[symbol] = {"error": "Failed to fetch"}
         return {"source": "cache", "data": results}
 
-# NSE F&O stocks list with sector mapping (OFFICIAL NSE F&O List - 208 stocks as of Jan 2026)
+# NSE F&O stocks list with sector mapping (NSE GICS Classification - 208 stocks)
 FNO_STOCKS_BY_SECTOR = {
-    "Financial Services": [
-        # Banks
+    "Banks": [
         "HDFCBANK.NS", "ICICIBANK.NS", "AXISBANK.NS", "KOTAKBANK.NS", "INDUSINDBK.NS",
         "BANDHANBNK.NS", "FEDERALBNK.NS", "IDFCFIRSTB.NS", "AUBANK.NS", "RBLBANK.NS",
         "SBIN.NS", "PNB.NS", "BANKBARODA.NS", "CANBK.NS", "BANKINDIA.NS", "INDIANB.NS",
-        "UNIONBANK.NS", "YESBANK.NS",
-        # NBFCs & Finance
-        "BAJFINANCE.NS", "BAJAJFINSV.NS", "BAJAJHLDNG.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS", 
-        "LICHSGFIN.NS", "MANAPPURAM.NS", "SHRIRAMFIN.NS", "RECLTD.NS", "PFC.NS",
-        "LTF.NS", "PNBHOUSING.NS", "IIFL.NS", "360ONE.NS", "ABCAPITAL.NS",
-        # Insurance
-        "HDFCLIFE.NS", "SBILIFE.NS", "ICICIPRULI.NS", "ICICIGI.NS", "SBICARD.NS", 
-        "LICI.NS", "MFSL.NS",
-        # AMCs & Exchanges
-        "HDFCAMC.NS", "MCX.NS", "BSE.NS", "CDSL.NS", "CAMS.NS", "KFINTECH.NS",
-        "ANGELONE.NS", "NUVAMA.NS", "JIOFIN.NS"
+        "UNIONBANK.NS", "YESBANK.NS"
     ],
-    "Information Technology": [
+    "Financial Services": [
+        "BAJFINANCE.NS", "CHOLAFIN.NS", "MUTHOOTFIN.NS", "LICHSGFIN.NS", "MANAPPURAM.NS",
+        "SHRIRAMFIN.NS", "RECLTD.NS", "PFC.NS", "LTF.NS", "PNBHOUSING.NS", "IIFL.NS",
+        "360ONE.NS", "SBICARD.NS", "HDFCAMC.NS", "MCX.NS", "BSE.NS", "CDSL.NS",
+        "KFINTECH.NS", "ANGELONE.NS", "NUVAMA.NS", "JIOFIN.NS",
+        "IREDA.NS", "IRFC.NS", "HUDCO.NS", "SAMMAANCAP.NS", "IEX.NS"
+    ],
+    "Insurance": [
+        "HDFCLIFE.NS", "SBILIFE.NS", "ICICIPRULI.NS", "ICICIGI.NS", "LICI.NS", "MFSL.NS"
+    ],
+    "Software & Services": [
         "TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS",
         "MPHASIS.NS", "COFORGE.NS", "PERSISTENT.NS", "TATAELXSI.NS", "OFSS.NS",
-        "KPITTECH.NS", "TATATECH.NS"
+        "KPITTECH.NS", "TATATECH.NS", "CAMS.NS", "POLICYBZR.NS", "PAYTM.NS"
     ],
-    "Automobile & Auto Components": [
-        "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS", 
-        "ASHOKLEY.NS", "TVSMOTOR.NS", "TIINDIA.NS", "TMPV.NS",
-        "MOTHERSON.NS", "BOSCHLTD.NS", "BHARATFORG.NS", "EXIDEIND.NS", "SONACOMS.NS",
-        "UNOMINDA.NS"
-    ],
-    "Healthcare & Pharmaceuticals": [
+    "Pharmaceuticals & Biotechnology": [
         "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS",
         "AUROPHARMA.NS", "BIOCON.NS", "TORNTPHARM.NS", "ZYDUSLIFE.NS", "ALKEM.NS",
-        "GLENMARK.NS", "LAURUSLABS.NS", "MANKIND.NS", "PPLPHARMA.NS",
-        "APOLLOHOSP.NS", "MAXHEALTH.NS", "FORTIS.NS", "SYNGENE.NS"
+        "GLENMARK.NS", "LAURUSLABS.NS", "MANKIND.NS", "PPLPHARMA.NS", "SYNGENE.NS"
     ],
-    "FMCG & Consumer": [
-        "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "TATACONSUM.NS",
-        "UNITDSPR.NS", "VBL.NS", "JUBLFOOD.NS", "PATANJALI.NS",
-        "DABUR.NS", "MARICO.NS", "GODREJCP.NS", "COLPAL.NS",
-        "ASIANPAINT.NS", "TITAN.NS", "PAGEIND.NS", "TRENT.NS", "DMART.NS", 
-        "ETERNAL.NS", "SWIGGY.NS", "NYKAA.NS", "KALYANKJIL.NS", "INDHOTEL.NS"
+    "Healthcare": [
+        "APOLLOHOSP.NS", "MAXHEALTH.NS", "FORTIS.NS"
+    ],
+    "FMCG": [
+        "HINDUNILVR.NS", "NESTLEIND.NS", "BRITANNIA.NS", "PATANJALI.NS",
+        "DABUR.NS", "MARICO.NS", "GODREJCP.NS", "COLPAL.NS"
+    ],
+    "Food, Beverages & Tobacco": [
+        "ITC.NS", "TATACONSUM.NS", "UNITDSPR.NS", "VBL.NS"
+    ],
+    "Automobiles & Auto Components": [
+        "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS",
+        "ASHOKLEY.NS", "TVSMOTOR.NS", "TIINDIA.NS", "TMPV.NS",
+        "MOTHERSON.NS", "BOSCHLTD.NS", "EXIDEIND.NS", "SONACOMS.NS", "UNOMINDA.NS"
     ],
     "Metals & Mining": [
         "TATASTEEL.NS", "JSWSTEEL.NS", "JINDALSTEL.NS", "SAIL.NS",
         "HINDALCO.NS", "VEDL.NS", "HINDZINC.NS", "NATIONALUM.NS",
         "COALINDIA.NS", "NMDC.NS", "APLAPOLLO.NS"
     ],
-    "Oil, Gas & Energy": [
-        "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "HINDPETRO.NS", "GAIL.NS",
-        "PETRONET.NS", "OIL.NS",
-        "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS", "TORNTPOWER.NS",
-        "ADANIGREEN.NS", "JSWENERGY.NS", "IREDA.NS", "IRFC.NS", "HUDCO.NS",
-        "SUZLON.NS", "INOXWIND.NS", "WAAREEENER.NS", "PREMIERENE.NS"
+    "Oil & Gas": [
+        "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "HINDPETRO.NS",
+        "PETRONET.NS", "OIL.NS"
     ],
-    "Infrastructure & Construction": [
-        "LT.NS", "NBCC.NS", "RVNL.NS",
-        "ULTRACEMCO.NS", "GRASIM.NS", "SHREECEM.NS", "AMBUJACEM.NS", "DALBHARAT.NS",
+    "Utilities": [
+        "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "NHPC.NS", "TORNTPOWER.NS",
+        "JSWENERGY.NS", "GAIL.NS", "ADANIENSOL.NS", "ADANIGREEN.NS"
+    ],
+    "Cement and Construction": [
+        "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "SHREECEM.NS", "AMBUJACEM.NS",
+        "DALBHARAT.NS", "GMRAIRPORT.NS", "NBCC.NS", "RVNL.NS"
+    ],
+    "Realty": [
         "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "PRESTIGE.NS", "LODHA.NS",
         "PHOENIXLTD.NS"
     ],
-    "Telecom & Media": [
+    "Consumer Durables": [
+        "CROMPTON.NS", "BLUESTARCO.NS", "HAVELLS.NS", "AMBER.NS", "VOLTAS.NS",
+        "KEI.NS", "PGEL.NS", "ASIANPAINT.NS", "DIXON.NS", "PREMIERENE.NS",
+        "WAAREEENER.NS", "POLYCAB.NS", "KAYNES.NS"
+    ],
+    "General Industrials": [
+        "HAL.NS", "BHARATFORG.NS", "ASTRAL.NS", "ABB.NS", "CUMMINSIND.NS",
+        "CGPOWER.NS", "POWERINDIA.NS", "SIEMENS.NS", "SUPREMEIND.NS",
+        "BHEL.NS", "BEL.NS", "SUZLON.NS", "MAZDOCK.NS", "SOLARINDS.NS",
+        "INOXWIND.NS", "BDL.NS"
+    ],
+    "Telecom Services": [
         "BHARTIARTL.NS", "IDEA.NS", "INDUSTOWER.NS"
     ],
-    "Capital Goods & Industrials": [
-        "SIEMENS.NS", "ABB.NS", "HAVELLS.NS", "VOLTAS.NS", "BLUESTARCO.NS",
-        "CROMPTON.NS", "POLYCAB.NS", "DIXON.NS", "PGEL.NS", "AMBER.NS",
-        "CUMMINSIND.NS", "BEL.NS", "HAL.NS", "BHEL.NS", "BDL.NS", "MAZDOCK.NS",
-        "CONCOR.NS", "IRCTC.NS", "GMRAIRPORT.NS", "POWERINDIA.NS",
-        "KEI.NS", "KAYNES.NS", "CGPOWER.NS", "SOLARINDS.NS", "SUPREMEIND.NS"
+    "Transportation": [
+        "INDIGO.NS", "ADANIPORTS.NS", "CONCOR.NS", "DELHIVERY.NS"
     ],
-    "Chemicals & Fertilizers": [
-        "PIDILITIND.NS", "SRF.NS", "PIIND.NS", "UPL.NS", "ASTRAL.NS"
+    "Retailing": [
+        "SWIGGY.NS", "NAUKRI.NS", "TRENT.NS", "DMART.NS", "NYKAA.NS", "ETERNAL.NS"
     ],
-    "Adani Group": [
-        "ADANIENT.NS", "ADANIPORTS.NS", "ADANIGREEN.NS", "ADANIENSOL.NS"
+    "Chemicals & Petrochemicals": [
+        "SRF.NS", "PIDILITIND.NS", "PIIND.NS", "UPL.NS"
     ],
-    "Others": [
-        "NAUKRI.NS", "PAYTM.NS", "POLICYBZR.NS", "DELHIVERY.NS", "IEX.NS",
-        "INDIGO.NS", "SAMMAANCAP.NS"
+    "Diversified": [
+        "BAJAJFINSV.NS", "BAJAJHLDNG.NS", "ABCAPITAL.NS"
+    ],
+    "Commercial Services & Supplies": [
+        "ADANIENT.NS"
+    ],
+    "Diversified Consumer Services": [
+        "IRCTC.NS"
+    ],
+    "Hotels Restaurants & Tourism": [
+        "JUBLFOOD.NS", "INDHOTEL.NS"
+    ],
+    "Textiles Apparels & Accessories": [
+        "PAGEIND.NS", "TITAN.NS", "KALYANKJIL.NS"
     ]
 }
 
@@ -10629,9 +10650,6 @@ async def get_fno_by_sector():
         
         # Process each sector from FNO_STOCKS_BY_SECTOR
         for sector, symbols in FNO_STOCKS_BY_SECTOR.items():
-            if sector in ["Adani Group", "Others"]:  # Skip non-essential categories
-                continue
-                
             stock_list = []
             for sym in symbols:
                 clean_symbol = sym.replace(".NS", "")
