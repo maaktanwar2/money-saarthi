@@ -13,7 +13,7 @@ export const Button = forwardRef(({
   ...props 
 }, ref) => {
   const variants = {
-    default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20',
+    default: 'bg-primary-dark text-primary-foreground hover:bg-primary-dark/85 shadow-lg shadow-primary/20',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     outline: 'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
     ghost: 'hover:bg-accent hover:text-accent-foreground',

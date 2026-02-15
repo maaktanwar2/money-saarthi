@@ -10,7 +10,12 @@
         <meta name="keywords" content="Money Saarthi, MoneySaarthi, F&O trading, Indian stock market, stock scanner, trading strategies, NSE, BSE, options trading, futures trading" />
         <meta name="author" content="Money Saarthi" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://moneysaarthi.in/" />
+        
+        <!-- Preconnect hints for faster resource loading -->
+        <link rel="preconnect" href="https://accounts.google.com" crossorigin />
+        <link rel="preconnect" href="https://us.i.posthog.com" crossorigin />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://us.i.posthog.com" />
         
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website" />
@@ -30,14 +35,6 @@
         <link rel="icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
         <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/logo192.png" />
         
-        <!-- Google Analytics - Replace GA_MEASUREMENT_ID with your actual ID from Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'GA_MEASUREMENT_ID');
-        </script>
         
         <!--
         manifest.json provides metadata used when your web app is installed on a

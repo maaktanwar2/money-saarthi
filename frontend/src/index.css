@@ -39,6 +39,7 @@
     
     /* ═══ INTERACTIVE STATES ═══ */
     --primary: 160 84% 39%;
+    --primary-dark: 160 84% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4% 16%;
     --secondary-foreground: 0 0% 98%;
@@ -83,6 +84,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
     --primary: 160 84% 39%;
+    --primary-dark: 160 84% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;

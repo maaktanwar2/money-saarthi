@@ -366,7 +366,7 @@ export default function Login() {
   return (
     <>
       <SEO {...getSeoConfig('/login')} path="/login" />
-      <div className="min-h-screen bg-background flex">
+      <main className="min-h-screen bg-background flex">
         {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 via-background to-teal-900/20 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Pattern */}
@@ -551,7 +551,8 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -607,7 +608,7 @@ export default function Login() {
           </p>
         </motion.div>
       </div>
-    </div>
+    </main>
     </>
   );
 }
