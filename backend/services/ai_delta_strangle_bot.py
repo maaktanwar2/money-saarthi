@@ -30,9 +30,9 @@ logger = logging.getLogger(__name__)
 
 LOT_SIZES = {
     "NIFTY": 65,
-    "BANKNIFTY": 15,
-    "FINNIFTY": 25,
-    "MIDCPNIFTY": 75,
+    "BANKNIFTY": 30,
+    "FINNIFTY": 60,
+    "MIDCPNIFTY": 120,
     "SENSEX": 10,
 }
 

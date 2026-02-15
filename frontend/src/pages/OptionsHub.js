@@ -759,7 +759,7 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
         const strike = leg.strike || spotPrice;
         const premium = leg.premium || 0;
         const qty = leg.quantity || 0;
-        const lotSize = symbol === 'BANKNIFTY' ? 15 : symbol === 'FINNIFTY' ? 25 : 25;
+        const lotSize = symbol === 'BANKNIFTY' ? 30 : symbol === 'FINNIFTY' ? 60 : 65;
 
         let intrinsic = 0;
         if (leg.type === 'call') intrinsic = Math.max(0, price - strike);

@@ -1606,7 +1606,7 @@ FNO_LOT_SIZES = {
     "HDFCLIFE": 1100, "HEROMOTOCO": 150, "HINDALCO": 700, "HINDPETRO": 2025,
     "HINDUNILVR": 300, "HINDZINC": 1225, "HUDCO": 2775, "ICICIBANK": 700,
     "ICICIGI": 325, "ICICIPRULI": 925, "IDEA": 71475, "IDFCFIRSTB": 9275,
-    "IEX": 3750, "IIFL": 1650, "INDHOTEL": 1000, "INDIANB": 1000,
+    "IEX": 3750, "INDHOTEL": 1000, "INDIANB": 1000,
     "INDIGO": 150, "INDUSINDBK": 700, "INDUSTOWER": 1700, "INFY": 400,
     "INOXWIND": 3575, "IOC": 4875, "IRCTC": 875, "IREDA": 3450, "IRFC": 4250, "ITC": 1600,
     # Stocks J-L
@@ -2631,19 +2631,41 @@ async def google_auth(request: Request, response: Response):
         
         logging.info(f"🔑 GOOGLE_CLIENT_ID configured: {GOOGLE_CLIENT_ID[:20]}...")
         
-        # Verify the Google token with clock tolerance for slightly off clocks
-        try:
-            logging.info("🔍 Verifying Google token...")
-            idinfo = id_token.verify_oauth2_token(
-                credential, 
-                google_requests.Request(), 
-                GOOGLE_CLIENT_ID,
-                clock_skew_in_seconds=60  # Allow 60 seconds clock skew
-            )
-            logging.info(f"✅ Token verified for: {idinfo.get('email')}")
-        except ValueError as e:
-            logging.error(f"❌ Token verification failed: {e}")
-            raise HTTPException(status_code=401, detail="Invalid Google token")
+        # Check if credential is a Google OAuth access token (short, no dots) vs JWT (has 2 dots)
+        is_access_token = credential.count('.') < 2
+        
+        if is_access_token:
+            # Verify access token by fetching user info from Google
+            try:
+                logging.info("🔍 Verifying Google access token via userinfo endpoint...")
+                async with httpx.AsyncClient() as client:
+                    userinfo_resp = await client.get(
+                        'https://www.googleapis.com/oauth2/v3/userinfo',
+                        headers={'Authorization': f'Bearer {credential}'}
+                    )
+                if userinfo_resp.status_code != 200:
+                    raise HTTPException(status_code=401, detail="Invalid Google access token")
+                idinfo = userinfo_resp.json()
+                logging.info(f"✅ Access token verified for: {idinfo.get('email')}")
+            except HTTPException:
+                raise
+            except Exception as e:
+                logging.error(f"❌ Access token verification failed: {e}")
+                raise HTTPException(status_code=401, detail="Invalid Google access token")
+        else:
+            # Verify the Google JWT credential with clock tolerance
+            try:
+                logging.info("🔍 Verifying Google JWT token...")
+                idinfo = id_token.verify_oauth2_token(
+                    credential, 
+                    google_requests.Request(), 
+                    GOOGLE_CLIENT_ID,
+                    clock_skew_in_seconds=60  # Allow 60 seconds clock skew
+                )
+                logging.info(f"✅ Token verified for: {idinfo.get('email')}")
+            except ValueError as e:
+                logging.error(f"❌ Token verification failed: {e}")
+                raise HTTPException(status_code=401, detail="Invalid Google token")
         
         # Extract user info
         email = idinfo.get('email')
@@ -11542,15 +11564,15 @@ async def calculate_margin(data: dict):
         price = data.get("price", 24156)
         
         lot_sizes = {
-            "NIFTY": 65,       # Jan 2026: reduced from 75
-            "BANKNIFTY": 30,   # Jan 2026: updated
-            "FINNIFTY": 60,    # Jan 2026: updated
-            "RELIANCE": 250,
-            "TCS": 150,
+            "NIFTY": 65,       # NSE Feb 2026
+            "BANKNIFTY": 30,   # NSE Feb 2026
+            "FINNIFTY": 60,    # NSE Feb 2026
+            "RELIANCE": 500,
+            "TCS": 175,
             "HDFCBANK": 550,
-            "INFY": 300,
+            "INFY": 400,
             "ICICIBANK": 700,
-            "SBIN": 1500
+            "SBIN": 750
         }
         
         lot_size = lot_sizes.get(stock, 100)

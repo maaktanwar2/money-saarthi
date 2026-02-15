@@ -121,7 +121,7 @@ class NiftyTradingStrategies:
     
     def __init__(self, symbol: str = "NIFTY"):
         self.symbol = symbol
-        self.lot_size = 50 if symbol == "NIFTY" else 15  # BANKNIFTY = 15
+        self.lot_size = 65 if symbol == "NIFTY" else 30  # BANKNIFTY = 30 (NSE Feb 2026)
         
         # Default strategy parameters (can be customized)
         self.strategy_params = {

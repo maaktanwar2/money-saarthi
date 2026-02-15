@@ -25,7 +25,7 @@ export default function Backtest() {
       nifty_start: 21727.0,
       nifty_end: 23508.0,
       nifty_return_pct: 8.19,
-      lot_size: 75,
+      lot_size: 65,
       margin_per_lot: 45000
     },
     strategies: {
@@ -184,7 +184,7 @@ export default function Backtest() {
 
       {/* Disclaimer */}
       <div className="mx-4 mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm">
-        ⚠️ Past performance does not guarantee future results. Backtest uses realistic option pricing with slippage, brokerage & STT. Lot size: 75 | NIFTY return: {data?.summary?.nifty_return_pct?.toFixed(1) || '8.2'}%
+        ⚠️ Past performance does not guarantee future results. Backtest uses realistic option pricing with slippage, brokerage & STT. Lot size: 65 | NIFTY return: {data?.summary?.nifty_return_pct?.toFixed(1) || '8.2'}%
       </div>
 
       {/* Tab Navigation */}

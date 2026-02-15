@@ -130,7 +130,7 @@ const AlgoTrading = () => {
   
   const [deltaConfig, setDeltaConfig] = useState({
     underlying: 'NIFTY',
-    lotSize: 25,
+    lotSize: 65,
     maxDeltaDrift: 0.1,
     hedgeThreshold: 0.05,
     // ─── Strategy & Timeframe ───

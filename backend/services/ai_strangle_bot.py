@@ -1485,9 +1485,9 @@ class AIStrangleBot:
         # Lot size mapping (CANNOT be changed by user - enforced)
         LOT_SIZES = {
             "NIFTY": 65,
-            "BANKNIFTY": 15,
-            "FINNIFTY": 25,
-            "MIDCPNIFTY": 75
+            "BANKNIFTY": 30,
+            "FINNIFTY": 60,
+            "MIDCPNIFTY": 120
         }
         
         changes = {}

@@ -264,7 +264,7 @@ class TradingEngine:
         if good_entry_time:
             # Calculate quantity based on risk
             risk_amount = self.capital * (self.risk_per_trade / 100)
-            lot_size = 25  # NIFTY lot size (updated for 2026)
+            lot_size = 65  # NIFTY lot size (NSE Feb 2026)
             estimated_premium = 200  # Estimated total premium
             
             quantity = max(1, int(risk_amount / (estimated_premium * lot_size))) * lot_size
@@ -290,7 +290,7 @@ class TradingEngine:
         
         if time(9, 30) <= current_time <= time(14, 30):
             atm_strike = round(nifty_ltp / 50) * 50
-            lot_size = 25
+            lot_size = 65  # NIFTY lot size (NSE Feb 2026)
             
             return Signal(
                 symbol=f"NIFTY {atm_strike} CE",

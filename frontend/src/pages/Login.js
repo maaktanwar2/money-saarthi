@@ -97,6 +97,8 @@ export default function Login() {
       // Save session token
       if (data.session_id) {
         localStorage.setItem('session_id', data.session_id);
+        localStorage.setItem('authToken', data.session_id);
+        sessionStorage.setItem('authToken', data.session_id);
       }
 
       // Build user object from backend response and save to localStorage
@@ -151,9 +153,15 @@ export default function Login() {
   // Authenticate with backend to get session token and subscription data
   const authenticateWithBackend = async (email, name, picture, credential = null) => {
     try {
+      // Only send credential-based auth (access_token or JWT)
       const requestBody = credential 
-        ? { credential } // Send JWT credential for verification
-        : { email, name: name || email.split('@')[0], picture: picture || '' };
+        ? { credential } // Send JWT credential or access token for verification
+        : null;
+      
+      if (!requestBody) {
+        console.warn('No credential available for backend auth');
+        return null;
+      }
       
       const response = await fetch(`${API}/auth/google`, {
         method: 'POST',
@@ -261,69 +269,73 @@ export default function Login() {
           use_fedcm_for_prompt: true,
         });
         
-        // Show the One Tap prompt
+        // Use FedCM-compatible prompt (no deprecated status callbacks)
         window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to popup if One Tap is not available
-            window.google.accounts.oauth2.initTokenClient({
-              client_id: GOOGLE_CLIENT_ID,
-              scope: 'email profile',
-              callback: async (tokenResponse) => {
-                if (tokenResponse.access_token) {
-                  // Fetch user info using the access token
-                  const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                  });
-                  const userInfo = await userInfoResponse.json();
-                  
-                  // Authenticate with backend to get session and subscription data
-                  const backendResponse = await authenticateWithBackend(userInfo.email, userInfo.name, userInfo.picture);
-                  
-                  // Determine subscription status from backend
-                  let subscription = null;
-                  if (backendResponse?.user) {
-                    const backendUser = backendResponse.user;
-                    if (backendUser.is_paid || backendUser.has_free_access || backendUser.has_full_package) {
-                      subscription = {
-                        plan: 'pro',
-                        status: 'active',
-                        expiresAt: backendUser.subscription_end || null,
-                        billingCycle: 'monthly',
-                      };
+          // If prompt fails (FedCM not supported, user dismissed, etc.), fall back to popup
+          if (notification.getMomentType() === 'skipped' || notification.getMomentType() === 'dismissed') {
+            // Use OAuth popup flow with credential response
+            window.google.accounts.id.cancel();
+            // Create a hidden button and trigger it for popup
+            const btnDiv = document.createElement('div');
+            btnDiv.style.display = 'none';
+            document.body.appendChild(btnDiv);
+            window.google.accounts.id.renderButton(btnDiv, {
+              type: 'standard',
+              size: 'large',
+            });
+            const btn = btnDiv.querySelector('[role="button"]') || btnDiv.querySelector('div[aria-labelledby]');
+            if (btn) {
+              btn.click();
+            } else {
+              // Final fallback: use token client (OAuth popup)
+              window.google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'openid email profile',
+                callback: async (tokenResponse) => {
+                  if (tokenResponse.access_token) {
+                    try {
+                      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                      });
+                      const userInfo = await userInfoResponse.json();
+                      
+                      // We can't get a JWT credential from token flow, so save user locally
+                      // and authenticate with backend using the access token
+                      const backendResponse = await authenticateWithBackend(userInfo.email, userInfo.name, userInfo.picture, tokenResponse.access_token);
+                      
+                      let subscription = null;
+                      if (backendResponse?.user) {
+                        const backendUser = backendResponse.user;
+                        if (backendUser.is_paid || backendUser.has_free_access || backendUser.has_full_package) {
+                          subscription = { plan: 'pro', status: 'active', expiresAt: backendUser.subscription_end || null, billingCycle: 'monthly' };
+                        }
+                      }
+                      
+                      const user = saveUserToStorage({
+                        id: `google_${userInfo.sub}`,
+                        email: userInfo.email,
+                        name: userInfo.name || userInfo.email.split('@')[0],
+                        avatar: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'User')}&background=10b981&color=fff`,
+                        joinedAt: new Date().toISOString(),
+                        provider: 'google',
+                        emailVerified: userInfo.email_verified,
+                        subscription,
+                        preferences: { defaultIndex: 'NIFTY', notifications: true, darkMode: true },
+                        stats: { totalTrades: 0, winRate: 0, totalPnL: 0, streak: 0 }
+                      });
+                      setLoading(false);
+                      navigate(user.isAdmin ? '/admin' : (sessionStorage.getItem('redirectAfterLogin') || '/'));
+                      sessionStorage.removeItem('redirectAfterLogin');
+                    } catch (err) {
+                      setError('Google login failed. Please try again.');
+                      setLoading(false);
                     }
                   }
-                  
-                  const user = saveUserToStorage({
-                    id: `google_${userInfo.sub}`,
-                    email: userInfo.email,
-                    name: userInfo.name || userInfo.email.split('@')[0],
-                    avatar: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'User')}&background=10b981&color=fff`,
-                    joinedAt: new Date().toISOString(),
-                    provider: 'google',
-                    emailVerified: userInfo.email_verified,
-                    subscription: subscription, // Use backend subscription data
-                    preferences: {
-                      defaultIndex: 'NIFTY',
-                      notifications: true,
-                      darkMode: true
-                    },
-                    stats: {
-                      totalTrades: 0,
-                      winRate: 0,
-                      totalPnL: 0,
-                      streak: 0
-                    }
-                  });
-
-                  setLoading(false);
-                  if (user.isAdmin) {
-                    navigate('/admin');
-                  } else {
-                    navigate('/');
-                  }
-                }
-              },
-            }).requestAccessToken();
+                },
+              }).requestAccessToken();
+            }
+            setTimeout(() => btnDiv.remove(), 5000);
+            setLoading(false);
           }
         });
       } else {

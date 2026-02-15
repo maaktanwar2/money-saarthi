@@ -110,7 +110,7 @@ export default function LTPCalculator() {
   const [entryPrice, setEntryPrice] = useState('');
   const [currentLTP, setCurrentLTP] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [lotSize, setLotSize] = useState('75');
+  const [lotSize, setLotSize] = useState('65');
 
   // ── Option Chain State (LIVE) ──
   const [spotPrice, setSpotPrice] = useState(0);
@@ -272,7 +272,7 @@ export default function LTPCalculator() {
     const entry = parseFloat(entryPrice);
     const ltp = parseFloat(currentLTP);
     const qty = parseInt(quantity) || 0;
-    const lots = parseInt(lotSize) || 75;
+    const lots = parseInt(lotSize) || 65;
     if (!entry || !ltp || !qty) return null;
     const effectiveQty = segment === 'equity' ? qty : qty * lots;
     const isShort = calcType === 'short';
@@ -609,10 +609,11 @@ export default function LTPCalculator() {
                         <div>
                           <label className="text-sm text-foreground-muted block mb-2">Lot Size</label>
                           <select className="w-full rounded-lg bg-background border border-border px-3 py-2.5 text-sm" value={lotSize} onChange={e => setLotSize(e.target.value)}>
-                            <option value="75">NIFTY (75)</option>
+                            <option value="65">NIFTY (65)</option>
                             <option value="30">BANKNIFTY (30)</option>
-                            <option value="40">FINNIFTY (40)</option>
-                            <option value="50">MIDCPNIFTY (50)</option>
+                            <option value="60">FINNIFTY (60)</option>
+                            <option value="120">MIDCPNIFTY (120)</option>
+                            <option value="25">NIFTYNXT50 (25)</option>
                             <option value="10">SENSEX (10)</option>
                           </select>
                         </div>
