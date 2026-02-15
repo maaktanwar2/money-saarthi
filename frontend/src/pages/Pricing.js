@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout } from '../components/PageLayout';
 import { Card, CardContent, Button, Badge } from '../components/ui';
 import { cn } from '../lib/utils';
@@ -377,6 +379,7 @@ export default function Pricing() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/pricing')} path="/pricing" />
       {/* Payment Modal */}
       <PaymentModal />
       

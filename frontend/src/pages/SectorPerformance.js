@@ -1,5 +1,7 @@
 // SectorPerformance – 11 NSE F&O Sectoral Index performance (TradeFinder-style)
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Minus, RefreshCw, BarChart3,
@@ -207,6 +209,7 @@ const SectorPerformance = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/sector-performance')} path="/sector-performance" />
       <PageHeader
         title="Sector Performance"
         subtitle="11 NSE F&O sectoral indices — live index data"

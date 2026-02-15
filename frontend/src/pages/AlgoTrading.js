@@ -19,6 +19,8 @@ import {
   Button, Badge, Input, Spinner
 } from '../components/ui';
 import { cn, formatINR } from '../lib/utils';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { API_BASE_URL } from '../config/api';
 import { toast } from '../hooks/use-toast';
 import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
@@ -1524,6 +1526,7 @@ const AlgoTrading = () => {
   
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/algo')} path="/algo" />
       <PageHeader
         title="Algo Trading"
         description="AI-powered trading bots that execute trades automatically"

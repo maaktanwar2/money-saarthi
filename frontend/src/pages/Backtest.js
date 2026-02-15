@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import { TradingAreaChart, TradingBarChart } from '../components/ui/Charts';
@@ -174,6 +176,7 @@ export default function Backtest() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/backtest')} path="/backtest" />
       <PageHeader
         title="Full Year Strategy Backtest"
         subtitle={`NIFTY 50 Delta Neutral Strategies | ${data?.summary?.period || 'Jan 2024 - Jan 2025'} | ${data?.summary?.total_expiry_cycles || 55} Weekly Expiries`}

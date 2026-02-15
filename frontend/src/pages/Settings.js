@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardContent, Input, Button } from '../components/ui';
 
@@ -34,6 +36,7 @@ export default function Settings() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/settings')} path="/settings" />
       <PageHeader
         title="Settings"
         subtitle="Customize your trading experience"

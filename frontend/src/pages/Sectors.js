@@ -1,5 +1,7 @@
 // Sectors Page - All F&O stocks listed by their sector with live % changes
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, ChevronDown, ChevronUp,
@@ -253,6 +255,7 @@ const Sectors = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/sectors')} path="/sectors" />
       <PageHeader
         title="Sector Map"
         subtitle="All F&O stocks organized by sector — live prices & changes"

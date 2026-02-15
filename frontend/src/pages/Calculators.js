@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Tabs, StatDisplay, Badge, AccuracyBadge } from '../components/ui';
 import { formatINR, formatPercent } from '../lib/utils';
@@ -480,6 +482,7 @@ export default function Calculators() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/calculators')} path="/calculators" />
       <PageHeader
         title="Financial Calculators"
         subtitle="Professional-grade calculators for trading and investment"

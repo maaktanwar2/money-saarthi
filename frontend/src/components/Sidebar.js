@@ -1,5 +1,5 @@
-// Sidebar Component - Premium desktop navigation
-import { useState, useEffect, useCallback } from 'react';
+// Sidebar Component - Professional navigation sidebar
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import {
   Target,
   Zap,
   BookOpen,
+  Users,
   User,
   Shield,
   Crown,
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn, storage, isAdmin as isAdminCheck } from '../lib/utils';
 
+// Check if user has pro access
 const checkProAccess = () => {
   try {
     const user = JSON.parse(localStorage.getItem('ms_user') || '{}');
@@ -41,47 +43,146 @@ const checkProAccess = () => {
   }
 };
 
-// Navigation Items — grouped for visual structure
-const NAV_GROUPS = [
+// Navigation Items
+const NAV_ITEMS = [
   {
-    label: 'Core',
-    items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-      { id: 'scanners', label: 'Scanners', icon: ScanSearch, path: '/signals', badge: '15+', description: 'Stock screeners & filters' },
-      { id: 'trade-finder', label: 'Trade Finder', icon: Zap, path: '/trade-finder', badge: 'New', description: 'OI-backed trade suggestions' },
-    ],
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/',
   },
   {
-    label: 'Analysis',
-    items: [
-      { id: 'options', label: 'Options Lab', icon: LineChart, path: '/options', badge: 'Pro', isPro: true, description: 'Options chain & analytics' },
-      { id: 'market', label: 'Market Pulse', icon: Activity, path: '/market', badge: 'Pro', isPro: true, description: 'FII/DII, sectors, breadth' },
-      { id: 'sectors', label: 'Sector Map', icon: Layers, path: '/sectors', badge: 'Pro', isPro: true, description: 'All stocks by sector' },
-      { id: 'sector-performance', label: 'Sector Perf', icon: BarChart3, path: '/sector-performance', badge: 'New', isPro: true, description: 'F&O sectoral performance' },
-    ],
+    id: 'scanners',
+    label: 'Scanners',
+    icon: ScanSearch,
+    path: '/signals',
+    badge: '15+',
+    description: 'Stock screeners & filters',
   },
   {
-    label: 'AI & Automation',
-    items: [
-      { id: 'ai-agent', label: 'AI Agent', icon: Brain, path: '/ai-agent', badge: 'AI', isPro: true, description: 'Autonomous trading AI' },
-      { id: 'algo', label: 'Algo Trading', icon: Bot, path: '/algo', badge: 'Live', isPro: true, description: 'AI trading bots' },
-    ],
+    id: 'options',
+    label: 'Options Lab',
+    icon: LineChart,
+    path: '/options',
+    badge: 'Pro',
+    isPro: true,
+    description: 'Options chain & analytics',
   },
   {
-    label: 'Tools',
-    items: [
-      { id: 'ltp-calculator', label: 'LTP Calculator', icon: Target, path: '/ltp-calculator', description: 'P&L & option analysis' },
-      { id: 'calculators', label: 'Calculators', icon: Calculator, path: '/calculators' },
-      { id: 'journal', label: 'Trade Journal', icon: BookOpen, path: '/journal', badge: 'Pro', isPro: true },
-      { id: 'backtest', label: 'Backtesting', icon: BarChart3, path: '/backtest', badge: 'Pro', isPro: true },
-    ],
+    id: 'signals',
+    label: 'Signals',
+    icon: TrendingUp,
+    path: '/signals',
+    badge: 'Pro',
+    isPro: true,
+    description: 'AI-powered trade signals',
+  },
+  {
+    id: 'market',
+    label: 'Market Pulse',
+    icon: Activity,
+    path: '/market',
+    badge: 'Pro',
+    isPro: true,
+    description: 'FII/DII, sectors, breadth',
+  },
+  {
+    id: 'sectors',
+    label: 'Sector Map',
+    icon: Layers,
+    path: '/sectors',
+    badge: 'Pro',
+    isPro: true,
+    description: 'All stocks by sector',
+  },
+  {
+    id: 'sector-performance',
+    label: 'Sector Performance',
+    icon: BarChart3,
+    path: '/sector-performance',
+    badge: 'New',
+    isPro: true,
+    description: 'F&O sectoral index performance',
+  },
+  {
+    id: 'ai-agent',
+    label: 'AI Agent',
+    icon: Brain,
+    path: '/ai-agent',
+    badge: 'New',
+    isPro: true,
+    description: 'Self-thinking autonomous trading',
+  },
+  {
+    id: 'algo',
+    label: 'Algo Trading',
+    icon: Bot,
+    path: '/algo',
+    badge: 'Live',
+    isPro: true,
+    description: 'AI bots that trade for you',
+  },
+  {
+    id: 'tokens',
+    label: 'AI Tokens',
+    icon: Coins,
+    path: '/profile',
+    description: 'Buy tokens for AI features',
+  },
+  {
+    id: 'ltp-calculator',
+    label: 'LTP Calculator',
+    icon: Target,
+    path: '/ltp-calculator',
+    badge: 'New',
+    description: 'P&L, Option Chain, COA Analysis',
+  },
+  {
+    id: 'trade-finder',
+    label: 'Trade Finder',
+    icon: Zap,
+    path: '/trade-finder',
+    badge: 'New',
+    description: 'Auto strategy suggestions from OI data',
+  },
+  {
+    id: 'calculators',
+    label: 'Calculators',
+    icon: Calculator,
+    path: '/calculators',
+  },
+  {
+    id: 'journal',
+    label: 'Trade Journal',
+    icon: BookOpen,
+    path: '/journal',
+    badge: 'Pro',
+    isPro: true,
+  },
+  {
+    id: 'backtest',
+    label: 'Backtesting',
+    icon: BarChart3,
+    path: '/backtest',
+    badge: 'Pro',
+    isPro: true,
+    description: 'Strategy backtesting',
   },
 ];
 
 const BOTTOM_ITEMS = [
-  { id: 'tokens', label: 'AI Tokens', icon: Coins, path: '/profile' },
-  { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  {
+    id: 'profile',
+    label: 'Profile',
+    icon: User,
+    path: '/profile',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings,
+    path: '/settings',
+  },
 ];
 
 const isUserAdmin = () => {
@@ -115,25 +216,25 @@ const NavItem = ({ item, collapsed, hasPro }) => {
       to={item.path}
       onClick={handleClick}
       className={cn(
-        'group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-150',
-        'hover:bg-surface-1',
-        isActive && !isLocked && 'bg-primary/8 text-primary',
-        isLocked && 'opacity-50'
+        'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+        'hover:bg-white/[0.06]',
+        isActive && !isLocked && 'bg-primary/10 text-primary',
+        isLocked && 'opacity-60'
       )}
     >
       {/* Active Indicator */}
       {isActive && !isLocked && (
         <motion.div
           layoutId="activeIndicator"
-          className="absolute left-0 w-[3px] h-5 bg-primary rounded-r-full"
-          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          className="absolute left-0 w-1 h-6 bg-primary rounded-full"
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       )}
       
       {/* Icon */}
       <item.icon className={cn(
-        'w-[18px] h-[18px] flex-shrink-0 transition-colors',
-        isActive ? 'text-primary' : 'text-foreground-muted group-hover:text-foreground-secondary'
+        'w-5 h-5 flex-shrink-0 transition-colors',
+        isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
       )} />
       
       {/* Label */}
@@ -145,7 +246,7 @@ const NavItem = ({ item, collapsed, hasPro }) => {
             exit={{ opacity: 0, width: 0 }}
             className={cn(
               'text-sm font-medium whitespace-nowrap overflow-hidden',
-              isActive ? 'text-primary' : 'text-foreground-secondary group-hover:text-foreground'
+              isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
             )}
           >
             {item.label}
@@ -159,11 +260,10 @@ const NavItem = ({ item, collapsed, hasPro }) => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className={cn(
-            'ml-auto px-1.5 py-px text-2xs font-semibold rounded flex items-center gap-0.5',
-            item.badge === 'AI' && 'bg-violet-500/15 text-violet-400',
-            item.badge === 'Pro' && (isLocked ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'),
-            item.badge === 'Live' && 'bg-bullish/15 text-bullish',
-            !['AI', 'Pro', 'Live'].includes(item.badge) && 'bg-primary/12 text-primary'
+            'ml-auto px-1.5 py-0.5 text-[10px] font-semibold rounded flex items-center gap-1',
+            item.badge === 'AI' && 'bg-violet-500/20 text-violet-400',
+            item.badge === 'Pro' && (isLocked ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'),
+            !['AI', 'Pro'].includes(item.badge) && 'bg-primary/20 text-primary'
           )}
         >
           {isLocked && <Lock className="w-2.5 h-2.5" />}
@@ -171,12 +271,12 @@ const NavItem = ({ item, collapsed, hasPro }) => {
         </motion.span>
       )}
       
-      {/* Tooltip for collapsed */}
+      {/* Tooltip for collapsed state */}
       {collapsed && (
-        <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-card border border-border rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 whitespace-nowrap shadow-elevated">
-          <p className="font-medium text-xs">{item.label}</p>
+        <div className="absolute left-full ml-2 px-3 py-2 bg-card border border-border rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 whitespace-nowrap shadow-xl">
+          <p className="font-medium text-sm">{item.label}</p>
           {item.description && (
-            <p className="text-2xs text-foreground-muted">{item.description}</p>
+            <p className="text-xs text-muted-foreground">{item.description}</p>
           )}
         </div>
       )}
@@ -193,17 +293,25 @@ export const Sidebar = () => {
 
   useEffect(() => {
     storage.set('sidebarCollapsed', collapsed);
+    // Dispatch custom event so PageLayout can sync without polling
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { collapsed } }));
   }, [collapsed]);
 
   useEffect(() => {
+    // Check admin status and pro access on mount and when storage changes
     const updateStatus = () => {
       setIsAdmin(isUserAdmin());
       setHasPro(checkProAccess());
     };
+    
     updateStatus();
+    
+    // Listen for storage changes (when user logs in/out)
     window.addEventListener('storage', updateStatus);
+    
+    // Also check periodically in case of same-tab changes (60s is plenty)
     const interval = setInterval(updateStatus, 60000);
+    
     return () => {
       window.removeEventListener('storage', updateStatus);
       clearInterval(interval);
@@ -213,34 +321,32 @@ export const Sidebar = () => {
   return (
     <motion.aside
       initial={false}
-      animate={{ width: collapsed ? 64 : 240 }}
-      transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+      animate={{ width: collapsed ? 72 : 256 }}
       className={cn(
         'fixed left-0 top-0 h-screen z-40',
         'flex flex-col',
-        'border-r border-border/50',
-        'bg-background/95 backdrop-blur-xl'
+        'border-r border-white/[0.08]',
+        'bg-background/80 backdrop-blur-xl'
       )}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-border/50">
-        <div className="flex items-center gap-2.5 overflow-hidden">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-white/[0.08]">
+        <div className="flex items-center gap-3">
           <img 
             src="/logo.png" 
             alt="Money Saarthi" 
-            className="w-9 h-9 object-contain flex-shrink-0"
+            className="w-12 h-12 object-contain"
             style={{ background: 'transparent' }}
           />
           <AnimatePresence>
             {!collapsed && (
               <motion.div
-                initial={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                className="min-w-0"
+                exit={{ opacity: 0, x: -10 }}
               >
-                <h1 className="font-bold text-sm tracking-tight" style={{ color: '#D4A574' }}>Money Saarthi</h1>
-                <p className="text-2xs text-foreground-muted -mt-0.5">AI Market Intelligence</p>
+                <h1 className="font-bold text-lg" style={{ color: '#D4A574' }}>Money Saarthi</h1>
+                <p className="text-[10px] text-muted-foreground -mt-0.5">AI@Market Intelligence</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -248,64 +354,50 @@ export const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5 scrollbar-thin">
-        {NAV_GROUPS.map((group, gi) => (
-          <div key={group.label} className={cn(gi > 0 && 'mt-4')}>
-            {/* Group label */}
-            {!collapsed && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-2xs font-semibold text-foreground-faint uppercase tracking-widest px-2.5 mb-1.5"
-              >
-                {group.label}
-              </motion.p>
-            )}
-            {collapsed && gi > 0 && (
-              <div className="w-6 h-px bg-border/50 mx-auto my-2" />
-            )}
-            <div className="space-y-0.5">
-              {group.items.map((item) => (
-                <NavItem key={item.id} item={item} collapsed={collapsed} hasPro={hasPro} />
-              ))}
-            </div>
-          </div>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {NAV_ITEMS.map((item) => (
+          <NavItem key={item.id} item={item} collapsed={collapsed} hasPro={hasPro} />
         ))}
         
-        {/* Upgrade CTA */}
+        {/* Upgrade CTA - Only show for non-pro users */}
         {!hasPro && !collapsed && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 mx-0.5"
+            className="mt-4 mx-1"
           >
             <button
               onClick={() => navigate('/pricing')}
-              className="w-full p-3 rounded-xl bg-gradient-to-br from-primary/10 via-amber-500/5 to-primary/10 border border-primary/20 hover:border-primary/40 transition-all group"
+              className="w-full p-4 rounded-xl bg-gradient-to-br from-primary/20 via-amber-500/10 to-primary/20 border border-primary/30 hover:border-primary/50 transition-all group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                  <Crown className="w-3.5 h-3.5 text-primary" />
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Crown className="w-4 h-4 text-primary" />
                 </div>
-                <div className="text-left min-w-0">
-                  <p className="text-xs font-semibold">Upgrade to Pro</p>
-                  <p className="text-2xs text-foreground-muted">₹899/mo</p>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+                  <p className="text-xs text-muted-foreground">₹899/mo or ₹4,999/yr</p>
                 </div>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-primary group-hover:gap-2 transition-all">
+                <Sparkles className="w-3 h-3" />
+                Unlock all features
               </div>
             </button>
           </motion.div>
         )}
         
+        {/* Pro Badge - Show for pro users */}
         {hasPro && !isAdmin && !collapsed && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 mx-0.5"
+            className="mt-4 mx-1"
           >
-            <div className="p-2.5 rounded-lg bg-emerald-500/8 border border-emerald-500/20">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30">
               <div className="flex items-center gap-2">
-                <Crown className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-xs font-medium text-emerald-500">Pro Member</span>
+                <Crown className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-green-500">Pro Member</span>
               </div>
             </div>
           </motion.div>
@@ -313,35 +405,26 @@ export const Sidebar = () => {
       </nav>
 
       {/* Bottom Section */}
-      <div className="border-t border-border/50 py-2.5 px-2.5 space-y-0.5">
+      <div className="border-t border-white/[0.08] py-4 px-3 space-y-1">
         {BOTTOM_ITEMS.map((item) => (
-          <NavItem key={item.id} item={item} collapsed={collapsed} hasPro={hasPro} />
+          <NavItem key={item.id} item={item} collapsed={collapsed} />
         ))}
-        
-        {/* Admin */}
-        {isAdmin && (
-          <NavItem 
-            item={{ id: 'admin', label: 'Admin', icon: Shield, path: '/admin', badge: 'Admin' }} 
-            collapsed={collapsed} 
-            hasPro={true} 
-          />
-        )}
         
         {/* Collapse Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg',
-            'text-foreground-muted hover:text-foreground-secondary hover:bg-surface-1',
-            'transition-colors duration-150'
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl',
+            'text-muted-foreground hover:text-foreground hover:bg-white/[0.06]',
+            'transition-all duration-200'
           )}
         >
           {collapsed ? (
-            <ChevronRight className="w-[18px] h-[18px]" />
+            <ChevronRight className="w-5 h-5" />
           ) : (
             <>
-              <ChevronLeft className="w-[18px] h-[18px]" />
-              <span className="text-xs font-medium">Collapse</span>
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm">Collapse</span>
             </>
           )}
         </button>

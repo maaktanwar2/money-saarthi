@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge } from '../components/ui';
 import { formatINR, fetchAPI, isMarketHours } from '../lib/utils';
@@ -498,6 +500,7 @@ export default function LTPCalculator() {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/ltp-calculator')} path="/ltp-calculator" />
       <PageHeader
         title="LTP Calculator & Trade Finder"
         subtitle="P&L Calculator • Live Option Chain • COA Framework • Auto Strategy Suggestions"

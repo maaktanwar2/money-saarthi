@@ -1,5 +1,7 @@
 // Dashboard - Main home page with market overview
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -65,16 +67,16 @@ const MarketOverview = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-24 skeleton rounded-xl" />
+          <div key={i} className="h-32 skeleton rounded-2xl" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {indices.map((index, i) => {
         const isPositive = (index.pChange || 0) >= 0;
         const price = index.last || index.lastPrice || 0;
@@ -84,35 +86,36 @@ const MarketOverview = () => {
         return (
           <motion.div
             key={index.symbol || index.name}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            transition={{ delay: i * 0.05 }}
           >
-            <Card interactive className={cn(
-              "p-3 h-full",
+            <Card className={cn(
+              "p-4 h-full transition-all duration-200 cursor-pointer",
+              "hover:shadow-lg hover:border-primary/40",
               isPositive ? "hover:bg-bullish/5" : "hover:bg-bearish/5"
             )}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-2xs text-foreground-muted font-semibold uppercase tracking-wider truncate max-w-[80%]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide truncate max-w-[80%]">
                   {index.symbol || index.name}
                 </span>
                 <span className={cn(
-                  'w-5 h-5 flex items-center justify-center rounded-full',
+                  'p-1 rounded-full',
                   isPositive ? 'bg-bullish/10 text-bullish' : 'bg-bearish/10 text-bearish'
                 )}>
                   {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 </span>
               </div>
-              <div className="text-lg font-bold tabular-nums mb-0.5">
+              <div className="text-2xl font-bold mb-1">
                 {price >= 1000 ? formatNumber(price, { decimals: 0 }) : price.toFixed(2)}
               </div>
               <div className={cn(
-                'text-xs font-semibold flex items-center gap-0.5 tabular-nums',
+                'text-sm font-semibold flex items-center gap-1',
                 isPositive ? 'text-bullish' : 'text-bearish'
               )}>
-                <span className="text-2xs">{isPositive ? '▲' : '▼'}</span>
+                <span>{isPositive ? '▲' : '▼'}</span>
                 <span>{Math.abs(change).toFixed(change >= 100 ? 0 : 2)}</span>
-                <span className="text-2xs">({isPositive ? '+' : ''}{pChange.toFixed(2)}%)</span>
+                <span className="text-xs">({isPositive ? '+' : ''}{pChange.toFixed(2)}%)</span>
               </div>
             </Card>
           </motion.div>
@@ -179,53 +182,60 @@ const QUICK_TOOLS = [
 ];
 
 const QuickTools = () => (
-  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {QUICK_TOOLS.map((tool, i) => (
       <motion.div
         key={tool.id}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 + i * 0.04 }}
+        transition={{ delay: 0.2 + i * 0.05 }}
       >
         <Link to={tool.path}>
-          <Card interactive className="p-4 h-full group">
-            <div className="flex items-start justify-between mb-3">
+          <Card className="p-5 h-full group hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+            <div className="flex items-start justify-between mb-4">
               <div className={cn(
-                'w-10 h-10 rounded-lg flex items-center justify-center',
-                tool.color === 'emerald' && 'bg-emerald-500/12 text-emerald-500',
-                tool.color === 'cyan' && 'bg-cyan-500/12 text-cyan-500',
-                tool.color === 'violet' && 'bg-violet-500/12 text-violet-500',
-                tool.color === 'amber' && 'bg-amber-500/12 text-amber-500',
-                tool.color === 'blue' && 'bg-blue-500/12 text-blue-500',
-                tool.color === 'rose' && 'bg-rose-500/12 text-rose-500',
+                'w-12 h-12 rounded-xl flex items-center justify-center',
+                tool.color === 'emerald' && 'bg-emerald-500/15 text-emerald-500',
+                tool.color === 'cyan' && 'bg-cyan-500/15 text-cyan-500',
+                tool.color === 'violet' && 'bg-violet-500/15 text-violet-500',
+                tool.color === 'amber' && 'bg-amber-500/15 text-amber-500',
+                tool.color === 'blue' && 'bg-blue-500/15 text-blue-500',
+                tool.color === 'rose' && 'bg-rose-500/15 text-rose-500',
               )}>
-                <tool.icon className="w-5 h-5" />
+                <tool.icon className="w-6 h-6" />
               </div>
               {tool.badge && (
-                <Badge variant={tool.badge === 'AI' ? 'default' : 'warning'} size="sm">
+                <Badge variant={tool.badge === 'AI' ? 'default' : 'warning'}>
                   {tool.badge}
                 </Badge>
               )}
             </div>
             
-            <h3 className="text-sm font-semibold mb-0.5 group-hover:text-primary transition-colors">
+            <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors">
               {tool.title}
             </h3>
-            <p className="text-xs text-foreground-muted line-clamp-2">
+            <p className="text-sm text-muted-foreground mb-3">
               {tool.description}
             </p>
             
+            {/* Accuracy stats if available */}
             {tool.accuracy && (
-              <div className="flex items-center gap-2 text-2xs mt-2">
-                <span className="flex items-center gap-0.5">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1">
                   <Target className="w-3 h-3 text-primary" />
-                  <span className="font-bold text-primary tabular-nums">{tool.accuracy}%</span>
+                  <span className="font-semibold text-primary">{tool.accuracy}%</span>
+                  <span className="text-muted-foreground">accuracy</span>
                 </span>
-                <span className="text-foreground-faint tabular-nums">
+                <span className="text-muted-foreground">
                   {tool.trades?.toLocaleString()} trades
                 </span>
               </div>
             )}
+            
+            <div className="flex items-center text-sm text-primary mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>Open Tool</span>
+              <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </div>
           </Card>
         </Link>
       </motion.div>
@@ -323,7 +333,7 @@ const SectorPerformance = () => {
 
   if (!sectors.length) {
     return (
-      <Card className="p-6 text-center text-foreground-muted text-sm">
+      <Card className="p-6 text-center text-muted-foreground text-sm">
         Sector data unavailable. Market may be closed.
       </Card>
     );
@@ -399,7 +409,7 @@ const SectorPerformance = () => {
                         'px-3 py-1 rounded-lg text-xs font-medium transition-all',
                         stockTab === 'momentum'
                           ? 'bg-bullish/20 text-bullish'
-                          : 'text-foreground-muted hover:text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
                       <Flame className="w-3 h-3 inline mr-1" />Momentum Up
@@ -410,13 +420,13 @@ const SectorPerformance = () => {
                         'px-3 py-1 rounded-lg text-xs font-medium transition-all',
                         stockTab === 'correction'
                           ? 'bg-amber-500/20 text-amber-400'
-                          : 'text-foreground-muted hover:text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
                       <ArrowDownRight className="w-3 h-3 inline mr-1" />Day Correction
                     </button>
-                    <button onClick={() => { setSelectedSector(null); setSectorStocks([]); }} className="p-1 rounded hover:bg-surface-1">
-                      <X className="w-4 h-4 text-foreground-muted" />
+                    <button onClick={() => { setSelectedSector(null); setSectorStocks([]); }} className="p-1 rounded hover:bg-white/10">
+                      <X className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
                 </div>
@@ -431,7 +441,7 @@ const SectorPerformance = () => {
                     {stockTab === 'momentum' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                         {momentumStocks.length === 0 ? (
-                          <p className="text-sm text-foreground-muted col-span-full text-center py-4">No strong momentum stocks in this sector right now</p>
+                          <p className="text-sm text-muted-foreground col-span-full text-center py-4">No strong momentum stocks in this sector right now</p>
                         ) : momentumStocks.map((stock, i) => {
                           const chg = stock.change_pct ?? 0;
                           const price = stock.price ?? 0;
@@ -449,7 +459,7 @@ const SectorPerformance = () => {
                                 <span className="font-bold text-sm group-hover:text-primary transition-colors">{stock.symbol}</span>
                                 <ArrowUpRight className="w-3 h-3 text-bullish" />
                               </div>
-                              <div className="text-xs text-foreground-muted">{formatINR(price)}</div>
+                              <div className="text-xs text-muted-foreground">{formatINR(price)}</div>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-bold text-bullish">+{Number(chg).toFixed(2)}%</span>
                                 {volR > 1.2 && (
@@ -466,7 +476,7 @@ const SectorPerformance = () => {
                     {stockTab === 'correction' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                         {correctionStocks.length === 0 ? (
-                          <p className="text-sm text-foreground-muted col-span-full text-center py-4">No healthy pullback stocks in this sector right now</p>
+                          <p className="text-sm text-muted-foreground col-span-full text-center py-4">No healthy pullback stocks in this sector right now</p>
                         ) : correctionStocks.map((stock, i) => {
                           const chg = stock.change_pct ?? 0;
                           const price = stock.price ?? 0;
@@ -484,7 +494,7 @@ const SectorPerformance = () => {
                                 <span className="font-bold text-sm group-hover:text-primary transition-colors">{stock.symbol}</span>
                                 <ArrowDownRight className="w-3 h-3 text-amber-400" />
                               </div>
-                              <div className="text-xs text-foreground-muted">{formatINR(price)}</div>
+                              <div className="text-xs text-muted-foreground">{formatINR(price)}</div>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-bold text-amber-400">{Number(chg).toFixed(2)}%</span>
                                 {volR < 0.8 && (
@@ -500,7 +510,7 @@ const SectorPerformance = () => {
                     )}
                     {/* Quick links for selected stock */}
                     {sectorStocks.length > 0 && (
-                      <div className="flex items-center gap-2 mt-3 text-xs text-foreground-muted">
+                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
                         <span>Quick:</span>
                         <Link to={`/options`} className="text-primary hover:underline">Options Chain</Link>
                         <span>•</span>
@@ -595,18 +605,18 @@ const TopMovers = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
             onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
-            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-surface-1 transition-colors cursor-pointer group"
+            className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer group"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className={cn(
-                "text-2xs font-bold w-5 h-5 flex items-center justify-center rounded-full",
-                type === 'gainer' ? "bg-bullish/15 text-bullish" : "bg-bearish/15 text-bearish"
+                "text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full",
+                type === 'gainer' ? "bg-bullish/20 text-bullish" : "bg-bearish/20 text-bearish"
               )}>
                 {i + 1}
               </span>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium group-hover:text-primary transition-colors">{stock.symbol}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium group-hover:text-primary transition-colors">{stock.symbol}</p>
                   {isStrong && (
                     <span className={cn(
                       "text-[10px] font-bold px-1.5 py-0.5 rounded",
@@ -616,17 +626,17 @@ const TopMovers = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-foreground-muted tabular-nums">
+                <p className="text-xs text-muted-foreground">
                   {formatINR(priceValue)}
                   {volumeRatio > 1.3 && (
-                    <span className="ml-1 text-2xs opacity-70">Vol {volumeRatio.toFixed(1)}×</span>
+                    <span className="ml-1 text-[10px] opacity-70">Vol {volumeRatio.toFixed(1)}×</span>
                   )}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <span className={cn(
-                'text-sm font-bold tabular-nums px-2 py-0.5 rounded-md',
+                'text-sm font-bold px-2 py-1 rounded-lg',
                 type === 'gainer' 
                   ? 'text-bullish bg-bullish/10' 
                   : 'text-bearish bg-bearish/10'
@@ -643,25 +653,25 @@ const TopMovers = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Top Gainers Card */}
-      <Card className="h-full border-bullish/15">
-        <CardHeader compact className="pb-2">
+      <Card className="h-full border-bullish/20 bg-gradient-to-br from-bullish/5 to-transparent">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-bullish/15 flex items-center justify-center">
-                <TrendingUp className="w-3.5 h-3.5 text-bullish" />
+              <div className="w-8 h-8 rounded-lg bg-bullish/20 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-bullish" />
               </div>
-              <CardTitle>Top Gainers</CardTitle>
+              <CardTitle className="text-lg text-bullish">Top Gainers</CardTitle>
             </div>
-            <Badge variant="bullish" size="sm">
-              Strong Only
+            <Badge variant="outline" className="bg-bullish/10 text-bullish border-bullish/30 text-xs">
+              🔥 Strong Only
             </Badge>
           </div>
         </CardHeader>
-        <CardContent compact>
+        <CardContent>
           {loading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 skeleton rounded-lg" />
+                <div key={i} className="h-12 skeleton rounded-lg" />
               ))}
             </div>
           ) : (
@@ -669,34 +679,34 @@ const TopMovers = () => {
           )}
           <Link 
             to="/scanners?tab=gainers"
-            className="flex items-center justify-center gap-1 text-xs text-bullish mt-3 hover:underline font-medium"
+            className="flex items-center justify-center gap-1 text-sm text-bullish mt-4 hover:underline font-medium"
           >
             View All Gainers
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </Link>
         </CardContent>
       </Card>
 
       {/* Top Losers Card */}
-      <Card className="h-full border-bearish/15">
-        <CardHeader compact className="pb-2">
+      <Card className="h-full border-bearish/20 bg-gradient-to-br from-bearish/5 to-transparent">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-bearish/15 flex items-center justify-center">
-                <TrendingDown className="w-3.5 h-3.5 text-bearish" />
+              <div className="w-8 h-8 rounded-lg bg-bearish/20 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 text-bearish" />
               </div>
-              <CardTitle>Top Losers</CardTitle>
+              <CardTitle className="text-lg text-bearish">Top Losers</CardTitle>
             </div>
-            <Badge variant="bearish" size="sm">
-              Strong Only
+            <Badge variant="outline" className="bg-bearish/10 text-bearish border-bearish/30 text-xs">
+              🔥 Strong Only
             </Badge>
           </div>
         </CardHeader>
-        <CardContent compact>
+        <CardContent>
           {loading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 skeleton rounded-lg" />
+                <div key={i} className="h-12 skeleton rounded-lg" />
               ))}
             </div>
           ) : (
@@ -704,10 +714,10 @@ const TopMovers = () => {
           )}
           <Link 
             to="/scanners?tab=losers"
-            className="flex items-center justify-center gap-1 text-xs text-bearish mt-3 hover:underline font-medium"
+            className="flex items-center justify-center gap-1 text-sm text-bearish mt-4 hover:underline font-medium"
           >
             View All Losers
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </Link>
         </CardContent>
       </Card>
@@ -752,53 +762,53 @@ const FIIDIIData = () => {
   }, []);
 
   if (loading) {
-    return <div className="h-40 skeleton rounded-xl" />;
+    return <div className="h-48 skeleton rounded-2xl" />;
   }
 
   return (
     <Card>
-      <CardHeader compact>
-        <CardTitle>FII/DII Activity</CardTitle>
+      <CardHeader>
+        <CardTitle className="text-lg">FII/DII Activity</CardTitle>
       </CardHeader>
-      <CardContent compact>
-        <div className="grid grid-cols-2 gap-3">
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
           {/* FII */}
-          <div className="p-3 rounded-lg bg-surface-1">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium">FII</span>
-              <Users className="w-3.5 h-3.5 text-foreground-faint" />
+          <div className="p-4 rounded-xl bg-secondary/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">FII</span>
+              <Users className="w-4 h-4 text-muted-foreground" />
             </div>
             <p className={cn(
-              'text-xl font-bold tabular-nums',
+              'text-2xl font-bold',
               (data?.fii?.netValue || 0) >= 0 ? 'text-bullish' : 'text-bearish'
             )}>
               {(data?.fii?.netValue || 0) >= 0 ? '+' : ''}{(data?.fii?.netValue || 0).toFixed(0)} Cr
             </p>
-            <p className="text-2xs text-foreground-muted">Net Activity</p>
+            <p className="text-xs text-muted-foreground">Net Activity</p>
           </div>
           
           {/* DII */}
-          <div className="p-3 rounded-lg bg-surface-1">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium">DII</span>
-              <Shield className="w-3.5 h-3.5 text-foreground-faint" />
+          <div className="p-4 rounded-xl bg-secondary/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">DII</span>
+              <Shield className="w-4 h-4 text-muted-foreground" />
             </div>
             <p className={cn(
-              'text-xl font-bold tabular-nums',
+              'text-2xl font-bold',
               (data?.dii?.netValue || 0) >= 0 ? 'text-bullish' : 'text-bearish'
             )}>
               {(data?.dii?.netValue || 0) >= 0 ? '+' : ''}{(data?.dii?.netValue || 0).toFixed(0)} Cr
             </p>
-            <p className="text-2xs text-foreground-muted">Net Activity</p>
+            <p className="text-xs text-muted-foreground">Net Activity</p>
           </div>
         </div>
         
         <Link 
           to="/market"
-          className="flex items-center justify-center gap-1 text-xs text-primary mt-3 hover:underline"
+          className="flex items-center justify-center gap-1 text-sm text-primary mt-4 hover:underline"
         >
           View detailed analysis
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-4 h-4" />
         </Link>
       </CardContent>
     </Card>
@@ -811,56 +821,57 @@ const FIIDIIData = () => {
 const Dashboard = () => {
   const marketSession = getMarketSession();
 
+  const seo = getSeoConfig('/dashboard');
+
   return (
     <PageLayout>
+      <SEO title={seo.title} description={seo.description} keywords={seo.keywords} path="/dashboard" jsonLd={seo.jsonLd} />
       {/* Welcome Header */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-8"
       >
-        <div className="flex items-center gap-2.5 mb-0.5">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-3xl font-bold">Welcome back</h1>
           <Badge 
             variant={marketSession.status === 'open' ? 'success' : 'secondary'}
-            size="sm"
+            className="flex items-center gap-1"
           >
             <span className={cn(
-              'w-1.5 h-1.5 rounded-full mr-1',
-              marketSession.status === 'open' ? 'bg-bullish animate-pulse' : 'bg-foreground-faint'
+              'w-2 h-2 rounded-full',
+              marketSession.status === 'open' ? 'bg-bullish animate-pulse' : 'bg-muted-foreground'
             )} />
             {marketSession.label}
           </Badge>
         </div>
-        <p className="text-lg font-medium" style={{ color: '#D4A574' }}>
+        <p className="text-lg text-muted-foreground font-medium" style={{ color: '#D4A574' }}>
           {getUserFirstName()}
         </p>
-        <p className="text-sm text-foreground-muted mt-0.5">
+        <p className="text-muted-foreground mt-1">
           Here's what's happening in the market today
         </p>
       </motion.div>
 
       {/* Market Overview */}
-      <Section title="Market Overview" compact className="mb-6">
+      <Section title="Market Overview" className="mb-8">
         <MarketOverview />
       </Section>
 
-      {/* Sector Performance */}
+      {/* Sector Performance — Where is money flowing? */}
       <Section 
         title="Sector Performance" 
-        description="Click any sector to see its top stocks"
-        compact
-        className="mb-6"
+        description="Click any sector to see its top stocks — momentum movers & healthy pullbacks"
+        className="mb-8"
       >
         <SectorPerformance />
       </Section>
 
-      {/* Top Movers */}
+      {/* Top Gainers & Losers Section */}
       <Section 
         title="Top Movers" 
-        description="Today's strong F&O movers"
-        compact
-        className="mb-6"
+        description="Today's top performing and declining F&O stocks"
+        className="mb-8"
       >
         <TopMovers />
       </Section>
@@ -868,50 +879,56 @@ const Dashboard = () => {
       {/* Quick Tools */}
       <Section 
         title="Trading Tools" 
-        compact
+        description="Access powerful tools with backtested accuracy"
         action={
           <Link to="/scanners">
-            <Button variant="ghost" size="xs">
+            <Button variant="ghost" size="sm">
               View All
-              <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
         }
-        className="mb-6"
+        className="mb-8"
       >
         <QuickTools />
       </Section>
 
-      {/* FII/DII */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <FIIDIIData />
+      {/* Bottom Grid - FII/DII Data */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* FII/DII */}
+        <div>
+          <FIIDIIData />
+        </div>
       </div>
 
       {/* AI Advisor CTA */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
+        className="mt-8"
       >
-        <Card className="p-4 bg-gradient-to-r from-violet-500/8 to-primary/8 border-violet-500/15">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-violet-500/15 flex items-center justify-center">
-                <Brain className="w-5 h-5 text-violet-400" />
+        <Card className="p-6 bg-gradient-to-r from-violet-500/10 to-primary/10 border-violet-500/20">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center">
+                <Brain className="w-7 h-7 text-violet-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold flex items-center gap-1.5">
+                <h3 className="text-xl font-semibold flex items-center gap-2">
                   AI Trade Advisor
-                  <Badge variant="info" size="sm">AI</Badge>
+                  <Badge variant="default" className="bg-violet-500/20 text-violet-400 border-violet-500/30">
+                    AI
+                  </Badge>
                 </h3>
-                <p className="text-xs text-foreground-muted">
-                  AI-powered recommendations based on your trades
+                <p className="text-muted-foreground">
+                  Get AI-powered recommendations based on your trades and market sentiment
                 </p>
               </div>
             </div>
             <Link to="/algo">
-              <Button variant="gradient" size="sm">
-                <Sparkles className="w-3.5 h-3.5" />
+              <Button variant="gradient" className="whitespace-nowrap">
+                <Sparkles className="w-4 h-4 mr-2" />
                 Open Advisor
               </Button>
             </Link>
@@ -923,4 +940,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

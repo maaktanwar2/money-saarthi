@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui';
 import { fetchAPI, isMarketHours } from '../lib/utils';
@@ -145,6 +147,7 @@ export default function TradeFinder() {
   // ════════════════════════════════════════════════════════════════════════
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/trade-finder')} path="/trade-finder" />
       <PageHeader title="Trade Finder Pro" subtitle="OI Sentiment • Strategy Suggestions • Option Clock • OI Blocks • Swing Scanners" />
 
       {/* ── Status Bar ── */}

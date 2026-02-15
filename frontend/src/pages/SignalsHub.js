@@ -1,5 +1,7 @@
 // Stock Scanner Hub - Real scanner data from NSE
 import { useState, useEffect, useMemo } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, TrendingUp, TrendingDown, Target, Clock,
@@ -35,39 +37,40 @@ const StockCard = ({ stock, onView }) => {
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
     >
       <Card 
-        interactive
         className={cn(
-          'p-3.5 border-l-[3px]',
-          isBuy ? 'border-l-bullish' : 'border-l-bearish'
+          'p-4 cursor-pointer transition-all duration-200 border-l-4',
+          isBuy ? 'border-l-bullish hover:border-bullish/50' : 'border-l-bearish hover:border-bearish/50'
         )}
         onClick={() => onView(stock)}
       >
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-sm font-bold">{stock.symbol}</span>
-              <Badge variant={isBuy ? 'bullish' : 'bearish'} size="sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-bold">{stock.symbol}</span>
+              <Badge variant={isBuy ? 'success' : 'destructive'} className="text-xs">
                 {isBuy ? 'GAINER' : 'LOSER'}
               </Badge>
-              <Badge variant="outline" size="sm">{stock.category}</Badge>
+              <Badge variant="outline" className="text-xs">{stock.category}</Badge>
             </div>
-            <p className="text-2xs text-foreground-muted">{stock.strategy}</p>
+            <p className="text-xs text-foreground-muted">{stock.strategy}</p>
           </div>
           <div className="text-right">
-            <div className={cn('text-lg font-bold tabular-nums', getChangeColor(stock.changePercent))}>
+            <div className={cn('text-xl font-bold', getChangeColor(stock.changePercent))}>
               {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
             </div>
+            <p className="text-xs text-foreground-muted">Day Change</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
           <div>
-            <p className="text-2xs text-foreground-muted">LTP</p>
-            <p className="font-medium tabular-nums">{formatINR(stock.ltp)}</p>
+            <p className="text-xs text-foreground-muted">LTP</p>
+            <p className="font-medium">{formatINR(stock.ltp)}</p>
           </div>
           {stock.target ? (
             <div>
@@ -257,22 +260,26 @@ const ScannerSummary = ({ stocks = [] }) => {
   const avgChange = totalStocks > 0 ? (stocks.reduce((sum, s) => sum + (s.changePercent || 0), 0) / totalStocks).toFixed(2) : '0';
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-      <Card className="p-3">
-        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Stocks Found</div>
-        <div className="text-xl font-bold tabular-nums">{totalStocks}</div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <Card className="p-4">
+        <div className="text-xs text-foreground-muted mb-1">Stocks Found</div>
+        <div className="text-2xl font-bold">{totalStocks}</div>
+        <div className="text-xs text-foreground-muted">From scanners</div>
       </Card>
-      <Card className="p-3">
-        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Avg Score</div>
-        <div className={cn('text-xl font-bold tabular-nums', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
+      <Card className="p-4">
+        <div className="text-xs text-foreground-muted mb-1">Avg Scanner Score</div>
+        <div className={cn('text-2xl font-bold', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
+        <div className="text-xs text-foreground-muted">Technical score</div>
       </Card>
-      <Card className="p-3">
-        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Gainers</div>
-        <div className="text-xl font-bold text-bullish tabular-nums">{buyCount}</div>
+      <Card className="p-4">
+        <div className="text-xs text-foreground-muted mb-1">Gainers</div>
+        <div className="text-2xl font-bold text-bullish">{buyCount}</div>
+        <div className="text-xs text-foreground-muted">Stocks up today</div>
       </Card>
-      <Card className="p-3">
-        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Avg Change</div>
-        <div className={cn('text-xl font-bold tabular-nums', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
+      <Card className="p-4">
+        <div className="text-xs text-foreground-muted mb-1">Avg Change</div>
+        <div className={cn('text-2xl font-bold', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
+        <div className="text-xs text-foreground-muted">Across scanned stocks</div>
       </Card>
     </div>
   );
@@ -395,6 +402,7 @@ const SignalsHub = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/signals')} path="/signals" />
       <PageHeader
         title="Stock Scanner"
         description="Real-time scanner results from NSE — gainers, losers & swing setups"
@@ -454,21 +462,21 @@ const SignalsHub = () => {
 
       {/* Stocks Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-40 skeleton rounded-xl" />
+            <div key={i} className="h-48 skeleton rounded-2xl" />
           ))}
         </div>
       ) : filteredStocks.length === 0 ? (
-        <Card className="p-10 text-center">
-          <AlertCircle className="w-10 h-10 text-foreground-muted mx-auto mb-3" />
-          <h3 className="text-base font-semibold mb-1">No Stocks Found</h3>
-          <p className="text-sm text-foreground-muted">
-            No stocks match your current filters.
+        <Card className="p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-foreground-muted mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Stocks Found</h3>
+          <p className="text-foreground-muted">
+            No stocks match your current filters. Try adjusting the timeframe or category.
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredStocks.map((stock) => (
             <StockCard 
               key={stock.id} 

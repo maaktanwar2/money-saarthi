@@ -1,5 +1,7 @@
 // Options Hub - Real-time Options chain, Greeks, OI analytics, IV Skew, Payoff charts
 import { useState, useEffect, useCallback, useRef } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LineChart, BarChart3, TrendingUp, TrendingDown, Activity,
@@ -1055,6 +1057,7 @@ const OptionsHub = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/options')} path="/options" />
       <PageHeader
         title="Options Lab"
         description="Real-time options analysis with live data"

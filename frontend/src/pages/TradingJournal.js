@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge, Tabs } from '../components/ui';
 import { formatINR } from '../lib/utils';
@@ -108,6 +110,7 @@ export default function TradingJournal() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/journal')} path="/journal" />
       <PageHeader
         title="Trading Journal"
         subtitle="Track, analyze, and improve your trading performance"

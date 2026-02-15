@@ -1,5 +1,7 @@
 // Market Hub - Comprehensive NSE Market Data Dashboard
 import { useState, useEffect } from 'react';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { motion } from 'framer-motion';
 import {
   Activity, Users, TrendingUp, TrendingDown,
@@ -1062,6 +1064,7 @@ const MarketHub = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/market')} path="/market" />
       <PageHeader
         title="Market Pulse"
         description="Live NSE market data, institutional flows, sector performance & volatility"

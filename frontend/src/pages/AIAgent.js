@@ -27,6 +27,8 @@ import {
   Button, Badge, Spinner
 } from '../components/ui';
 import { cn, formatINR } from '../lib/utils';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { API_BASE_URL } from '../config/api';
 
 const API = `${API_BASE_URL}/api`;
@@ -201,6 +203,7 @@ const AIAgent = () => {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/ai-agent')} path="/ai-agent" />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">

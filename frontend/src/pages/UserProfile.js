@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, Input, Button, Badge, Tabs } from '../components/ui';
 import { formatINR, cn, isAdmin } from '../lib/utils';
@@ -240,6 +242,7 @@ export default function UserProfile() {
 
   return (
     <PageLayout>
+      <SEO {...getSeoConfig('/profile')} path="/profile" />
       <PageHeader
         title="My Profile"
         subtitle="Manage your account and preferences"

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
+import { getSeoConfig } from '../lib/seoConfig';
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, Chrome, Apple } from 'lucide-react';
 import { Button, Input, Card } from '../components/ui';
 import { cn, isAdmin } from '../lib/utils';
@@ -362,8 +364,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Side - Branding */}
+    <>
+      <SEO {...getSeoConfig('/login')} path="/login" />
+      <div className="min-h-screen bg-background flex">
+        {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 via-background to-teal-900/20 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-30">
@@ -604,6 +608,7 @@ export default function Login() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }
 
