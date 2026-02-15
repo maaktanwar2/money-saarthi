@@ -357,6 +357,7 @@ const TradeFinder = lazy(() => import('./pages/TradeFinder'));
 const AIAgent = lazy(() => import('./pages/AIAgent'));
 const Sectors = lazy(() => import('./pages/Sectors'));
 const SectorPerformance = lazy(() => import('./pages/SectorPerformance'));
+const Watchlist = lazy(() => import('./pages/Watchlist'));
 
 function AppRouter() {
   const location = useLocation();
@@ -431,6 +432,9 @@ function AppRouter() {
         
         {/* Backtesting */}
         <Route path="/backtest" element={<SubscriptionRoute><Backtest /></SubscriptionRoute>} />
+        
+        {/* Watchlist */}
+        <Route path="/watchlist" element={<SubscriptionRoute><Watchlist /></SubscriptionRoute>} />
         
         {/* Settings */}
         <Route path="/settings" element={<SubscriptionRoute><Settings /></SubscriptionRoute>} />

@@ -175,3 +175,6 @@
 /* ═══ LIGHT MODE ═══ */
 .light .glass { @apply bg-white/80 border-black/[0.08]; }
 .light .glass-strong { @apply bg-white/90 border-black/[0.12]; }
+
+/* ═══ SAFE AREA (notched phones) ═══ */
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }

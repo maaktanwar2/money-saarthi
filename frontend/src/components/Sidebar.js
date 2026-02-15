@@ -26,6 +26,7 @@ import {
   Bot,
   Coins,
   Layers,
+  Star,
 } from 'lucide-react';
 import { cn, storage, isAdmin as isAdminCheck } from '../lib/utils';
 
@@ -50,6 +51,13 @@ const NAV_ITEMS = [
     label: 'Dashboard',
     icon: LayoutDashboard,
     path: '/',
+  },
+  {
+    id: 'watchlist',
+    label: 'Watchlist',
+    icon: Star,
+    path: '/watchlist',
+    description: 'Track favorite stocks',
   },
   {
     id: 'scanners',

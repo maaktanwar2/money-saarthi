@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import MobileNav from './MobileNav';
 import { cn, storage } from '../lib/utils';
 
 export const PageLayout = ({ children }) => {
@@ -65,10 +66,13 @@ export const PageLayout = ({ children }) => {
       >
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
         
-        <div className="p-6">
+        <div className="p-6 pb-24 lg:pb-6">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav onMoreClick={() => setMobileMenuOpen(true)} />
     </div>
   );
 };
