@@ -273,68 +273,51 @@ export default function Login() {
         window.google.accounts.id.prompt((notification) => {
           // If prompt fails (FedCM not supported, user dismissed, etc.), fall back to popup
           if (notification.getMomentType() === 'skipped' || notification.getMomentType() === 'dismissed') {
-            // Use OAuth popup flow with credential response
+            // Fallback: use OAuth token client popup
             window.google.accounts.id.cancel();
-            // Create a hidden button and trigger it for popup
-            const btnDiv = document.createElement('div');
-            btnDiv.style.display = 'none';
-            document.body.appendChild(btnDiv);
-            window.google.accounts.id.renderButton(btnDiv, {
-              type: 'standard',
-              size: 'large',
-            });
-            const btn = btnDiv.querySelector('[role="button"]') || btnDiv.querySelector('div[aria-labelledby]');
-            if (btn) {
-              btn.click();
-            } else {
-              // Final fallback: use token client (OAuth popup)
-              window.google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: 'openid email profile',
-                callback: async (tokenResponse) => {
-                  if (tokenResponse.access_token) {
-                    try {
-                      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                      });
-                      const userInfo = await userInfoResponse.json();
-                      
-                      // We can't get a JWT credential from token flow, so save user locally
-                      // and authenticate with backend using the access token
-                      const backendResponse = await authenticateWithBackend(userInfo.email, userInfo.name, userInfo.picture, tokenResponse.access_token);
-                      
-                      let subscription = null;
-                      if (backendResponse?.user) {
-                        const backendUser = backendResponse.user;
-                        if (backendUser.is_paid || backendUser.has_free_access || backendUser.has_full_package) {
-                          subscription = { plan: 'pro', status: 'active', expiresAt: backendUser.subscription_end || null, billingCycle: 'monthly' };
-                        }
+            window.google.accounts.oauth2.initTokenClient({
+              client_id: GOOGLE_CLIENT_ID,
+              scope: 'openid email profile',
+              callback: async (tokenResponse) => {
+                if (tokenResponse.access_token) {
+                  try {
+                    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                      headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                    });
+                    const userInfo = await userInfoResponse.json();
+                    
+                    const backendResponse = await authenticateWithBackend(userInfo.email, userInfo.name, userInfo.picture, tokenResponse.access_token);
+                    
+                    let subscription = null;
+                    if (backendResponse?.user) {
+                      const backendUser = backendResponse.user;
+                      if (backendUser.is_paid || backendUser.has_free_access || backendUser.has_full_package) {
+                        subscription = { plan: 'pro', status: 'active', expiresAt: backendUser.subscription_end || null, billingCycle: 'monthly' };
                       }
-                      
-                      const user = saveUserToStorage({
-                        id: `google_${userInfo.sub}`,
-                        email: userInfo.email,
-                        name: userInfo.name || userInfo.email.split('@')[0],
-                        avatar: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'User')}&background=10b981&color=fff`,
-                        joinedAt: new Date().toISOString(),
-                        provider: 'google',
-                        emailVerified: userInfo.email_verified,
-                        subscription,
-                        preferences: { defaultIndex: 'NIFTY', notifications: true, darkMode: true },
-                        stats: { totalTrades: 0, winRate: 0, totalPnL: 0, streak: 0 }
-                      });
-                      setLoading(false);
-                      navigate(user.isAdmin ? '/admin' : (sessionStorage.getItem('redirectAfterLogin') || '/'));
-                      sessionStorage.removeItem('redirectAfterLogin');
-                    } catch (err) {
-                      setError('Google login failed. Please try again.');
-                      setLoading(false);
                     }
+                    
+                    const user = saveUserToStorage({
+                      id: `google_${userInfo.sub}`,
+                      email: userInfo.email,
+                      name: userInfo.name || userInfo.email.split('@')[0],
+                      avatar: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'User')}&background=10b981&color=fff`,
+                      joinedAt: new Date().toISOString(),
+                      provider: 'google',
+                      emailVerified: userInfo.email_verified,
+                      subscription,
+                      preferences: { defaultIndex: 'NIFTY', notifications: true, darkMode: true },
+                      stats: { totalTrades: 0, winRate: 0, totalPnL: 0, streak: 0 }
+                    });
+                    setLoading(false);
+                    navigate(user.isAdmin ? '/admin' : (sessionStorage.getItem('redirectAfterLogin') || '/'));
+                    sessionStorage.removeItem('redirectAfterLogin');
+                  } catch (err) {
+                    setError('Google login failed. Please try again.');
+                    setLoading(false);
                   }
-                },
-              }).requestAccessToken();
-            }
-            setTimeout(() => btnDiv.remove(), 5000);
+                }
+              },
+            }).requestAccessToken();
             setLoading(false);
           }
         });
