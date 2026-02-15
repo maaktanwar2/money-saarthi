@@ -57,7 +57,7 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm truncate">{sector}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-foreground-muted">
                 <span>{stocks.length} stocks</span>
                 <span>•</span>
                 <span className="text-bullish">{gainers} up</span>
@@ -81,8 +81,8 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
               </div>
             </div>
             {isExpanded
-              ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+              ? <ChevronUp className="w-4 h-4 text-foreground-muted" />
+              : <ChevronDown className="w-4 h-4 text-foreground-muted" />}
           </div>
         </button>
 
@@ -98,7 +98,7 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
             >
               <div className="px-4 pb-4 border-t border-border/50">
                 {/* Column headers */}
-                <div className="grid grid-cols-12 gap-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="grid grid-cols-12 gap-2 py-2 text-[10px] font-semibold text-foreground-muted uppercase tracking-wider">
                   <div className="col-span-4 sm:col-span-3">Symbol</div>
                   <div className="col-span-3 sm:col-span-3 text-right">Price</div>
                   <div className="col-span-3 sm:col-span-3 text-right">Change %</div>
@@ -127,11 +127,11 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
                         <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
                           {stock.symbol}
                         </span>
-                        <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        <ExternalLink className="w-3 h-3 text-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </div>
 
                       {/* Price */}
-                      <div className="col-span-3 sm:col-span-3 text-right text-sm text-muted-foreground">
+                      <div className="col-span-3 sm:col-span-3 text-right text-sm text-foreground-muted">
                         {stock.price > 0 ? formatINR(stock.price) : '—'}
                       </div>
 
@@ -139,7 +139,7 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
                       <div className="col-span-3 sm:col-span-3 text-right">
                         <span className={cn(
                           'inline-flex items-center gap-0.5 text-sm font-bold',
-                          isFlat ? 'text-muted-foreground' : isUp ? 'text-bullish' : 'text-bearish'
+                          isFlat ? 'text-foreground-muted' : isUp ? 'text-bullish' : 'text-bearish'
                         )}>
                           {isUp && <ArrowUpRight className="w-3 h-3" />}
                           {!isUp && !isFlat && <ArrowDownRight className="w-3 h-3" />}
@@ -148,7 +148,7 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
                       </div>
 
                       {/* Volume */}
-                      <div className="col-span-2 sm:col-span-3 text-right text-xs text-muted-foreground hidden sm:block">
+                      <div className="col-span-2 sm:col-span-3 text-right text-xs text-foreground-muted hidden sm:block">
                         {stock.volume > 0 ? `${stock.volume.toFixed(1)}M` : '—'}
                       </div>
                     </motion.div>
@@ -156,7 +156,7 @@ const SectorCard = ({ sector, stocks, avgChange, trend, isExpanded, onToggle, se
                 })}
 
                 {filteredStocks.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">No stocks match your search</p>
+                  <p className="text-center text-sm text-foreground-muted py-4">No stocks match your search</p>
                 )}
               </div>
             </motion.div>
@@ -263,23 +263,23 @@ const Sectors = () => {
       {!loading && Object.keys(sectorData).length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Sectors</div>
+            <div className="text-xs text-foreground-muted">Total Sectors</div>
             <div className="text-xl font-bold">{summary.totalSectors}</div>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Stocks Tracked</div>
+            <div className="text-xs text-foreground-muted">Stocks Tracked</div>
             <div className="text-xl font-bold">{summary.totalStocks}</div>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Market Mood</div>
+            <div className="text-xs text-foreground-muted">Market Mood</div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-bullish">{summary.bullishSectors} Bullish</span>
-              <span className="text-muted-foreground">/</span>
+              <span className="text-foreground-muted">/</span>
               <span className="text-sm font-bold text-bearish">{summary.bearishSectors} Bearish</span>
             </div>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Top Sector</div>
+            <div className="text-xs text-foreground-muted">Top Sector</div>
             {summary.topSector && (
               <div className="flex items-center gap-1">
                 <span className="text-sm font-bold truncate">{summary.topSector[0]}</span>
@@ -296,7 +296,7 @@ const Sectors = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         {/* Search */}
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-muted" />
           <input
             type="text"
             placeholder="Search stock or sector..."
@@ -309,7 +309,7 @@ const Sectors = () => {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Sort */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
-            <Filter className="w-3 h-3 text-muted-foreground ml-2" />
+            <Filter className="w-3 h-3 text-foreground-muted ml-2" />
             {[
               { key: 'change', label: 'By Change' },
               { key: 'name', label: 'A-Z' },
@@ -322,7 +322,7 @@ const Sectors = () => {
                   'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                   sortBy === opt.key
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-foreground-muted hover:text-foreground'
                 )}
               >
                 {opt.label}
@@ -359,14 +359,14 @@ const Sectors = () => {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Spinner className="w-8 h-8" />
-          <p className="text-sm text-muted-foreground">Loading sector data...</p>
+          <p className="text-sm text-foreground-muted">Loading sector data...</p>
         </div>
       )}
 
       {/* Error State */}
       {error && !loading && (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-3">{error}</p>
+          <p className="text-foreground-muted mb-3">{error}</p>
           <button
             onClick={() => fetchSectors()}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
@@ -380,7 +380,7 @@ const Sectors = () => {
       {!loading && !error && (
         <div className="space-y-3">
           {sortedSectors.length === 0 ? (
-            <Card className="p-8 text-center text-muted-foreground">
+            <Card className="p-8 text-center text-foreground-muted">
               No sector data available
             </Card>
           ) : (
@@ -402,7 +402,7 @@ const Sectors = () => {
 
       {/* Footer note */}
       {!loading && !error && sortedSectors.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-foreground-muted mt-6">
           Data from NSE F&O stocks list • Click any stock to view chart on TradingView
         </p>
       )}
@@ -411,3 +411,4 @@ const Sectors = () => {
 };
 
 export default Sectors;
+

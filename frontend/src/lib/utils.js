@@ -137,7 +137,7 @@ export function formatVolume(value) {
 export function getChangeColor(value) {
   if (value > 0) return 'text-bullish';
   if (value < 0) return 'text-bearish';
-  return 'text-muted-foreground';
+  return 'text-foreground-muted';
 }
 
 /**
@@ -222,7 +222,7 @@ export function getMarketSession() {
   const totalMinutes = hours * 60 + minutes;
   
   if (day === 0 || day === 6) {
-    return { status: 'closed', label: 'Weekend', color: 'text-muted-foreground' };
+    return { status: 'closed', label: 'Weekend', color: 'text-foreground-muted' };
   }
   
   const preOpen = 9 * 60;         // 9:00 AM
@@ -372,3 +372,4 @@ export async function fetchAPI(endpoint, options = {}) {
     throw error;
   }
 }
+

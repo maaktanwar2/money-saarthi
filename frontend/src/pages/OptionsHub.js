@@ -94,7 +94,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center gap-3">
           <Spinner size="lg" />
-          <span className="text-muted-foreground">Fetching real-time option chain for {symbol}...</span>
+          <span className="text-foreground-muted">Fetching real-time option chain for {symbol}...</span>
         </div>
       </Card>
     );
@@ -104,8 +104,8 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
     return (
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center gap-3">
-          <WifiOff className="w-12 h-12 text-muted-foreground" />
-          <p className="text-muted-foreground">{error}</p>
+          <WifiOff className="w-12 h-12 text-foreground-muted" />
+          <p className="text-foreground-muted">{error}</p>
           <Button onClick={() => fetchChain(false)} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" /> Retry
           </Button>
@@ -120,36 +120,36 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Spot Price</div>
+            <div className="text-xs text-foreground-muted">Spot Price</div>
             <p className="text-lg font-bold text-primary">{formatINR(spotPrice)}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">PCR (OI)</div>
+            <div className="text-xs text-foreground-muted">PCR (OI)</div>
             <p className={cn('text-lg font-bold', summary.pcrOI > 1 ? 'text-bullish' : summary.pcrOI < 0.7 ? 'text-bearish' : 'text-amber-500')}>
               {summary.pcrOI?.toFixed(2)}
             </p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Call OI</div>
+            <div className="text-xs text-foreground-muted">Total Call OI</div>
             <p className="text-lg font-bold">{formatNumber(summary.totalCallOI, { compact: true })}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Put OI</div>
+            <div className="text-xs text-foreground-muted">Total Put OI</div>
             <p className="text-lg font-bold">{formatNumber(summary.totalPutOI, { compact: true })}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">ATM IV</div>
+            <div className="text-xs text-foreground-muted">ATM IV</div>
             <p className="text-lg font-bold">{summary.atmIV?.toFixed(1)}%</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-muted-foreground">PCR (Vol)</div>
+            <div className="text-xs text-foreground-muted">PCR (Vol)</div>
             <p className="text-lg font-bold">{summary.pcrVolume?.toFixed(2)}</p>
           </Card>
         </div>
       )}
 
       <Card>
-        <CardHeader className="border-b border-white/[0.08]">
+        <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Options Chain - {symbol}</CardTitle>
@@ -178,25 +178,25 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-secondary/30">
-                  <th colSpan={6} className="px-4 py-2 text-center text-bullish border-b border-white/[0.08]">
+                <tr className="bg-surface-1">
+                  <th colSpan={6} className="px-4 py-2 text-center text-bullish border-b border-border">
                     CALLS
                   </th>
-                  <th className="px-4 py-2 text-center border-x border-white/[0.08] bg-secondary/50">
+                  <th className="px-4 py-2 text-center border-x border-border bg-surface-1">
                     Strike
                   </th>
-                  <th colSpan={6} className="px-4 py-2 text-center text-bearish border-b border-white/[0.08]">
+                  <th colSpan={6} className="px-4 py-2 text-center text-bearish border-b border-border">
                     PUTS
                   </th>
                 </tr>
-                <tr className="text-xs text-muted-foreground">
+                <tr className="text-xs text-foreground-muted">
                   <th className="px-2 py-2 text-right">OI</th>
                   <th className="px-2 py-2 text-right">Chng OI</th>
                   <th className="px-2 py-2 text-right">Volume</th>
                   <th className="px-2 py-2 text-right">IV</th>
                   <th className="px-2 py-2 text-right">LTP</th>
                   <th className="px-2 py-2 text-right">Chng%</th>
-                  <th className="px-2 py-2 text-center bg-secondary/30"></th>
+                  <th className="px-2 py-2 text-center bg-surface-1"></th>
                   <th className="px-2 py-2 text-left">Chng%</th>
                   <th className="px-2 py-2 text-left">LTP</th>
                   <th className="px-2 py-2 text-left">IV</th>
@@ -215,7 +215,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
                     <tr 
                       key={row.strikePrice}
                       className={cn(
-                        'hover:bg-white/[0.03] transition-colors',
+                        'hover:bg-surface-1 transition-colors',
                         isATM && 'bg-primary/10 border-l-2 border-r-2 border-primary/40'
                       )}
                     >
@@ -253,7 +253,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
                       
                       {/* STRIKE */}
                       <td className={cn(
-                        'px-3 py-1.5 text-center font-bold bg-secondary/30 border-x border-white/[0.08] tabular-nums',
+                        'px-3 py-1.5 text-center font-bold bg-surface-1 border-x border-border tabular-nums',
                         isATM && 'text-primary'
                       )}>
                         {row.strikePrice}
@@ -340,7 +340,7 @@ const OIAnalysis = ({ symbol }) => {
       <Card className="p-8">
         <div className="flex flex-col items-center gap-3">
           <Spinner size="lg" />
-          <span className="text-muted-foreground">Loading OI analytics for {symbol}...</span>
+          <span className="text-foreground-muted">Loading OI analytics for {symbol}...</span>
         </div>
       </Card>
     );
@@ -349,8 +349,8 @@ const OIAnalysis = ({ symbol }) => {
   if (!data) {
     return (
       <Card className="p-8 text-center">
-        <WifiOff className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">Failed to load OI data</p>
+        <WifiOff className="w-12 h-12 text-foreground-muted mx-auto mb-3" />
+        <p className="text-foreground-muted">Failed to load OI data</p>
         <Button onClick={() => fetchOI(false)} variant="outline" size="sm" className="mt-3">
           <RefreshCw className="w-4 h-4 mr-2" /> Retry
         </Button>
@@ -384,7 +384,7 @@ const OIAnalysis = ({ symbol }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">OI Analytics - {symbol}</h3>
-          <p className="text-xs text-muted-foreground">Updated: {formatTime(lastUpdated)}</p>
+          <p className="text-xs text-foreground-muted">Updated: {formatTime(lastUpdated)}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchOI(true)} disabled={refreshing}>
           <RefreshCw className={cn('w-4 h-4 mr-1', refreshing && 'animate-spin')} />
@@ -410,7 +410,7 @@ const OIAnalysis = ({ symbol }) => {
               {pcrSignal}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{data?.summary?.pcrInterpretation}</p>
+          <p className="text-sm text-foreground-muted">{data?.summary?.pcrInterpretation}</p>
           {tradeSuggestion && (
             <p className="text-sm font-medium mt-1 text-primary">{tradeSuggestion}</p>
           )}
@@ -421,16 +421,16 @@ const OIAnalysis = ({ symbol }) => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Spot Price</span>
-            <Eye className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-foreground-muted">Spot Price</span>
+            <Eye className="w-4 h-4 text-foreground-muted" />
           </div>
           <p className="text-2xl font-bold text-primary">{formatINR(spotPrice)}</p>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Put-Call Ratio</span>
-            <Percent className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-foreground-muted">Put-Call Ratio</span>
+            <Percent className="w-4 h-4 text-foreground-muted" />
           </div>
           <p className={cn(
             'text-2xl font-bold',
@@ -438,38 +438,38 @@ const OIAnalysis = ({ symbol }) => {
           )}>
             {pcr?.toFixed(2)}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-foreground-muted">
             {pcr > 1 ? 'Bullish bias' : pcr < 0.7 ? 'Bearish bias' : 'Neutral'}
           </p>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Max Pain</span>
-            <Target className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-foreground-muted">Max Pain</span>
+            <Target className="w-4 h-4 text-foreground-muted" />
           </div>
           <p className="text-2xl font-bold text-primary">{formatNumber(maxPain)}</p>
           {data?.maxPainAnalysis && (
-            <p className="text-xs text-muted-foreground">{data.maxPainAnalysis.interpretation}</p>
+            <p className="text-xs text-foreground-muted">{data.maxPainAnalysis.interpretation}</p>
           )}
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Support</span>
+            <span className="text-xs text-foreground-muted">Support</span>
             <ArrowUpRight className="w-4 h-4 text-bullish" />
           </div>
           <p className="text-2xl font-bold text-bullish">{formatNumber(support)}</p>
-          <p className="text-xs text-muted-foreground">Highest PE OI</p>
+          <p className="text-xs text-foreground-muted">Highest PE OI</p>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Resistance</span>
+            <span className="text-xs text-foreground-muted">Resistance</span>
             <ArrowDownRight className="w-4 h-4 text-bearish" />
           </div>
           <p className="text-2xl font-bold text-bearish">{formatNumber(resistance)}</p>
-          <p className="text-xs text-muted-foreground">Highest CE OI</p>
+          <p className="text-xs text-foreground-muted">Highest CE OI</p>
         </Card>
       </div>
 
@@ -482,16 +482,16 @@ const OIAnalysis = ({ symbol }) => {
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground">Lower Bound</p>
+              <p className="text-sm text-foreground-muted">Lower Bound</p>
               <p className="text-xl font-bold text-bearish">{formatINR(expectedMove.lowerBound)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Expected Range</p>
+              <p className="text-sm text-foreground-muted">Expected Range</p>
               <p className="text-xl font-bold">±{expectedMove.pct?.toFixed(2)}%</p>
-              <p className="text-xs text-muted-foreground">±{formatINR(expectedMove.value)}</p>
+              <p className="text-xs text-foreground-muted">±{formatINR(expectedMove.value)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Upper Bound</p>
+              <p className="text-sm text-foreground-muted">Upper Bound</p>
               <p className="text-xl font-bold text-bullish">{formatINR(expectedMove.upperBound)}</p>
             </div>
           </div>
@@ -548,7 +548,7 @@ const OIAnalysis = ({ symbol }) => {
                     <p className={cn('text-sm font-medium tabular-nums', getChangeColor(spurt.oiChange))}>
                       {spurt.oiChange > 0 ? '+' : ''}{formatNumber(spurt.oiChange, { compact: true })}
                     </p>
-                    <p className="text-xs text-muted-foreground">{spurt.oiChangePct?.toFixed(1)}% change</p>
+                    <p className="text-xs text-foreground-muted">{spurt.oiChangePct?.toFixed(1)}% change</p>
                   </div>
                 </div>
               ))}
@@ -563,7 +563,7 @@ const OIAnalysis = ({ symbol }) => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">Understanding OI Analysis</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-sm text-foreground-muted space-y-1">
               <li>• <strong>PCR {'>'} 1:</strong> More puts sold = Bullish sentiment (support expected)</li>
               <li>• <strong>PCR {'<'} 0.7:</strong> More calls sold = Bearish sentiment (resistance expected)</li>
               <li>• <strong>Max Pain:</strong> Strike where option buyers lose maximum premium</li>
@@ -601,14 +601,14 @@ const IVSkewAnalysis = ({ symbol }) => {
   useEffect(() => { fetchIVSkew(false); }, [fetchIVSkew]);
 
   if (loading) {
-    return <Card className="p-8"><div className="flex flex-col items-center gap-3"><Spinner size="lg" /><span className="text-muted-foreground">Loading IV Skew data...</span></div></Card>;
+    return <Card className="p-8"><div className="flex flex-col items-center gap-3"><Spinner size="lg" /><span className="text-foreground-muted">Loading IV Skew data...</span></div></Card>;
   }
 
   if (!data) {
     return (
       <Card className="p-8 text-center">
-        <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">Failed to load IV skew data</p>
+        <TrendingUp className="w-12 h-12 text-foreground-muted mx-auto mb-3" />
+        <p className="text-foreground-muted">Failed to load IV skew data</p>
         <Button onClick={() => fetchIVSkew(false)} variant="outline" size="sm" className="mt-3">
           <RefreshCw className="w-4 h-4 mr-2" /> Retry
         </Button>
@@ -630,7 +630,7 @@ const IVSkewAnalysis = ({ symbol }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">IV Skew Analysis - {symbol}</h3>
-          <p className="text-xs text-muted-foreground">Spot: {formatINR(data.spot_price)} | ATM IV: {data.atm_iv?.toFixed(1)}%</p>
+          <p className="text-xs text-foreground-muted">Spot: {formatINR(data.spot_price)} | ATM IV: {data.atm_iv?.toFixed(1)}%</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchIVSkew(true)} disabled={refreshing}>
           <RefreshCw className={cn('w-4 h-4 mr-1', refreshing && 'animate-spin')} />
@@ -641,23 +641,23 @@ const IVSkewAnalysis = ({ symbol }) => {
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">ATM IV</div>
+          <div className="text-xs text-foreground-muted mb-1">ATM IV</div>
           <p className="text-2xl font-bold text-primary">{data.atm_iv?.toFixed(1)}%</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Put Skew</div>
+          <div className="text-xs text-foreground-muted mb-1">Put Skew</div>
           <p className="text-2xl font-bold text-bearish">{metrics?.put_skew?.toFixed(2)}</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Call Skew</div>
+          <div className="text-xs text-foreground-muted mb-1">Call Skew</div>
           <p className="text-2xl font-bold text-bullish">{metrics?.call_skew?.toFixed(2)}</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Direction</div>
+          <div className="text-xs text-foreground-muted mb-1">Direction</div>
           <p className={cn('text-lg font-bold',
             metrics?.skew_direction === 'Put Skew' ? 'text-bearish' : 'text-bullish'
           )}>{metrics?.skew_direction}</p>
-          <p className="text-xs text-muted-foreground">{metrics?.interpretation}</p>
+          <p className="text-xs text-foreground-muted">{metrics?.interpretation}</p>
         </Card>
       </div>
 
@@ -686,7 +686,7 @@ const IVSkewAnalysis = ({ symbol }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-muted-foreground border-b border-white/[0.08]">
+                <tr className="text-xs text-foreground-muted border-b border-border">
                   <th className="px-4 py-2 text-left">Strike</th>
                   <th className="px-4 py-2 text-right">Moneyness</th>
                   <th className="px-4 py-2 text-right">Call IV</th>
@@ -697,7 +697,7 @@ const IVSkewAnalysis = ({ symbol }) => {
               <tbody className="divide-y divide-white/[0.05]">
                 {skewData.map((row) => (
                   <tr key={row.strike} className={cn(
-                    'hover:bg-white/[0.03]',
+                    'hover:bg-surface-1',
                     Math.abs(row.moneyness) < 1 && 'bg-primary/5'
                   )}>
                     <td className="px-4 py-2 font-medium tabular-nums">{row.strike}</td>
@@ -721,7 +721,7 @@ const IVSkewAnalysis = ({ symbol }) => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">Understanding IV Skew</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-sm text-foreground-muted space-y-1">
               <li>• <strong>Put Skew (OTM Put IV {'>'} OTM Call IV):</strong> Fear of downside, hedging demand</li>
               <li>• <strong>Call Skew (OTM Call IV {'>'} OTM Put IV):</strong> FOMO on upside, very bullish</li>
               <li>• <strong>Vol Smile:</strong> Both OTM puts & calls have higher IV than ATM</li>
@@ -800,7 +800,7 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
           <h3 className="font-semibold">Strategy Legs</h3>
           <div className="flex gap-2">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Spot:</label>
+              <label className="text-xs text-foreground-muted">Spot:</label>
               <Input
                 type="number"
                 value={spotPrice}
@@ -819,22 +819,22 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
                 <option value="put">Put</option>
               </Select>
               <div>
-                <label className="text-[10px] text-muted-foreground">Strike</label>
+                <label className="text-[10px] text-foreground-muted">Strike</label>
                 <Input type="number" value={leg.strike || spotPrice} onChange={(e) => updateLeg(i, 'strike', +e.target.value)} className="w-24" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Premium</label>
+                <label className="text-[10px] text-foreground-muted">Premium</label>
                 <Input type="number" value={leg.premium} onChange={(e) => updateLeg(i, 'premium', +e.target.value)} className="w-20" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Qty (±)</label>
+                <label className="text-[10px] text-foreground-muted">Qty (±)</label>
                 <Input type="number" value={leg.quantity} onChange={(e) => updateLeg(i, 'quantity', +e.target.value)} className="w-20" />
               </div>
               <Badge variant={leg.quantity > 0 ? 'success' : 'destructive'} className="text-xs">
                 {leg.quantity > 0 ? 'BUY' : 'SELL'}
               </Badge>
               {legs.length > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => removeLeg(i)} className="text-muted-foreground hover:text-bearish">×</Button>
+                <Button variant="ghost" size="sm" onClick={() => removeLeg(i)} className="text-foreground-muted hover:text-bearish">×</Button>
               )}
             </div>
           ))}
@@ -844,19 +844,19 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
       {/* P&L Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Max Profit</div>
+          <div className="text-xs text-foreground-muted">Max Profit</div>
           <p className="text-lg font-bold text-bullish">{maxProfit >= 999999 ? 'Unlimited' : formatINR(maxProfit)}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Max Loss</div>
+          <div className="text-xs text-foreground-muted">Max Loss</div>
           <p className="text-lg font-bold text-bearish">{maxLoss <= -999999 ? 'Unlimited' : formatINR(maxLoss)}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Breakeven(s)</div>
+          <div className="text-xs text-foreground-muted">Breakeven(s)</div>
           <p className="text-lg font-bold">{breakevens.length > 0 ? breakevens.map(b => formatNumber(b)).join(', ') : 'N/A'}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Risk-Reward</div>
+          <div className="text-xs text-foreground-muted">Risk-Reward</div>
           <p className="text-lg font-bold">{maxLoss !== 0 ? Math.abs(maxProfit / maxLoss).toFixed(2) + 'x' : '∞'}</p>
         </Card>
       </div>
@@ -938,27 +938,27 @@ const GreeksCalculator = () => {
         <h3 className="font-semibold mb-4">Option Parameters</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Spot Price</label>
+            <label className="text-xs text-foreground-muted mb-1 block">Spot Price</label>
             <Input type="number" value={inputs.spotPrice} onChange={(e) => setInputs({ ...inputs, spotPrice: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Strike Price</label>
+            <label className="text-xs text-foreground-muted mb-1 block">Strike Price</label>
             <Input type="number" value={inputs.strikePrice} onChange={(e) => setInputs({ ...inputs, strikePrice: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Days to Expiry</label>
+            <label className="text-xs text-foreground-muted mb-1 block">Days to Expiry</label>
             <Input type="number" value={inputs.daysToExpiry} onChange={(e) => setInputs({ ...inputs, daysToExpiry: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">IV (%)</label>
+            <label className="text-xs text-foreground-muted mb-1 block">IV (%)</label>
             <Input type="number" value={inputs.volatility} onChange={(e) => setInputs({ ...inputs, volatility: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Risk-Free Rate (%)</label>
+            <label className="text-xs text-foreground-muted mb-1 block">Risk-Free Rate (%)</label>
             <Input type="number" value={inputs.riskFreeRate} onChange={(e) => setInputs({ ...inputs, riskFreeRate: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Option Type</label>
+            <label className="text-xs text-foreground-muted mb-1 block">Option Type</label>
             <Select value={inputs.optionType} onChange={(e) => setInputs({ ...inputs, optionType: e.target.value })}>
               <option value="CE">Call (CE)</option>
               <option value="PE">Put (PE)</option>
@@ -970,29 +970,29 @@ const GreeksCalculator = () => {
       {greeks && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Delta (Δ)</div>
+            <div className="text-xs text-foreground-muted mb-1">Delta (Δ)</div>
             <p className="text-2xl font-bold">{greeks.delta}</p>
-            <p className="text-xs text-muted-foreground">Price sensitivity</p>
+            <p className="text-xs text-foreground-muted">Price sensitivity</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Gamma (Γ)</div>
+            <div className="text-xs text-foreground-muted mb-1">Gamma (Γ)</div>
             <p className="text-2xl font-bold">{greeks.gamma}</p>
-            <p className="text-xs text-muted-foreground">Delta change rate</p>
+            <p className="text-xs text-foreground-muted">Delta change rate</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Theta (Θ)</div>
+            <div className="text-xs text-foreground-muted mb-1">Theta (Θ)</div>
             <p className="text-2xl font-bold text-bearish">{greeks.theta}</p>
-            <p className="text-xs text-muted-foreground">Time decay/day</p>
+            <p className="text-xs text-foreground-muted">Time decay/day</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Vega (ν)</div>
+            <div className="text-xs text-foreground-muted mb-1">Vega (ν)</div>
             <p className="text-2xl font-bold">{greeks.vega}</p>
-            <p className="text-xs text-muted-foreground">IV sensitivity</p>
+            <p className="text-xs text-foreground-muted">IV sensitivity</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Premium</div>
+            <div className="text-xs text-foreground-muted mb-1">Premium</div>
             <p className="text-2xl font-bold text-primary">₹{greeks.premium}</p>
-            <p className="text-xs text-muted-foreground">Theoretical value</p>
+            <p className="text-xs text-foreground-muted">Theoretical value</p>
           </Card>
         </div>
       )}
@@ -1002,7 +1002,7 @@ const GreeksCalculator = () => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">Understanding Greeks</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-sm text-foreground-muted space-y-1">
               <li>• <strong>Delta:</strong> How much option price changes for ₹1 spot move</li>
               <li>• <strong>Gamma:</strong> Rate of change of Delta (acceleration)</li>
               <li>• <strong>Theta:</strong> Time decay - value lost per day</li>
@@ -1071,7 +1071,7 @@ const OptionsHub = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             {/* Symbol Select */}
             <div className="w-full md:w-48">
-              <label className="text-xs text-muted-foreground mb-1 block">Index</label>
+              <label className="text-xs text-foreground-muted mb-1 block">Index</label>
               <Select value={symbol} onChange={(e) => { setSymbol(e.target.value); setExpiry(''); setExpiries([]); }}>
                 {INDICES.map((idx) => (
                   <option key={idx.value} value={idx.value}>{idx.label}</option>
@@ -1081,7 +1081,7 @@ const OptionsHub = () => {
             
             {/* Expiry Select */}
             <div className="w-full md:w-48">
-              <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
+              <label className="text-xs text-foreground-muted mb-1 block">Expiry</label>
               <Select value={expiry} onChange={(e) => setExpiry(e.target.value)}>
                 {expiries.length === 0 && <option value="">Loading...</option>}
                 {expiries.map((exp) => (
@@ -1105,7 +1105,7 @@ const OptionsHub = () => {
             
             {/* Tool Tabs */}
             <div className="flex-1 w-full">
-              <label className="text-xs text-muted-foreground mb-1 block">Tool</label>
+              <label className="text-xs text-foreground-muted mb-1 block">Tool</label>
               <div className="flex gap-1 flex-wrap">
                 {TOOLS.map((tool) => (
                   <button
@@ -1115,7 +1115,7 @@ const OptionsHub = () => {
                       'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                       activeTool === tool.id
                         ? 'bg-primary text-white'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                        : 'text-foreground-muted hover:text-foreground hover:bg-surface-1'
                     )}
                   >
                     <tool.icon className="w-4 h-4" />
@@ -1149,3 +1149,4 @@ const OptionsHub = () => {
 };
 
 export default OptionsHub;
+

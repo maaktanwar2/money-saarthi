@@ -1,16 +1,16 @@
-// Header Component - Top navigation bar with market info
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+// Header Component - Compact top bar with market ticker
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Bell, Sun, Moon, User, Menu,
-  TrendingUp, TrendingDown, Activity, LogOut, Coins
+  TrendingUp, TrendingDown, LogOut, Coins, Clock
 } from 'lucide-react';
-import { cn, formatNumber, formatPercent, getMarketSession, fetchAPI } from '../lib/utils';
+import { cn, formatNumber, getMarketSession, fetchAPI } from '../lib/utils';
 import { Button, Input, Badge } from './ui';
 import { useTheme } from './ThemeProvider';
 
-// Market Ticker Component
+// Market Ticker Component — scrolling index tape
 const MarketTicker = () => {
   const [indices, setIndices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,15 +21,12 @@ const MarketTicker = () => {
         const data = await fetchAPI('/nse/indices');
         const indicesArray = data?.all_indices || data?.data || [];
         if (indicesArray.length > 0) {
-          setIndices(indicesArray.slice(0, 8)); // Top 8 indices for ticker
+          setIndices(indicesArray.slice(0, 8));
         }
       } catch (error) {
-        // Use fallback data
         setIndices([
           { symbol: 'NIFTY 50', last: 25727, change: 639, pChange: 2.55 },
           { symbol: 'NIFTY BANK', last: 60041, change: 1422, pChange: 2.43 },
-          { symbol: 'NIFTY IT', last: 35420, change: 280, pChange: 0.80 },
-          { symbol: 'NIFTY MIDCAP 50', last: 17013, change: 464, pChange: 2.80 },
           { symbol: 'INDIA VIX', last: 12.9, change: -0.97, pChange: -6.99 },
         ]);
       } finally {
@@ -38,36 +35,35 @@ const MarketTicker = () => {
     };
 
     fetchIndices();
-    const interval = setInterval(fetchIndices, 60000); // Update every minute
+    const interval = setInterval(fetchIndices, 60000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
-    return <div className="h-6 w-full skeleton rounded" />;
+    return <div className="h-5 w-48 skeleton rounded" />;
   }
 
-  // Duplicate for seamless scroll
   const tickerItems = [...indices, ...indices];
 
   return (
-    <div className="relative overflow-hidden flex-1 mx-4">
+    <div className="relative overflow-hidden flex-1 mx-3">
       <div className="ticker-wrapper">
-        <div className="ticker-content animate-ticker flex items-center gap-8">
+        <div className="ticker-content animate-ticker flex items-center gap-6">
           {tickerItems.map((index, i) => (
             <div
               key={`${index.symbol || index.name}-${i}`}
-              className="flex items-center gap-2 text-sm whitespace-nowrap"
+              className="flex items-center gap-1.5 text-xs whitespace-nowrap"
             >
-              <span className="text-muted-foreground font-medium">{index.symbol || index.name}</span>
-              <span className="font-semibold">{formatNumber(index.last || index.lastPrice, { decimals: index.last < 100 ? 2 : 0 })}</span>
+              <span className="text-foreground-muted font-medium">{index.symbol || index.name}</span>
+              <span className="font-semibold tabular-nums">{formatNumber(index.last || index.lastPrice, { decimals: (index.last || 0) < 100 ? 2 : 0 })}</span>
               <span className={cn(
-                'flex items-center text-xs font-semibold px-1.5 py-0.5 rounded',
-                (index.pChange || 0) >= 0 ? 'text-bullish bg-bullish/10' : 'text-bearish bg-bearish/10'
+                'flex items-center gap-0.5 font-semibold px-1 py-px rounded text-2xs',
+                (index.pChange || 0) >= 0 ? 'text-bullish bg-bullish/8' : 'text-bearish bg-bearish/8'
               )}>
                 {(index.pChange || 0) >= 0 ? (
-                  <TrendingUp className="w-3 h-3 mr-0.5" />
+                  <TrendingUp className="w-2.5 h-2.5" />
                 ) : (
-                  <TrendingDown className="w-3 h-3 mr-0.5" />
+                  <TrendingDown className="w-2.5 h-2.5" />
                 )}
                 {(index.pChange || 0) >= 0 ? '+' : ''}{(index.pChange || 0).toFixed(2)}%
               </span>
@@ -76,22 +72,35 @@ const MarketTicker = () => {
         </div>
       </div>
       
-      {/* CSS for ticker animation */}
       <style>{`
-        .ticker-wrapper {
-          overflow: hidden;
-        }
-        .animate-ticker {
-          animation: ticker 30s linear infinite;
-        }
-        .animate-ticker:hover {
-          animation-play-state: paused;
-        }
-        @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
+        .ticker-wrapper { overflow: hidden; }
+        .animate-ticker { animation: ticker 35s linear infinite; }
+        .animate-ticker:hover { animation-play-state: paused; }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
       `}</style>
+    </div>
+  );
+};
+
+// Market Clock pill
+const MarketClock = () => {
+  const [session, setSession] = useState(getMarketSession());
+
+  useEffect(() => {
+    const interval = setInterval(() => setSession(getMarketSession()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-1/70 border border-border/50">
+      <span className={cn(
+        'w-1.5 h-1.5 rounded-full',
+        session.status === 'open' ? 'bg-bullish animate-pulse-dot' : 
+        session.status === 'pre-market' ? 'bg-amber-500 animate-pulse-dot' : 'bg-foreground-faint'
+      )} />
+      <span className="text-2xs font-medium text-foreground-secondary whitespace-nowrap">
+        {session.label}
+      </span>
     </div>
   );
 };
@@ -101,19 +110,16 @@ export const Header = ({ onMenuClick }) => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications] = useState(3);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(null);
-  const marketSession = getMarketSession();
 
-  // Get user info (must be before useEffect that references it)
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('ms_user') || '{}'); } catch { return {}; }
   })();
   const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const photoURL = user.photoURL || user.picture || null;
 
-  // Fetch token balance
   useEffect(() => {
     const loadTokens = async () => {
       try {
@@ -127,164 +133,152 @@ export const Header = ({ onMenuClick }) => {
     return () => clearInterval(interval);
   }, [user?.email]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('ms_user');
     localStorage.removeItem('authToken');
     sessionStorage.removeItem('authToken');
     window.location.href = '/login';
-  };
+  }, []);
 
   return (
-    <header className="h-16 border-b border-white/[0.08] bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-      <div className="h-full flex items-center justify-between px-4 gap-2">
+    <header className="h-14 border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+      <div className="h-full flex items-center justify-between px-3 gap-2">
         {/* Left: Mobile Menu + Market Status */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-2 shrink-0">
+          <button
             onClick={onMenuClick}
-            className="lg:hidden"
+            className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-foreground-secondary hover:text-foreground hover:bg-surface-1 transition-colors"
           >
-            <Menu className="w-5 h-5" />
-          </Button>
-          
-          {/* Market Status */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-            <span className={cn(
-              'w-2 h-2 rounded-full animate-pulse',
-              marketSession.status === 'open' ? 'bg-bullish' : 
-              marketSession.status === 'pre-market' ? 'bg-amber-500' : 'bg-muted-foreground'
-            )} />
-            <span className="text-xs font-semibold whitespace-nowrap">
-              {marketSession.label}
-            </span>
-          </div>
+            <Menu className="w-[18px] h-[18px]" />
+          </button>
+          <MarketClock />
         </div>
         
-        {/* Center: Running Ticker Banner */}
+        {/* Center: Running Ticker */}
         <div className="hidden md:flex flex-1 min-w-0">
           <MarketTicker />
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           {/* Search */}
           <div className="relative">
-            {searchOpen ? (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 280, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2"
-              >
-                <Input
-                  placeholder="Search stocks, tools..."
-                  autoFocus
-                  onBlur={() => setSearchOpen(false)}
-                  className="pr-10 h-9 rounded-xl bg-secondary/80 border-white/10"
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              </motion.div>
-            ) : (
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
-              >
-                <Search className="w-[18px] h-[18px]" />
-              </button>
-            )}
+            <AnimatePresence>
+              {searchOpen ? (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 240, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2"
+                >
+                  <Input
+                    placeholder="Search stocks, tools..."
+                    autoFocus
+                    onBlur={() => setSearchOpen(false)}
+                    className="pr-8 h-8 rounded-lg bg-surface-1 border-border/50 text-sm"
+                  />
+                  <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground-muted" />
+                </motion.div>
+              ) : (
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-muted hover:text-foreground hover:bg-surface-1/70 transition-colors"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-muted hover:text-foreground hover:bg-surface-1/70 transition-colors"
           >
-            {theme === 'dark' ? (
-              <Sun className="w-[18px] h-[18px]" />
-            ) : (
-              <Moon className="w-[18px] h-[18px]" />
-            )}
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {/* Token Balance */}
           {tokenBalance !== null && (
             <button
               onClick={() => navigate('/profile')}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-all"
-              title="AI Tokens - Click to recharge"
+              className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/15 hover:bg-violet-500/15 transition-colors"
+              title="AI Tokens"
             >
-              <Coins className="w-3.5 h-3.5 text-violet-400" />
-              <span className="text-xs font-bold text-violet-400">{tokenBalance}</span>
+              <Coins className="w-3 h-3 text-violet-400" />
+              <span className="text-2xs font-bold text-violet-400 tabular-nums">{tokenBalance}</span>
             </button>
           )}
 
           {/* Notifications */}
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative">
-            <Bell className="w-[18px] h-[18px]" />
+          <button className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-muted hover:text-foreground hover:bg-surface-1/70 transition-colors relative">
+            <Bell className="w-4 h-4" />
             {notifications > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-red-500/30">
+              <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                 {notifications}
               </span>
             )}
           </button>
 
           {/* Divider */}
-          <div className="w-px h-6 bg-white/10 mx-1.5" />
+          <div className="w-px h-5 bg-border/60 mx-1" />
 
           {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-xl hover:bg-white/[0.06] transition-all"
+              className="flex items-center gap-2 pl-0.5 pr-1.5 py-0.5 rounded-lg hover:bg-surface-1/70 transition-colors"
             >
               {photoURL ? (
-                <img src={photoURL} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                <img src={photoURL} alt="" className="w-7 h-7 rounded-md object-cover" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                  <span className="text-xs font-bold text-white">{initials}</span>
+                <div className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                  <span className="text-2xs font-bold text-white">{initials}</span>
                 </div>
               )}
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-medium leading-tight truncate max-w-[100px]">{user.name || 'User'}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">
+                <p className="text-xs font-medium leading-tight truncate max-w-[80px]">{user.name || 'User'}</p>
+                <p className="text-2xs text-foreground-muted leading-tight">
                   {user.subscription?.plan === 'pro' ? '⭐ Pro' : 'Free'}
                 </p>
               </div>
             </button>
 
             {/* Dropdown */}
-            {userMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="absolute right-0 mt-2 w-56 z-50 rounded-xl border border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden"
-                >
-                  <div className="p-3 border-b border-white/[0.06]">
-                    <p className="text-sm font-semibold truncate">{user.name || 'User'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
-                  </div>
-                  <div className="p-1.5">
-                    <button
-                      onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/[0.06] transition-colors"
-                    >
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      Profile
-                    </button>
-                    <button
-                      onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            )}
+            <AnimatePresence>
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 4, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute right-0 mt-1.5 w-52 z-50 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-elevated overflow-hidden"
+                  >
+                    <div className="p-3 border-b border-border/50">
+                      <p className="text-sm font-semibold truncate">{user.name || 'User'}</p>
+                      <p className="text-xs text-foreground-muted truncate">{user.email || ''}</p>
+                    </div>
+                    <div className="p-1">
+                      <button
+                        onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm hover:bg-surface-1 transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 text-foreground-muted" />
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => { setUserMenuOpen(false); handleLogout(); }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

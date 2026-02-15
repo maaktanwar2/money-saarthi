@@ -377,7 +377,7 @@ export default function Login() {
             <img src="/logo.png" alt="Money Saarthi" className="w-14 h-14 object-contain" />
             <div>
               <h1 className="text-2xl font-bold">Money Saarthi</h1>
-              <p className="text-sm text-muted-foreground">Pro Trading Platform</p>
+              <p className="text-sm text-foreground-muted">Pro Trading Platform</p>
             </div>
           </div>
         </div>
@@ -389,7 +389,7 @@ export default function Login() {
               Trade Smarter,<br />
               <span className="text-gradient">Not Harder</span>
             </h2>
-            <p className="text-muted-foreground text-lg max-w-md">
+            <p className="text-foreground-muted text-lg max-w-md">
               Professional-grade trading tools powered by AI. Get real-time signals, 
               advanced analytics, and market insights.
             </p>
@@ -404,7 +404,7 @@ export default function Login() {
             ].map(stat => (
               <div key={stat.label} className="glass p-4 rounded-xl">
                 <div className="text-2xl font-bold text-primary">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-sm text-foreground-muted">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -421,7 +421,7 @@ export default function Login() {
             </div>
             <div>
               <div className="font-medium text-sm">Money Saarthi</div>
-              <div className="text-xs text-muted-foreground">AI-Powered Trading Platform</div>
+              <div className="text-xs text-foreground-muted">AI-Powered Trading Platform</div>
             </div>
           </div>
         </div>
@@ -440,12 +440,12 @@ export default function Login() {
             <h1 className="text-xl font-bold">Money Saarthi</h1>
           </div>
 
-          <Card className="glass-strong p-8">
+          <Card className="bg-surface-2 border border-border p-8">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-foreground-muted">
                 {isLogin 
                   ? 'Sign in to access your trading dashboard' 
                   : 'Start your trading journey today'}
@@ -501,7 +501,7 @@ export default function Login() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="px-2 bg-card text-muted-foreground">or continue with email</span>
+                <span className="px-2 bg-card text-foreground-muted">or continue with email</span>
               </div>
             </div>
 
@@ -509,7 +509,7 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Full Name</label>
+                  <label className="text-sm text-foreground-muted block mb-2">Full Name</label>
                   <Input
                     type="text"
                     placeholder="John Doe"
@@ -520,9 +520,9 @@ export default function Login() {
               )}
 
               <div>
-                <label className="text-sm text-muted-foreground block mb-2">Email</label>
+                <label className="text-sm text-foreground-muted block mb-2">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                   <Input
                     type="email"
                     placeholder="you@example.com"
@@ -534,9 +534,9 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground block mb-2">Password</label>
+                <label className="text-sm text-foreground-muted block mb-2">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
@@ -547,7 +547,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -582,7 +582,7 @@ export default function Login() {
             </form>
 
             {/* Toggle Login/Signup */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
+            <p className="text-center text-sm text-foreground-muted mt-6">
               {isLogin ? "Don't have an account?" : 'Already have an account?'}
               <button
                 type="button"
@@ -598,7 +598,7 @@ export default function Login() {
           </Card>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-4">
+          <p className="text-center text-xs text-foreground-muted mt-4">
             By continuing, you agree to our Terms of Service & Privacy Policy
           </p>
         </motion.div>
@@ -606,3 +606,4 @@ export default function Login() {
     </div>
   );
 }
+

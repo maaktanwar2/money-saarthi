@@ -1,4 +1,4 @@
-// Chart Components - Reusable chart components for trading platform
+// Chart Components v3.0 — Uses CSS variable system
 import { useMemo } from 'react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -7,21 +7,21 @@ import {
 } from 'recharts';
 import { cn, formatINR, formatNumber, formatPercent } from '../../lib/utils';
 
-// Custom Tooltip
+// Custom Tooltip — uses design tokens
 const CustomTooltip = ({ active, payload, label, formatter }) => {
   if (!active || !payload?.length) return null;
   
   return (
-    <div className="glass-strong p-3 rounded-xl border border-white/10">
-      <p className="text-xs text-muted-foreground mb-2">{label}</p>
+    <div className="bg-surface-2 border border-border p-2.5 rounded-lg shadow-xl backdrop-blur-xl">
+      <p className="text-2xs text-foreground-muted mb-1.5 font-medium">{label}</p>
       {payload.map((entry, index) => (
-        <div key={index} className="flex items-center gap-2 text-sm">
+        <div key={index} className="flex items-center gap-1.5 text-xs">
           <span 
-            className="w-2 h-2 rounded-full" 
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0" 
             style={{ backgroundColor: entry.color }} 
           />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="font-medium">
+          <span className="text-foreground-muted">{entry.name}:</span>
+          <span className="font-semibold tabular-nums">
             {formatter ? formatter(entry.value) : entry.value}
           </span>
         </div>
@@ -30,13 +30,15 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
   );
 };
 
-// Color definitions
+// Color definitions — HSL-based
 const CHART_COLORS = {
-  primary: '#10b981',
-  secondary: '#14b8a6',
-  bullish: '#22c55e',
-  bearish: '#ef4444',
-  neutral: '#6b7280',
+  primary: 'hsl(142, 71%, 45%)',
+  secondary: 'hsl(172, 66%, 50%)',
+  bullish: 'hsl(142, 71%, 45%)',
+  bearish: 'hsl(0, 72%, 51%)',
+  neutral: 'hsl(220, 9%, 46%)',
+  warning: 'hsl(38, 92%, 50%)',
+  info: 'hsl(217, 91%, 60%)',
   area: 'url(#primaryGradient)',
 };
 
@@ -66,7 +68,7 @@ export const TradingAreaChart = ({
           </defs>
           
           {showGrid && (
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 18%)" />
           )}
           
           {showAxis && (
@@ -75,12 +77,12 @@ export const TradingAreaChart = ({
                 dataKey={xAxisKey}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
                 tickFormatter={formatter}
               />
             </>
@@ -116,19 +118,19 @@ export const TradingLineChart = ({
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         {showGrid && (
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 18%)" />
         )}
         
         <XAxis 
           dataKey={xAxisKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
           tickFormatter={formatter}
         />
         
@@ -145,7 +147,7 @@ export const TradingLineChart = ({
             stroke={s.color || CHART_COLORS.primary}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4 }}
+            activeDot={{ r: 3, strokeWidth: 0 }}
           />
         ))}
       </LineChart>
@@ -168,19 +170,19 @@ export const TradingBarChart = ({
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         {showGrid && (
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 18%)" />
         )}
         
         <XAxis 
           dataKey={xAxisKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
           tickFormatter={formatter}
         />
         
@@ -188,7 +190,7 @@ export const TradingBarChart = ({
         
         <Bar
           dataKey={dataKey}
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
           fill={CHART_COLORS.primary}
         />
       </BarChart>
@@ -239,19 +241,19 @@ export const CandlestickChart = ({
   <div className={cn('w-full', className)}>
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 18%)" />
         
         <XAxis 
           dataKey="date"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
         />
         <YAxis 
           yAxisId="price"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
           domain={['auto', 'auto']}
         />
         {showVolume && (
@@ -260,7 +262,7 @@ export const CandlestickChart = ({
             orientation="right"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
           />
         )}
         
@@ -310,38 +312,38 @@ export const PnLChart = ({
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="pnlGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+            <stop offset="0%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="pnlRed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ef4444" stopOpacity={0} />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
+            <stop offset="0%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0} />
+            <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0.3} />
           </linearGradient>
         </defs>
         
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 18%)" />
         
         <XAxis 
           dataKey="date"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: 'hsl(220, 9%, 46%)', fontSize: 11 }}
           tickFormatter={(v) => formatINR(v, { compact: true })}
         />
         
-        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+        <ReferenceLine y={0} stroke="hsl(220, 9%, 46%)" strokeDasharray="3 3" />
         
         <Tooltip content={<CustomTooltip formatter={(v) => formatINR(v)} />} />
         
         <Area
           type="monotone"
           dataKey="pnl"
-          stroke="#22c55e"
+          stroke="hsl(142, 71%, 45%)"
           fill="url(#pnlGreen)"
         />
       </AreaChart>

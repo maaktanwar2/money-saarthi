@@ -37,15 +37,15 @@ const TokenPackageCard = ({ pkg, isPopular, isSelected, onSelect }) => {
         <CardContent className="p-6">
           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4", pkg.id === 'starter' && "bg-blue-500/15 text-blue-500", pkg.id === 'basic' && "bg-emerald-500/15 text-emerald-500", pkg.id === 'pro' && "bg-violet-500/15 text-violet-500", pkg.id === 'unlimited' && "bg-amber-500/15 text-amber-500")}>{getIcon()}</div>
           <h3 className="text-lg font-bold mb-1">{pkg.name}</h3>
-          <p className="text-3xl font-bold mb-1">{pkg.tokens}<span className="text-sm text-muted-foreground ml-2">tokens</span></p>
+          <p className="text-3xl font-bold mb-1">{pkg.tokens}<span className="text-sm text-foreground-muted ml-2">tokens</span></p>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-2xl font-bold text-primary">₹{pkg.price}</span>
-            <span className="text-xs text-muted-foreground">(₹{pkg.price_per_token}/token)</span>
+            <span className="text-xs text-foreground-muted">(₹{pkg.price_per_token}/token)</span>
           </div>
           <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="w-4 h-4 text-emerald-500" /><span>{Math.floor(pkg.tokens / 20)} Portfolio Analyses</span></div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="w-4 h-4 text-emerald-500" /><span>{Math.floor(pkg.tokens / 10)} Strategy Suggestions</span></div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="w-4 h-4 text-emerald-500" /><span>Never expires</span></div>
+            <div className="flex items-center gap-2 text-sm text-foreground-muted"><Check className="w-4 h-4 text-emerald-500" /><span>{Math.floor(pkg.tokens / 20)} Portfolio Analyses</span></div>
+            <div className="flex items-center gap-2 text-sm text-foreground-muted"><Check className="w-4 h-4 text-emerald-500" /><span>{Math.floor(pkg.tokens / 10)} Strategy Suggestions</span></div>
+            <div className="flex items-center gap-2 text-sm text-foreground-muted"><Check className="w-4 h-4 text-emerald-500" /><span>Never expires</span></div>
           </div>
           <Button className="w-full" variant={isSelected ? 'default' : 'outline'}>
             {isSelected ? <><Check className="w-4 h-4 mr-2" />Selected</> : 'Select Package'}
@@ -94,20 +94,20 @@ const TokenPaymentModal = ({ pkg, onClose, onSuccess }) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-        onClick={e => e.stopPropagation()} className="w-full max-w-lg glass-strong rounded-2xl overflow-hidden">
+        onClick={e => e.stopPropagation()} className="w-full max-w-lg bg-surface-2 border border-border rounded-2xl overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h2 className="text-xl font-bold">Complete Payment</h2>
-          <p className="text-sm text-muted-foreground">{pkg.name} - {pkg.tokens} tokens for ₹{pkg.price}</p>
+          <p className="text-sm text-foreground-muted">{pkg.name} - {pkg.tokens} tokens for ₹{pkg.price}</p>
         </div>
         {submitted ? (
           <div className="p-8 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Payment Submitted!</h3>
-            <p className="text-muted-foreground">Tokens will be added after verification.</p>
+            <p className="text-foreground-muted">Tokens will be added after verification.</p>
           </div>
         ) : (
           <div className="p-6 space-y-5">
-            <div className="bg-secondary/50 rounded-xl p-5">
+            <div className="bg-surface-1 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">1</div>
                 <p className="font-semibold">Scan QR code to pay ₹{pkg.price}</p>
@@ -115,10 +115,10 @@ const TokenPaymentModal = ({ pkg, onClose, onSuccess }) => {
               <div className="flex justify-center p-4 bg-white rounded-xl">
                 <img src={getQrUrl()} alt="UPI QR Code" className="w-56 h-56" />
               </div>
-              <p className="text-xs text-muted-foreground mt-3 text-center">Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code</p>
-              <p className="text-xs text-muted-foreground text-center mt-1">UPI ID: <span className="font-mono font-semibold">{upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}</span></p>
+              <p className="text-xs text-foreground-muted mt-3 text-center">Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code</p>
+              <p className="text-xs text-foreground-muted text-center mt-1">UPI ID: <span className="font-mono font-semibold">{upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}</span></p>
             </div>
-            <div className="bg-secondary/50 rounded-xl p-5">
+            <div className="bg-surface-1 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">2</div>
                 <p className="font-semibold">Enter Transaction ID / UTR</p>
@@ -129,7 +129,7 @@ const TokenPaymentModal = ({ pkg, onClose, onSuccess }) => {
             <Button onClick={handleSubmit} disabled={!transactionId.trim() || loading} className="w-full h-12 text-base">
               {loading ? 'Submitting...' : 'Submit Payment'}
             </Button>
-            <button onClick={onClose} className="w-full text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+            <button onClick={onClose} className="w-full text-sm text-foreground-muted hover:text-foreground">Cancel</button>
           </div>
         )}
       </motion.div>
@@ -255,7 +255,7 @@ export default function UserProfile() {
                   {user.name?.charAt(0) || 'U'}
                 </div>
                 <h2 className="text-lg font-bold">{user.name}</h2>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-xs text-foreground-muted">{user.email}</p>
 
                 <div className="flex justify-center gap-2 mt-3">
                   <Badge variant={user.plan === 'premium' ? 'default' : 'secondary'}>
@@ -271,11 +271,11 @@ export default function UserProfile() {
                 <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
                   <div>
                     <div className="text-xl font-bold text-primary">{user.stats?.totalTrades || 0}</div>
-                    <div className="text-xs text-muted-foreground">Trades</div>
+                    <div className="text-xs text-foreground-muted">Trades</div>
                   </div>
                   <div>
                     <div className="text-xl font-bold text-profit">{user.stats?.winRate || 0}%</div>
-                    <div className="text-xs text-muted-foreground">Win Rate</div>
+                    <div className="text-xs text-foreground-muted">Win Rate</div>
                   </div>
                 </div>
 
@@ -335,20 +335,20 @@ export default function UserProfile() {
                     <div className="space-y-4">
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-muted-foreground block mb-2">Full Name</label>
+                          <label className="text-sm text-foreground-muted block mb-2">Full Name</label>
                           <Input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                         </div>
                         <div>
-                          <label className="text-sm text-muted-foreground block mb-2">Email</label>
+                          <label className="text-sm text-foreground-muted block mb-2">Email</label>
                           <Input type="email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} />
                           {isAdmin(editForm.email) && <p className="text-xs text-red-400 mt-1">👑 This email has admin privileges</p>}
                         </div>
                         <div>
-                          <label className="text-sm text-muted-foreground block mb-2">Phone</label>
+                          <label className="text-sm text-foreground-muted block mb-2">Phone</label>
                           <Input value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} />
                         </div>
                         <div>
-                          <label className="text-sm text-muted-foreground block mb-2">Default Index</label>
+                          <label className="text-sm text-foreground-muted block mb-2">Default Index</label>
                           <select className="input w-full" value={editForm.preferences?.defaultIndex || 'NIFTY'}
                             onChange={e => setEditForm({ ...editForm, preferences: {...editForm.preferences, defaultIndex: e.target.value} })}>
                             <option>NIFTY</option><option>BANKNIFTY</option><option>FINNIFTY</option>
@@ -370,7 +370,7 @@ export default function UserProfile() {
                         { label: 'Default Index', value: user.preferences?.defaultIndex || 'NIFTY' },
                       ].map(item => (
                         <div key={item.label} className="flex justify-between py-3 border-b border-border/50">
-                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="text-foreground-muted">{item.label}</span>
                           <span className="font-medium">{item.value}</span>
                         </div>
                       ))}
@@ -395,14 +395,14 @@ export default function UserProfile() {
                     <Card key={stat.label} className="glass-card p-4 text-center">
                       <div className="text-2xl mb-2">{stat.icon}</div>
                       <div className={`text-2xl font-bold ${stat.color || ''}`}>{stat.value}</div>
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
+                      <div className="text-xs text-foreground-muted">{stat.label}</div>
                     </Card>
                   ))}
                 </div>
                 <Card className="glass-card">
                   <CardHeader><CardTitle>Performance Overview</CardTitle></CardHeader>
                   <CardContent>
-                    <div className="h-48 flex items-center justify-center text-muted-foreground">
+                    <div className="h-48 flex items-center justify-center text-foreground-muted">
                       <p>Connect your broker to see detailed performance analytics</p>
                     </div>
                   </CardContent>
@@ -425,15 +425,15 @@ export default function UserProfile() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold">{hasProAccess() ? 'Pro Plan' : 'Free Plan'}</h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-foreground-muted">
                               {hasProAccess() ? `${subscription.billingCycle === 'yearly' ? 'Annual' : 'Monthly'} subscription` : 'Limited access to features'}
                             </p>
                           </div>
                         </div>
                         {hasProAccess() && subscription.expiresAt && (
                           <div className="flex items-center gap-2 mt-4 text-sm">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">
+                            <Calendar className="w-4 h-4 text-foreground-muted" />
+                            <span className="text-foreground-muted">
                               Renews on {new Date(subscription.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </span>
                           </div>
@@ -463,7 +463,7 @@ export default function UserProfile() {
                           {PLANS.free.features.map((feature, i) => (
                             <li key={i} className="flex items-center gap-2 text-sm">
                               {feature.included ? <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> : <X className="w-4 h-4 text-slate-500 flex-shrink-0" />}
-                              <span className={!feature.included ? 'text-muted-foreground' : ''}>{feature.name}</span>
+                              <span className={!feature.included ? 'text-foreground-muted' : ''}>{feature.name}</span>
                             </li>
                           ))}
                         </ul>
@@ -490,7 +490,7 @@ export default function UserProfile() {
                             <p className="font-medium flex items-center gap-2">
                               <Sparkles className="w-4 h-4 text-primary" />Upgrade to Pro and unlock everything
                             </p>
-                            <p className="text-sm text-muted-foreground mt-1">Starting at just ₹899/month or ₹4,999/year (save 53%)</p>
+                            <p className="text-sm text-foreground-muted mt-1">Starting at just ₹899/month or ₹4,999/year (save 53%)</p>
                           </div>
                           <Button onClick={() => navigate('/pricing')}>View Plans<ArrowRight className="w-4 h-4 ml-2" /></Button>
                         </div>
@@ -509,19 +509,19 @@ export default function UserProfile() {
                         <div className="flex items-center justify-between p-4 rounded-lg bg-background">
                           <div>
                             <div className="font-medium">Current Plan</div>
-                            <div className="text-sm text-muted-foreground">Pro - {subscription.billingCycle === 'yearly' ? '₹4,999/year' : '₹899/month'}</div>
+                            <div className="text-sm text-foreground-muted">Pro - {subscription.billingCycle === 'yearly' ? '₹4,999/year' : '₹899/month'}</div>
                           </div>
                           <Button variant="outline" onClick={() => navigate('/pricing')}>Change Plan</Button>
                         </div>
                         <div className="flex items-center justify-between p-4 rounded-lg bg-background">
                           <div>
                             <div className="font-medium">Next Billing Date</div>
-                            <div className="text-sm text-muted-foreground">{subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString('en-IN') : 'N/A'}</div>
+                            <div className="text-sm text-foreground-muted">{subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString('en-IN') : 'N/A'}</div>
                           </div>
                           <Badge variant="success">Auto-renew On</Badge>
                         </div>
                         <div className="pt-4 border-t border-border">
-                          <p className="text-sm text-muted-foreground">Need help? Contact support at support@moneysaarthi.com</p>
+                          <p className="text-sm text-foreground-muted">Need help? Contact support at support@moneysaarthi.com</p>
                         </div>
                       </div>
                     </CardContent>
@@ -545,7 +545,7 @@ export default function UserProfile() {
                     <div key={item.title} className="flex items-center justify-between p-4 rounded-lg bg-background">
                       <div>
                         <div className="font-medium">{item.title}</div>
-                        <div className="text-sm text-muted-foreground">{item.desc}</div>
+                        <div className="text-sm text-foreground-muted">{item.desc}</div>
                       </div>
                       <Button variant="outline">{item.action}</Button>
                     </div>
@@ -570,14 +570,14 @@ export default function UserProfile() {
                       <Coins className="w-7 h-7 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Current Balance</p>
-                      <p className="text-4xl font-bold">{tokenBalance} <span className="text-lg text-muted-foreground">tokens</span></p>
+                      <p className="text-sm text-foreground-muted">Current Balance</p>
+                      <p className="text-4xl font-bold">{tokenBalance} <span className="text-lg text-foreground-muted">tokens</span></p>
                     </div>
                   </div>
                   <div className="flex-1 flex flex-wrap gap-4 justify-end">
-                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 20)}</p><p className="text-xs text-muted-foreground">Portfolio Analyses</p></div>
-                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 10)}</p><p className="text-xs text-muted-foreground">Strategy Suggestions</p></div>
-                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 5)}</p><p className="text-xs text-muted-foreground">Trade Analyses</p></div>
+                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 20)}</p><p className="text-xs text-foreground-muted">Portfolio Analyses</p></div>
+                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 10)}</p><p className="text-xs text-foreground-muted">Strategy Suggestions</p></div>
+                    <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-2xl font-bold">{Math.floor(tokenBalance / 5)}</p><p className="text-xs text-foreground-muted">Trade Analyses</p></div>
                   </div>
                 </div>
 
@@ -614,7 +614,7 @@ export default function UserProfile() {
                             <Brain className="w-5 h-5" />
                           </div>
                           <p className="text-sm font-medium mb-1">{item.name}</p>
-                          <p className="text-xs text-muted-foreground mb-2">{item.desc}</p>
+                          <p className="text-xs text-foreground-muted mb-2">{item.desc}</p>
                           <Badge variant="secondary" className={item.color}>{item.tokens} tokens</Badge>
                         </CardContent>
                       </Card>
@@ -641,20 +641,20 @@ export default function UserProfile() {
                   <CardContent>
                     {!tokenHistory || tokenHistory.length === 0 ? (
                       <div className="py-8 text-center">
-                        <History className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-muted-foreground">No token history yet</p>
+                        <History className="w-10 h-10 text-foreground-muted mx-auto mb-3" />
+                        <p className="text-foreground-muted">No token history yet</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {tokenHistory.slice(0, 10).map((item, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+                          <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-surface-1">
                             <div className="flex items-center gap-3">
                               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", item.tokens > 0 ? "bg-emerald-500/15" : "bg-red-500/15")}>
                                 {item.tokens > 0 ? <Coins className="w-4 h-4 text-emerald-500" /> : <Brain className="w-4 h-4 text-red-500" />}
                               </div>
                               <div>
                                 <p className="text-sm font-medium">{item.type === 'purchase' ? `Purchased ${item.package}` : item.action}</p>
-                                <p className="text-xs text-muted-foreground">{new Date(item.timestamp).toLocaleDateString()}</p>
+                                <p className="text-xs text-foreground-muted">{new Date(item.timestamp).toLocaleDateString()}</p>
                               </div>
                             </div>
                             <span className={cn("font-bold", item.tokens > 0 ? "text-emerald-500" : "text-red-500")}>
@@ -683,4 +683,5 @@ export default function UserProfile() {
     </PageLayout>
   );
 }
+
 

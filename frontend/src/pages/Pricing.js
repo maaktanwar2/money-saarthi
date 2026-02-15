@@ -257,13 +257,13 @@ export default function Pricing() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Complete Payment</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-foreground-muted">
                     {selectedPlan.name} Plan - {billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-primary">{formatPrice(amount)}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-foreground-muted">
                     {billingCycle === 'yearly' ? 'per year' : 'per month'}
                   </p>
                 </div>
@@ -277,7 +277,7 @@ export default function Pricing() {
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Payment Details Submitted!</h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-foreground-muted mb-4">
                   Your payment is being verified. You'll get access within a few hours.
                 </p>
                 <div className="bg-muted/50 rounded-lg p-4 text-left mb-6">
@@ -312,10 +312,10 @@ export default function Pricing() {
                         className="w-56 h-56"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">
+                    <p className="text-xs text-foreground-muted mt-3 text-center">
                       Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code
                     </p>
-                    <p className="text-xs text-muted-foreground text-center mt-1">
+                    <p className="text-xs text-foreground-muted text-center mt-1">
                       UPI ID: <span className="font-mono font-semibold">{upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}</span>
                     </p>
                   </div>
@@ -333,7 +333,7 @@ export default function Pricing() {
                       placeholder="Enter 12-digit UTR number"
                       className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-foreground-muted mt-2">
                       Find this in your UPI app's transaction history / receipt
                     </p>
                   </div>
@@ -356,14 +356,14 @@ export default function Pricing() {
                     )}
                   </Button>
 
-                  <p className="text-xs text-center text-muted-foreground">
+                  <p className="text-xs text-center text-foreground-muted">
                     Your subscription will be activated after payment verification.
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowPaymentModal(false)}
-                  className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
+                  className="w-full mt-4 text-sm text-foreground-muted hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -423,7 +423,7 @@ export default function Pricing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-muted-foreground text-lg max-w-2xl mx-auto"
+            className="text-foreground-muted text-lg max-w-2xl mx-auto"
           >
             Choose the plan that fits your trading journey. Upgrade anytime to access 
             premium features and take your trading to the next level.
@@ -444,7 +444,7 @@ export default function Pricing() {
                 'px-6 py-2.5 rounded-lg font-medium transition-all',
                 billingCycle === 'monthly'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-foreground-muted hover:text-foreground'
               )}
             >
               Monthly
@@ -455,7 +455,7 @@ export default function Pricing() {
                 'px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2',
                 billingCycle === 'yearly'
                   ? 'bg-primary text-white shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-foreground-muted hover:text-foreground'
               )}
             >
               Yearly
@@ -517,7 +517,7 @@ export default function Pricing() {
                         </div>
                         <div>
                           <h3 className="text-2xl font-bold">{plan.name}</h3>
-                          <p className="text-muted-foreground text-sm">{plan.description}</p>
+                          <p className="text-foreground-muted text-sm">{plan.description}</p>
                         </div>
                       </div>
 
@@ -528,7 +528,7 @@ export default function Pricing() {
                             {price === 0 ? 'Free' : formatPrice(price)}
                           </span>
                           {price > 0 && (
-                            <span className="text-muted-foreground">
+                            <span className="text-foreground-muted">
                               /{billingCycle === 'yearly' ? 'year' : 'month'}
                             </span>
                           )}
@@ -540,7 +540,7 @@ export default function Pricing() {
                           </p>
                         )}
                         {isPro && billingCycle === 'monthly' && (
-                          <p className="text-sm text-muted-foreground mt-2">
+                          <p className="text-sm text-foreground-muted mt-2">
                             or {formatPrice(4999)}/year (save 53%)
                           </p>
                         )}
@@ -581,7 +581,7 @@ export default function Pricing() {
 
                       {/* Features List */}
                       <div className="space-y-4">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        <p className="text-sm font-semibold text-foreground-muted uppercase tracking-wider">
                           {isPro ? 'All features included:' : 'Features NOT available:'}
                         </p>
                         <ul className="space-y-3">
@@ -590,7 +590,7 @@ export default function Pricing() {
                               key={i}
                               className={cn(
                                 'flex items-center gap-3 text-sm',
-                                !feature.included && 'text-muted-foreground'
+                                !feature.included && 'text-foreground-muted'
                               )}
                             >
                               {feature.included ? (
@@ -635,7 +635,7 @@ export default function Pricing() {
                   <item.icon className="w-6 h-6 text-primary" />
                 </div>
                 <p className="font-medium text-sm">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
+                <p className="text-xs text-foreground-muted">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -670,7 +670,7 @@ export default function Pricing() {
               <Card key={i} className="glass">
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">{faq.q}</h3>
-                  <p className="text-sm text-muted-foreground">{faq.a}</p>
+                  <p className="text-sm text-foreground-muted">{faq.a}</p>
                 </CardContent>
               </Card>
             ))}
@@ -680,3 +680,4 @@ export default function Pricing() {
     </PageLayout>
   );
 }
+

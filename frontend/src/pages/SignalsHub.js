@@ -35,61 +35,60 @@ const StockCard = ({ stock, onView }) => {
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
     >
       <Card 
+        interactive
         className={cn(
-          'p-4 cursor-pointer transition-all duration-200 border-l-4',
-          isBuy ? 'border-l-bullish hover:border-bullish/50' : 'border-l-bearish hover:border-bearish/50'
+          'p-3.5 border-l-[3px]',
+          isBuy ? 'border-l-bullish' : 'border-l-bearish'
         )}
         onClick={() => onView(stock)}
       >
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-bold">{stock.symbol}</span>
-              <Badge variant={isBuy ? 'success' : 'destructive'} className="text-xs">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-sm font-bold">{stock.symbol}</span>
+              <Badge variant={isBuy ? 'bullish' : 'bearish'} size="sm">
                 {isBuy ? 'GAINER' : 'LOSER'}
               </Badge>
-              <Badge variant="outline" className="text-xs">{stock.category}</Badge>
+              <Badge variant="outline" size="sm">{stock.category}</Badge>
             </div>
-            <p className="text-xs text-muted-foreground">{stock.strategy}</p>
+            <p className="text-2xs text-foreground-muted">{stock.strategy}</p>
           </div>
           <div className="text-right">
-            <div className={cn('text-xl font-bold', getChangeColor(stock.changePercent))}>
+            <div className={cn('text-lg font-bold tabular-nums', getChangeColor(stock.changePercent))}>
               {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
             </div>
-            <p className="text-xs text-muted-foreground">Day Change</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+        <div className="grid grid-cols-3 gap-2 text-xs mb-2">
           <div>
-            <p className="text-xs text-muted-foreground">LTP</p>
-            <p className="font-medium">{formatINR(stock.ltp)}</p>
+            <p className="text-2xs text-foreground-muted">LTP</p>
+            <p className="font-medium tabular-nums">{formatINR(stock.ltp)}</p>
           </div>
           {stock.target ? (
             <div>
-              <p className="text-xs text-muted-foreground">Target</p>
+              <p className="text-xs text-foreground-muted">Target</p>
               <p className="font-medium text-bullish">{formatINR(stock.target)}</p>
             </div>
           ) : (
             <div>
-              <p className="text-xs text-muted-foreground">Volume</p>
+              <p className="text-xs text-foreground-muted">Volume</p>
               <p className="font-medium">{stock.volume ? stock.volume.toLocaleString('en-IN') : '—'}</p>
             </div>
           )}
           {stock.stopLoss ? (
             <div>
-              <p className="text-xs text-muted-foreground">Stop Loss</p>
+              <p className="text-xs text-foreground-muted">Stop Loss</p>
               <p className="font-medium text-bearish">{formatINR(stock.stopLoss)}</p>
             </div>
           ) : (
             <div>
-              <p className="text-xs text-muted-foreground">Scanner Score</p>
-              <p className={cn('font-medium', stock.score >= 70 ? 'text-bullish' : stock.score >= 50 ? 'text-amber-500' : 'text-muted-foreground')}>
+              <p className="text-xs text-foreground-muted">Scanner Score</p>
+              <p className={cn('font-medium', stock.score >= 70 ? 'text-bullish' : stock.score >= 50 ? 'text-amber-500' : 'text-foreground-muted')}>
                 {stock.score || '—'}/100
               </p>
             </div>
@@ -98,8 +97,8 @@ const StockCard = ({ stock, onView }) => {
 
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <Clock className="w-3 h-3 text-muted-foreground" />
-            <span className="text-muted-foreground">{stock.timeframe}</span>
+            <Clock className="w-3 h-3 text-foreground-muted" />
+            <span className="text-foreground-muted">{stock.timeframe}</span>
           </div>
           <a 
             href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
@@ -112,7 +111,7 @@ const StockCard = ({ stock, onView }) => {
         </div>
 
         {stock.reason && (
-          <p className="text-xs text-muted-foreground mt-3 line-clamp-2">{stock.reason}</p>
+          <p className="text-xs text-foreground-muted mt-3 line-clamp-2">{stock.reason}</p>
         )}
       </Card>
     </motion.div>
@@ -140,11 +139,11 @@ const StockDetailModal = ({ stock, onClose }) => {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl glass-strong rounded-2xl overflow-hidden"
+        className="w-full max-w-2xl bg-surface-2 border border-border rounded-2xl overflow-hidden"
       >
         {/* Header */}
         <div className={cn(
-          'p-6 border-b border-white/[0.08]',
+          'p-6 border-b border-border',
           isBuy ? 'bg-bullish/10' : 'bg-bearish/10'
         )}>
           <div className="flex items-start justify-between">
@@ -156,13 +155,13 @@ const StockDetailModal = ({ stock, onClose }) => {
                 </Badge>
                 <Badge variant="outline">{stock.timeframe}</Badge>
               </div>
-              <p className="text-muted-foreground">{stock.strategy} — {stock.category}</p>
+              <p className="text-foreground-muted">{stock.strategy} — {stock.category}</p>
             </div>
             <div className="text-right">
               <div className={cn('text-3xl font-bold', getChangeColor(stock.changePercent))}>
                 {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
               </div>
-              <p className="text-sm text-muted-foreground">Day Change</p>
+              <p className="text-sm text-foreground-muted">Day Change</p>
             </div>
           </div>
         </div>
@@ -172,24 +171,24 @@ const StockDetailModal = ({ stock, onClose }) => {
           {/* Price Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">LTP</p>
+              <p className="text-xs text-foreground-muted mb-1">LTP</p>
               <p className="text-xl font-bold">{formatINR(stock.ltp)}</p>
             </Card>
             {stock.target && (
               <Card className="p-4 text-center border-bullish/30">
-                <p className="text-xs text-muted-foreground mb-1">Target</p>
+                <p className="text-xs text-foreground-muted mb-1">Target</p>
                 <p className="text-xl font-bold text-bullish">{formatINR(stock.target)}</p>
               </Card>
             )}
             {stock.stopLoss && (
               <Card className="p-4 text-center border-bearish/30">
-                <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
+                <p className="text-xs text-foreground-muted mb-1">Stop Loss</p>
                 <p className="text-xl font-bold text-bearish">{formatINR(stock.stopLoss)}</p>
               </Card>
             )}
             {stock.score && (
               <Card className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Scanner Score</p>
+                <p className="text-xs text-foreground-muted mb-1">Scanner Score</p>
                 <p className={cn('text-xl font-bold', stock.score >= 70 ? 'text-bullish' : 'text-amber-500')}>
                   {stock.score}/100
                 </p>
@@ -200,13 +199,13 @@ const StockDetailModal = ({ stock, onClose }) => {
           {/* Extra details if available */}
           {stock.volume && (
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 rounded-xl bg-secondary/30">
-                <p className="text-xs text-muted-foreground">Volume</p>
+              <div className="p-3 rounded-xl bg-surface-1">
+                <p className="text-xs text-foreground-muted">Volume</p>
                 <p className="text-lg font-bold">{stock.volume.toLocaleString('en-IN')}</p>
               </div>
               {stock.riskReward && (
-                <div className="p-3 rounded-xl bg-secondary/30">
-                  <p className="text-xs text-muted-foreground">Risk:Reward</p>
+                <div className="p-3 rounded-xl bg-surface-1">
+                  <p className="text-xs text-foreground-muted">Risk:Reward</p>
                   <p className={cn('text-lg font-bold', stock.riskReward >= 2 ? 'text-bullish' : 'text-amber-500')}>
                     1:{stock.riskReward}
                   </p>
@@ -222,7 +221,7 @@ const StockDetailModal = ({ stock, onClose }) => {
                 <BarChart3 className="w-4 h-4 text-primary" />
                 Scanner Notes
               </h4>
-              <p className="text-sm text-muted-foreground">{stock.reason}</p>
+              <p className="text-sm text-foreground-muted">{stock.reason}</p>
             </div>
           )}
 
@@ -258,26 +257,22 @@ const ScannerSummary = ({ stocks = [] }) => {
   const avgChange = totalStocks > 0 ? (stocks.reduce((sum, s) => sum + (s.changePercent || 0), 0) / totalStocks).toFixed(2) : '0';
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Stocks Found</div>
-        <div className="text-2xl font-bold">{totalStocks}</div>
-        <div className="text-xs text-muted-foreground">From scanners</div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <Card className="p-3">
+        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Stocks Found</div>
+        <div className="text-xl font-bold tabular-nums">{totalStocks}</div>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Scanner Score</div>
-        <div className={cn('text-2xl font-bold', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
-        <div className="text-xs text-muted-foreground">Technical score</div>
+      <Card className="p-3">
+        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Avg Score</div>
+        <div className={cn('text-xl font-bold tabular-nums', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Gainers</div>
-        <div className="text-2xl font-bold text-bullish">{buyCount}</div>
-        <div className="text-xs text-muted-foreground">Stocks up today</div>
+      <Card className="p-3">
+        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Gainers</div>
+        <div className="text-xl font-bold text-bullish tabular-nums">{buyCount}</div>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Change</div>
-        <div className={cn('text-2xl font-bold', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
-        <div className="text-xs text-muted-foreground">Across scanned stocks</div>
+      <Card className="p-3">
+        <div className="text-2xs text-foreground-muted mb-0.5 uppercase tracking-wider">Avg Change</div>
+        <div className={cn('text-xl font-bold tabular-nums', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
       </Card>
     </div>
   );
@@ -431,7 +426,7 @@ const SignalsHub = () => {
                     'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                     activeType === type.id
                       ? 'bg-primary text-white'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-surface-1'
                   )}
                 >
                   <type.icon className="w-4 h-4" />
@@ -441,7 +436,7 @@ const SignalsHub = () => {
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-muted-foreground">Timeframe:</span>
+              <span className="text-sm text-foreground-muted">Timeframe:</span>
               <Select
                 value={timeframe}
                 onChange={(e) => setTimeframe(e.target.value)}
@@ -459,21 +454,21 @@ const SignalsHub = () => {
 
       {/* Stocks Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 skeleton rounded-2xl" />
+            <div key={i} className="h-40 skeleton rounded-xl" />
           ))}
         </div>
       ) : filteredStocks.length === 0 ? (
-        <Card className="p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Stocks Found</h3>
-          <p className="text-muted-foreground">
-            No stocks match your current filters. Try adjusting the timeframe or category.
+        <Card className="p-10 text-center">
+          <AlertCircle className="w-10 h-10 text-foreground-muted mx-auto mb-3" />
+          <h3 className="text-base font-semibold mb-1">No Stocks Found</h3>
+          <p className="text-sm text-foreground-muted">
+            No stocks match your current filters.
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredStocks.map((stock) => (
             <StockCard 
               key={stock.id} 
@@ -490,7 +485,7 @@ const SignalsHub = () => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">About Scanner Data</h4>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-muted">
               This page shows real-time results from our NSE stock scanners. Gainers and losers
               are based on live market data. Swing setups use technical indicators (EMA, RSI, VWAP).
               Scanner scores reflect technical alignment — they are not predictions. Always do your
@@ -514,3 +509,4 @@ const SignalsHub = () => {
 };
 
 export default SignalsHub;
+

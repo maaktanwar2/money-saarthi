@@ -63,7 +63,7 @@ const LiveIndicesTicker = () => {
                   isPositive ? 'bg-bullish/5 border-bullish/20' : 'bg-bearish/5 border-bearish/20'
                 )}
               >
-                <p className="text-xs text-muted-foreground truncate mb-1">
+                <p className="text-xs text-foreground-muted truncate mb-1">
                   {(idx.name || idx.symbol || '').replace('NIFTY ', '')}
                 </p>
                 <p className="text-lg font-bold">{formatNumber(idx.last || idx.lastPrice, { decimals: idx.last < 100 ? 2 : 0 })}</p>
@@ -144,7 +144,7 @@ const FIIDIISection = () => {
                 onClick={() => setView(v)}
                 className={cn(
                   'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors capitalize',
-                  view === v ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-white/5'
+                  view === v ? 'bg-primary text-white' : 'text-foreground-muted hover:bg-surface-1'
                 )}
               >
                 {v}
@@ -178,11 +178,11 @@ const FIIDIISection = () => {
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2 rounded-lg bg-white/5">
-                  <p className="text-muted-foreground">Buy</p>
+                  <p className="text-foreground-muted">Buy</p>
                   <p className="font-semibold text-bullish">{formatNumber(cash.fii_buy || 0, { decimals: 0 })} Cr</p>
                 </div>
                 <div className="p-2 rounded-lg bg-white/5">
-                  <p className="text-muted-foreground">Sell</p>
+                  <p className="text-foreground-muted">Sell</p>
                   <p className="font-semibold text-bearish">{formatNumber(cash.fii_sell || 0, { decimals: 0 })} Cr</p>
                 </div>
               </div>
@@ -212,11 +212,11 @@ const FIIDIISection = () => {
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2 rounded-lg bg-white/5">
-                  <p className="text-muted-foreground">Buy</p>
+                  <p className="text-foreground-muted">Buy</p>
                   <p className="font-semibold text-bullish">{formatNumber(cash.dii_buy || 0, { decimals: 0 })} Cr</p>
                 </div>
                 <div className="p-2 rounded-lg bg-white/5">
-                  <p className="text-muted-foreground">Sell</p>
+                  <p className="text-foreground-muted">Sell</p>
                   <p className="font-semibold text-bearish">{formatNumber(cash.dii_sell || 0, { decimals: 0 })} Cr</p>
                 </div>
               </div>
@@ -244,7 +244,7 @@ const FIIDIISection = () => {
               <p className={cn('text-3xl font-bold mb-2', totalNet >= 0 ? 'text-bullish' : 'text-bearish')}>
                 {totalNet >= 0 ? '+' : ''}{formatNumber(totalNet, { decimals: 0 })} Cr
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-foreground-muted">
                 {totalNet >= 0 ? '🟢 Institutions net buying' : '🔴 Institutions net selling'}
               </p>
             </div>
@@ -253,7 +253,7 @@ const FIIDIISection = () => {
 
         <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-sm">
           <p className="font-medium mb-1">📊 Market Insight</p>
-          <p className="text-muted-foreground">
+          <p className="text-foreground-muted">
             {fiiNet >= 0 && diiNet >= 0 && 'Both FII & DII buying - Strong bullish signal'}
             {fiiNet >= 0 && diiNet < 0 && 'FII buying, DII profit booking - Selective approach'}
             {fiiNet < 0 && diiNet >= 0 && 'DII support while FII exit - Domestic support'}
@@ -372,13 +372,13 @@ const SectorHeatmap = () => {
                     onClick={() => handleSectorClick(sector.name)}
                     className={cn(
                       "flex items-center gap-2 h-7 rounded px-1 cursor-pointer transition-all",
-                      isSelected ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-white/5"
+                      isSelected ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-surface-1"
                     )}
                   >
                     {/* Sector Name */}
                     <div className={cn(
                       "w-20 text-right text-xs font-medium truncate transition-colors",
-                      isSelected ? "text-primary" : "text-muted-foreground"
+                      isSelected ? "text-primary" : "text-foreground-muted"
                     )}>
                       {displayName}
                     </div>
@@ -414,10 +414,10 @@ const SectorHeatmap = () => {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="ml-2 mr-1 my-1 p-2 rounded-lg bg-secondary/30 border border-white/5"
+                      className="ml-2 mr-1 my-1 p-2 rounded-lg bg-surface-1 border border-white/5"
                     >
                       <div className="flex items-center justify-between mb-2 px-1">
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] text-foreground-muted">
                           {sector.stocks.length} F&O Stocks
                         </span>
                         <span className={cn(
@@ -431,7 +431,7 @@ const SectorHeatmap = () => {
                         {sector.stocks.slice(0, 10).map((stock) => (
                           <div 
                             key={stock.symbol}
-                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-white/5 text-xs"
+                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-surface-1 text-xs"
                           >
                             <div className="flex items-center gap-2">
                               <span className={cn(
@@ -441,7 +441,7 @@ const SectorHeatmap = () => {
                               <span className="font-medium">{stock.symbol}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="text-muted-foreground">₹{stock.price?.toFixed(1)}</span>
+                              <span className="text-foreground-muted">₹{stock.price?.toFixed(1)}</span>
                               <span className={cn(
                                 "font-semibold w-14 text-right",
                                 stock.change >= 0 ? "text-bullish" : "text-bearish"
@@ -453,7 +453,7 @@ const SectorHeatmap = () => {
                         ))}
                       </div>
                       {sector.stocks.length > 10 && (
-                        <p className="text-[10px] text-muted-foreground text-center mt-2">
+                        <p className="text-[10px] text-foreground-muted text-center mt-2">
                           +{sector.stocks.length - 10} more stocks
                         </p>
                       )}
@@ -461,7 +461,7 @@ const SectorHeatmap = () => {
                   )}
                   
                   {isSelected && sector.stocks.length === 0 && (
-                    <div className="ml-2 my-1 p-2 rounded bg-secondary/20 text-xs text-muted-foreground text-center">
+                    <div className="ml-2 my-1 p-2 rounded bg-secondary/20 text-xs text-foreground-muted text-center">
                       No stocks data available
                     </div>
                   )}
@@ -517,10 +517,10 @@ const MarketBreadth = () => {
             <div className="flex items-center gap-2">
               <ArrowUp className="w-4 h-4 text-bullish" />
               <span className="text-bullish font-semibold">{breadth?.advances}</span>
-              <span className="text-xs text-muted-foreground">Advances</span>
+              <span className="text-xs text-foreground-muted">Advances</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Declines</span>
+              <span className="text-xs text-foreground-muted">Declines</span>
               <span className="text-bearish font-semibold">{breadth?.declines}</span>
               <ArrowDown className="w-4 h-4 text-bearish" />
             </div>
@@ -538,22 +538,22 @@ const MarketBreadth = () => {
               </span>
             </motion.div>
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-1">{breadth?.unchanged} Unchanged</p>
+          <p className="text-center text-xs text-foreground-muted mt-1">{breadth?.unchanged} Unchanged</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="p-3 rounded-xl bg-secondary/30 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">A/D Ratio</p>
+          <div className="p-3 rounded-xl bg-surface-1 text-center">
+            <p className="text-[10px] text-foreground-muted mb-1">A/D Ratio</p>
             <p className={cn('text-xl font-bold', adRatio > 1 ? 'text-bullish' : 'text-bearish')}>
               {adRatio?.toFixed(2)}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-secondary/30 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">52W Highs</p>
+          <div className="p-3 rounded-xl bg-surface-1 text-center">
+            <p className="text-[10px] text-foreground-muted mb-1">52W Highs</p>
             <p className="text-xl font-bold text-bullish">{breadth?.newHighs || 0}</p>
           </div>
-          <div className="p-3 rounded-xl bg-secondary/30 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">52W Lows</p>
+          <div className="p-3 rounded-xl bg-surface-1 text-center">
+            <p className="text-[10px] text-foreground-muted mb-1">52W Lows</p>
             <p className="text-xl font-bold text-bearish">{breadth?.newLows || 0}</p>
           </div>
         </div>
@@ -641,7 +641,7 @@ const IndiaVIX = () => {
               <div className="w-2 h-2 bg-primary rounded-full" />
             </motion.div>
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground mt-2">
+          <div className="flex justify-between text-[10px] text-foreground-muted mt-2">
             <span>😎 Greed</span>
             <span>😐 Neutral</span>
             <span>😱 Fear</span>
@@ -650,16 +650,16 @@ const IndiaVIX = () => {
 
         <div className={cn('p-3 rounded-xl text-center', level.bg)}>
           <p className={cn('font-bold text-lg', level.color)}>{level.label}</p>
-          <p className="text-xs text-muted-foreground mt-1">{level.desc}</p>
+          <p className="text-xs text-foreground-muted mt-1">{level.desc}</p>
         </div>
 
         <div className="flex justify-between text-sm mt-4 pt-4 border-t border-white/10">
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">Day Low</p>
+            <p className="text-xs text-foreground-muted">Day Low</p>
             <p className="font-semibold text-bullish">{(vix?.low || vixValue * 0.97).toFixed(2)}</p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">Day High</p>
+            <p className="text-xs text-foreground-muted">Day High</p>
             <p className="font-semibold text-bearish">{(vix?.high || vixValue * 1.03).toFixed(2)}</p>
           </div>
         </div>
@@ -708,7 +708,7 @@ const TopMovers = () => {
               onClick={() => setView('gainers')}
               className={cn(
                 'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                view === 'gainers' ? 'bg-bullish text-white' : 'text-muted-foreground hover:bg-white/5'
+                view === 'gainers' ? 'bg-bullish text-white' : 'text-foreground-muted hover:bg-surface-1'
               )}
             >
               🚀 Gainers
@@ -717,7 +717,7 @@ const TopMovers = () => {
               onClick={() => setView('losers')}
               className={cn(
                 'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                view === 'losers' ? 'bg-bearish text-white' : 'text-muted-foreground hover:bg-white/5'
+                view === 'losers' ? 'bg-bearish text-white' : 'text-foreground-muted hover:bg-surface-1'
               )}
             >
               📉 Losers
@@ -755,7 +755,7 @@ const TopMovers = () => {
                     </div>
                     <div>
                       <p className="font-medium">{stock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-foreground-muted">
                         ₹{formatNumber(stock.lastPrice || stock.last, { decimals: 2 })}
                       </p>
                     </div>
@@ -857,7 +857,7 @@ const TopDeliveries = () => {
         ) : (
           <div className="space-y-1">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-1 text-[10px] text-muted-foreground px-2 py-1 border-b border-white/10">
+            <div className="grid grid-cols-12 gap-1 text-[10px] text-foreground-muted px-2 py-1 border-b border-white/10">
               <div className="col-span-3">Stock</div>
               <div className="col-span-2 text-right">LTP</div>
               <div className="col-span-2 text-right">Chg%</div>
@@ -870,14 +870,14 @@ const TopDeliveries = () => {
                 initial={{ opacity: 0, x: activeTab === 'high' ? -10 : 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="grid grid-cols-12 gap-1 items-center p-2 rounded-lg bg-secondary/20 hover:bg-secondary/30 transition-colors text-xs"
+                className="grid grid-cols-12 gap-1 items-center p-2 rounded-lg bg-secondary/20 hover:bg-surface-1 transition-colors text-xs"
               >
                 <div className="col-span-3 font-medium truncate">{stock.symbol}</div>
                 <div className="col-span-2 text-right">₹{stock.price?.toFixed(0)}</div>
                 <div className={cn('col-span-2 text-right font-medium', getChangeColor(stock.change_pct))}>
                   {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct?.toFixed(2)}%
                 </div>
-                <div className="col-span-2 text-right text-muted-foreground">
+                <div className="col-span-2 text-right text-foreground-muted">
                   {formatVolume(stock.traded_volume)}
                 </div>
                 <div className="col-span-3 text-right">
@@ -895,7 +895,7 @@ const TopDeliveries = () => {
           </div>
         )}
         <div className="mt-2 pt-2 border-t border-white/10">
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-[10px] text-foreground-muted text-center">
             {activeTab === 'high' 
               ? '💡 Del% > 60% with price ↑ = Strong Accumulation' 
               : '💡 Del% < 35% = Heavy intraday trading, no conviction'}
@@ -1025,7 +1025,7 @@ const VolumeShockers = () => {
               return (
                 <div
                   key={stock.symbol || i}
-                  className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-xl bg-surface-1 hover:bg-surface-1 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1033,7 +1033,7 @@ const VolumeShockers = () => {
                     </div>
                     <div>
                       <p className="font-medium">{stock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-foreground-muted">
                         ₹{formatNumber(stock.lastPrice || stock.last, { decimals: 2 })}
                       </p>
                     </div>
@@ -1096,7 +1096,7 @@ const MarketHub = () => {
           </div>
           <div className="flex-1">
             <h4 className="font-semibold mb-3">📚 Market Intelligence Guide</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-foreground-muted">
               <div className="p-3 rounded-lg bg-white/5">
                 <p className="font-medium text-foreground mb-1">FII/DII Flows</p>
                 <p>FII+DII buying = Strong Rally. FII selling + DII buying = Support.</p>
@@ -1122,3 +1122,4 @@ const MarketHub = () => {
 };
 
 export default MarketHub;
+

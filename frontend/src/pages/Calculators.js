@@ -141,7 +141,7 @@ function MarginCalculator() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Segment</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Segment</label>
             <select 
               value={segment} 
               onChange={e => setSegment(e.target.value)}
@@ -152,30 +152,30 @@ function MarginCalculator() {
             </select>
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Symbol</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Symbol</label>
             <Input value={symbol} onChange={e => setSymbol(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Quantity</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Quantity</label>
             <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Price (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Price (₹)</label>
             <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} />
           </div>
         </div>
 
         <div className="pt-4 border-t border-border space-y-3">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Contract Value</span>
+            <span className="text-foreground-muted">Contract Value</span>
             <span className="font-semibold">{formatINR(margin.lotValue)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">SPAN Margin</span>
+            <span className="text-foreground-muted">SPAN Margin</span>
             <span className="text-orange-500">{formatINR(margin.span)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Exposure Margin</span>
+            <span className="text-foreground-muted">Exposure Margin</span>
             <span className="text-blue-500">{formatINR(margin.exposure)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border">
@@ -250,7 +250,7 @@ function BrokerageCalculator() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Segment</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Segment</label>
             <select 
               value={segment} 
               onChange={e => setSegment(e.target.value)}
@@ -263,42 +263,42 @@ function BrokerageCalculator() {
             </select>
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Quantity</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Quantity</label>
             <Input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Buy Price (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Buy Price (₹)</label>
             <Input type="number" value={buyPrice} onChange={e => setBuyPrice(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Sell Price (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Sell Price (₹)</label>
             <Input type="number" value={sellPrice} onChange={e => setSellPrice(Number(e.target.value))} />
           </div>
         </div>
 
         <div className="pt-4 border-t border-border space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Brokerage</span>
+            <span className="text-foreground-muted">Brokerage</span>
             <span>{formatINR(charges.brokerage)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">STT</span>
+            <span className="text-foreground-muted">STT</span>
             <span>{formatINR(charges.stt)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Exchange Txn</span>
+            <span className="text-foreground-muted">Exchange Txn</span>
             <span>{formatINR(charges.exchangeCharges)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">GST</span>
+            <span className="text-foreground-muted">GST</span>
             <span>{formatINR(charges.gst)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">SEBI Charges</span>
+            <span className="text-foreground-muted">SEBI Charges</span>
             <span>{formatINR(charges.sebi)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Stamp Duty</span>
+            <span className="text-foreground-muted">Stamp Duty</span>
             <span>{formatINR(charges.stampDuty)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border text-base">
@@ -306,7 +306,7 @@ function BrokerageCalculator() {
             <span className="text-red-500 font-semibold">{formatINR(charges.totalCharges)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Breakeven</span>
+            <span className="text-foreground-muted">Breakeven</span>
             <span>{formatINR(charges.breakeven)} per share</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border text-base">
@@ -356,30 +356,30 @@ function PositionSizeCalculator() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Account Capital (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Account Capital (₹)</label>
             <Input type="number" value={capital} onChange={e => setCapital(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Risk Per Trade (%)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Risk Per Trade (%)</label>
             <Input type="number" value={riskPercent} onChange={e => setRiskPercent(Number(e.target.value))} step="0.5" />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Entry Price (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Entry Price (₹)</label>
             <Input type="number" value={entryPrice} onChange={e => setEntryPrice(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Stop Loss (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Stop Loss (₹)</label>
             <Input type="number" value={stopLoss} onChange={e => setStopLoss(Number(e.target.value))} />
           </div>
         </div>
 
         <div className="pt-4 border-t border-border space-y-3">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Risk Amount</span>
+            <span className="text-foreground-muted">Risk Amount</span>
             <span className="text-orange-500">{formatINR(result.riskAmount)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Risk Per Share</span>
+            <span className="text-foreground-muted">Risk Per Share</span>
             <span>{formatINR(result.riskPerShare)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border">
@@ -387,15 +387,15 @@ function PositionSizeCalculator() {
             <span className="text-2xl font-bold text-primary">{result.shares}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Position Value</span>
+            <span className="text-foreground-muted">Position Value</span>
             <span>{formatINR(result.positionValue)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Capital Used</span>
+            <span className="text-foreground-muted">Capital Used</span>
             <span>{result.capitalUsed.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Max Loss</span>
+            <span className="text-foreground-muted">Max Loss</span>
             <span className="text-red-500">{formatINR(result.maxLoss)}</span>
           </div>
         </div>
@@ -438,26 +438,26 @@ function SIPCalculator() {
       <CardContent className="space-y-4">
         <div className="space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Monthly Investment (₹)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Monthly Investment (₹)</label>
             <Input type="number" value={monthlyAmount} onChange={e => setMonthlyAmount(Number(e.target.value))} />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Expected Return (% p.a.)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Expected Return (% p.a.)</label>
             <Input type="number" value={annualReturn} onChange={e => setAnnualReturn(Number(e.target.value))} step="0.5" />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Time Period (Years)</label>
+            <label className="text-sm text-foreground-muted mb-1 block">Time Period (Years)</label>
             <Input type="number" value={years} onChange={e => setYears(Number(e.target.value))} />
           </div>
         </div>
 
         <div className="pt-4 border-t border-border space-y-3">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Invested</span>
+            <span className="text-foreground-muted">Total Invested</span>
             <span>{formatINR(result.totalInvested)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Wealth Gained</span>
+            <span className="text-foreground-muted">Wealth Gained</span>
             <span className="text-profit">{formatINR(result.wealthGained)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border">
@@ -465,7 +465,7 @@ function SIPCalculator() {
             <span className="text-2xl font-bold text-primary">{formatINR(result.futureValue)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Returns</span>
+            <span className="text-foreground-muted">Total Returns</span>
             <span className="text-profit">{result.effectiveReturn.toFixed(1)}%</span>
           </div>
         </div>
@@ -504,7 +504,7 @@ export default function Calculators() {
             >
               <div className="text-2xl mb-2">{calc.icon}</div>
               <div className="font-medium text-sm">{calc.name}</div>
-              <div className="text-xs text-muted-foreground mt-1">{calc.accuracy}% accurate</div>
+              <div className="text-xs text-foreground-muted mt-1">{calc.accuracy}% accurate</div>
             </motion.button>
           ))}
         </div>
@@ -521,7 +521,7 @@ export default function Calculators() {
                 <CardHeader>
                   <CardTitle>Options Premium Calculator</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center text-muted-foreground py-8">
+                <CardContent className="text-center text-foreground-muted py-8">
                   Use the Options Hub for comprehensive Greeks and premium calculation
                   <Button className="mt-4 block mx-auto" variant="outline" onClick={() => window.location.href = '/options'}>
                     Go to Options Hub
@@ -534,7 +534,7 @@ export default function Calculators() {
                 <CardHeader>
                   <CardTitle>Tax Calculator</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center text-muted-foreground py-8">
+                <CardContent className="text-center text-foreground-muted py-8">
                   Tax calculation feature coming soon
                 </CardContent>
               </Card>
@@ -553,7 +553,7 @@ export default function Calculators() {
               <CardContent>
                 {CALCULATORS.filter(c => c.id === activeCalc).map(calc => (
                   <div key={calc.id}>
-                    <p className="text-muted-foreground mb-4">{calc.description}</p>
+                    <p className="text-foreground-muted mb-4">{calc.description}</p>
                     <ol className="space-y-2">
                       {calc.howToUse.map((step, i) => (
                         <li key={i} className="flex gap-3 text-sm">
@@ -567,7 +567,7 @@ export default function Calculators() {
                     <div className="mt-4 pt-4 border-t border-border">
                       <div className="flex items-center gap-2">
                         <AccuracyBadge accuracy={calc.accuracy} />
-                        <span className="text-xs text-muted-foreground">based on {calc.trades} calculations</span>
+                        <span className="text-xs text-foreground-muted">based on {calc.trades} calculations</span>
                       </div>
                     </div>
                   </div>
@@ -580,3 +580,4 @@ export default function Calculators() {
     </PageLayout>
   );
 }
+
