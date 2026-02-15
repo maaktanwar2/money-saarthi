@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tw } from '../lib/colorMap';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
@@ -1409,7 +1410,7 @@ export default function LTPCalculator() {
                         <button key={o.id} onClick={() => setMarketOutlook(o.id)}
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
                             marketOutlook === o.id
-                              ? `bg-${o.color}-500/20 border-2 border-${o.color}-500 text-${o.color}-400`
+                              ? `${tw(o.color, 'bg20')} border-2 ${tw(o.color, 'borderSolid')} ${tw(o.color, 'text400')}`
                               : 'bg-card border border-border text-foreground-muted'
                           }`}>{o.label}</button>
                       ))}

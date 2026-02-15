@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tw } from '../lib/colorMap';
 import {
   Brain, Play, Square, Pause, RotateCw, Settings, Activity,
   TrendingUp, TrendingDown, Eye, Zap, Shield, Target,
@@ -234,11 +235,11 @@ const AIAgent = () => {
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
-              `bg-${stateConf.color}-500/10 text-${stateConf.color}-400 border border-${stateConf.color}-500/20`
+              `${tw(stateConf.color, 'bg10')} ${tw(stateConf.color, 'text400')} border ${tw(stateConf.color, 'border20')}`
             )}>
               {stateConf.pulse && <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${stateConf.color}-400 opacity-75`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 bg-${stateConf.color}-500`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${tw(stateConf.color, 'bg400')} opacity-75`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${tw(stateConf.color, 'bg500')}`}></span>
               </span>}
               <stateConf.icon className="w-4 h-4" />
               {stateConf.label}
@@ -370,11 +371,11 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
     <CardContent className="p-4">
       <div className="flex justify-between items-start mb-2">
         <span className="text-[11px] text-slate-400 uppercase tracking-wider">{title}</span>
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", `bg-${color}-500/10`)}>
-          <Icon className={cn("w-4 h-4", `text-${color}-400`)} />
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", tw(color, 'bg10'))}>
+          <Icon className={cn("w-4 h-4", tw(color, 'text400'))} />
         </div>
       </div>
-      <div className={cn("text-2xl font-bold", `text-${color}-400`)}>{value}</div>
+      <div className={cn("text-2xl font-bold", tw(color, 'text400'))}>{value}</div>
       {subtitle && <div className="text-[11px] text-slate-500 mt-1">{subtitle}</div>}
     </CardContent>
   </Card>
@@ -448,7 +449,7 @@ const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all flex-1",
                     config.risk_level === r.value
-                      ? `bg-${r.color}-500/20 text-${r.color}-300 border border-${r.color}-500/40`
+                      ? `${tw(r.color, 'bg20')} ${tw(r.color, 'text300')} border ${tw(r.color, 'border40')}`
                       : "bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:border-slate-500"
                   )}
                 >
@@ -624,7 +625,7 @@ const LatestDecision = ({ decision, snapshot }) => {
         <div className="flex flex-wrap gap-2 mb-3">
           <span className={cn(
             "flex items-center gap-1 text-xs px-2 py-1 rounded-lg",
-            `bg-${stratInfo.color}-500/10 text-${stratInfo.color}-400 border border-${stratInfo.color}-500/20`
+            `${tw(stratInfo.color, 'bg10')} ${tw(stratInfo.color, 'text400')} border ${tw(stratInfo.color, 'border20')}`
           )}>
             <span>{stratInfo.icon}</span> {stratInfo.name}
           </span>
@@ -1195,9 +1196,9 @@ const IdleView = ({ onLaunch }) => (
         <Card key={i} className="bg-slate-800/40 border-slate-700/30 hover:border-slate-600/50 transition-all">
           <CardContent className="p-4 text-center">
             <div className={cn("w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center",
-              `bg-${step.color}-500/10`
+              tw(step.color, 'bg10')
             )}>
-              <step.icon className={cn("w-5 h-5", `text-${step.color}-400`)} />
+              <step.icon className={cn("w-5 h-5", tw(step.color, 'text400'))} />
             </div>
             <h3 className="text-xs font-bold text-white mb-1">{step.title}</h3>
             <p className="text-[10px] text-slate-500">{step.desc}</p>
@@ -1219,7 +1220,7 @@ const IdleView = ({ onLaunch }) => (
           {Object.entries(STRATEGY_INFO).filter(([k]) => k !== 'no_trade').map(([key, info]) => (
             <div key={key} className={cn(
               "p-3 rounded-lg border transition-all",
-              `bg-${info.color}-500/5 border-${info.color}-500/10`
+              `${tw(info.color, 'bg5')} ${tw(info.color, 'border10')}`
             )}>
               <span className="text-lg mr-2">{info.icon}</span>
               <span className="text-xs font-medium text-white">{info.name}</span>

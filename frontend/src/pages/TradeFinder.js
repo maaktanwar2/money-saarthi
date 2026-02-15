@@ -5,6 +5,7 @@ import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui';
 import { fetchAPI, isMarketHours } from '../lib/utils';
+import { tw } from '../lib/colorMap';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -30,9 +31,9 @@ const ChartTooltipStyle = {
 
 // ─── Small reusable cards ───────────────────────────────────────────────────
 const StatCard = ({ label, value, color = 'primary', icon }) => (
-  <div className={`p-3 rounded-lg bg-${color}-500/10 border border-${color}-500/20`}>
+  <div className={`p-3 rounded-lg ${tw(color, 'bg10')} border ${tw(color, 'border20')}`}>
     <div className="text-xs text-foreground-muted">{icon} {label}</div>
-    <div className={`font-bold text-sm text-${color}-400 mt-0.5`}>{value}</div>
+    <div className={`font-bold text-sm ${tw(color, 'text400')} mt-0.5`}>{value}</div>
   </div>
 );
 
@@ -221,7 +222,7 @@ export default function TradeFinder() {
                         <button key={o.id} onClick={() => setMarketOutlook(o.id)}
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
                             marketOutlook === o.id
-                              ? `bg-${o.color}-500/20 border-2 border-${o.color}-500 text-${o.color}-400`
+                              ? `${tw(o.color, 'bg20')} border-2 ${tw(o.color, 'borderSolid')} ${tw(o.color, 'text400')}`
                               : 'bg-card border border-border text-foreground-muted'
                           }`}>{o.label}</button>
                       ))}
@@ -437,9 +438,9 @@ export default function TradeFinder() {
                       { label: 'PCR < 0.7', signal: '⚠️ Call Heavy (Bearish)', color: 'yellow' },
                       { label: 'PCR > 1.3', signal: '🟢 Put Heavy (Bullish)', color: 'green' },
                     ].map((item, i) => (
-                      <div key={i} className={`p-2.5 rounded-lg bg-${item.color}-500/10 border border-${item.color}-500/20`}>
+                      <div key={i} className={`p-2.5 rounded-lg ${tw(item.color, 'bg10')} border ${tw(item.color, 'border20')}`}>
                         <div className="text-foreground-muted">{item.label}</div>
-                        <div className={`font-bold text-${item.color}-400 mt-0.5`}>{item.signal}</div>
+                        <div className={`font-bold ${tw(item.color, 'text400')} mt-0.5`}>{item.signal}</div>
                       </div>
                     ))}
                   </div>
@@ -607,14 +608,14 @@ export default function TradeFinder() {
                   reversal_radar: 'Reversal Radar',
                 };
                 return (
-                  <Card key={key} className={`glass-card ${isActive ? `ring-1 ring-${color}-500/40` : ''}`}>
+                  <Card key={key} className={`glass-card ${isActive ? `ring-1 ${tw(color, 'ring40')}` : ''}`}>
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${isActive ? `bg-${color}-500 animate-pulse` : 'bg-gray-600'}`} />
+                          <div className={`w-3 h-3 rounded-full ${isActive ? `${tw(color, 'bg500')} animate-pulse` : 'bg-gray-600'}`} />
                           <h3 className="font-bold text-sm">{labels[key] || key}</h3>
                         </div>
-                        <Badge className={`bg-${color}-500/20 text-${color}-400`}>
+                        <Badge className={`${tw(color, 'bg20')} ${tw(color, 'text400')}`}>
                           {isActive ? (scan.signal || 'Active') : 'Inactive'}
                         </Badge>
                       </div>
