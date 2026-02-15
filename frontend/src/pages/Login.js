@@ -258,6 +258,7 @@ export default function Login() {
           callback: handleGoogleCredentialResponse,
           auto_select: false,
           cancel_on_tap_outside: true,
+          use_fedcm_for_prompt: true,
         });
         
         // Show the One Tap prompt
@@ -517,6 +518,7 @@ export default function Login() {
                   <Input
                     type="text"
                     placeholder="John Doe"
+                    autoComplete="name"
                     value={form.name}
                     onChange={e => setForm({...form, name: e.target.value})}
                   />
@@ -531,6 +533,7 @@ export default function Login() {
                     type="email"
                     placeholder="you@example.com"
                     className="pl-10"
+                    autoComplete="email"
                     value={form.email}
                     onChange={e => setForm({...form, email: e.target.value})}
                   />
@@ -545,6 +548,7 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     className="pl-10 pr-10"
+                    autoComplete={isLogin ? 'current-password' : 'new-password'}
                     value={form.password}
                     onChange={e => setForm({...form, password: e.target.value})}
                   />
