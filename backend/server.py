@@ -4006,6 +4006,7 @@ DHAN_SYMBOL_MAP = {
     "NIFTY BANK": {"security_id": "25", "exchange_segment": "IDX_I"},
     "FINNIFTY": {"security_id": "27", "exchange_segment": "IDX_I"},
     "MIDCPNIFTY": {"security_id": "442", "exchange_segment": "IDX_I"},
+    "SENSEX": {"security_id": "1", "exchange_segment": "IDX_I"},
     # Major stocks (NSE security IDs)
     "RELIANCE": {"security_id": "2885", "exchange_segment": "NSE_EQ"},
     "TCS": {"security_id": "11536", "exchange_segment": "NSE_EQ"},
@@ -6728,6 +6729,117 @@ async def get_nse_all_indices():
             else:
                 categorized["other"].append(idx)
         
+        # ── Append SENSEX (BSE index not available in NSE data) ──
+        sensex_found = any(idx.get("symbol") == "SENSEX" or idx.get("name") == "SENSEX" for idx in formatted_indices)
+        if not sensex_found:
+            try:
+                sensex_ltp = 0
+                sensex_prev = 0
+                sensex_open = 0
+                sensex_high = 0
+                sensex_low = 0
+
+                # Method 1: BSE API (most reliable for SENSEX)
+                try:
+                    async with httpx.AsyncClient(timeout=8) as client:
+                        bse_resp = await client.get(
+                            "https://api.bseindia.com/api/Sensex/getSensexData",
+                            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json",
+                                     "Referer": "https://www.bseindia.com/"}
+                        )
+                        if bse_resp.status_code == 200:
+                            bse_data = bse_resp.json()
+                            if isinstance(bse_data, dict):
+                                sensex_ltp = float(bse_data.get("sensex", {}).get("ltp", 0) or 0)
+                                sensex_prev = float(bse_data.get("sensex", {}).get("prevclose", 0) or 0)
+                            elif isinstance(bse_data, list) and len(bse_data) > 0:
+                                item = bse_data[0]
+                                sensex_ltp = float(item.get("ltp", item.get("currentValue", item.get("indexValue", 0))) or 0)
+                                sensex_prev = float(item.get("prevClose", item.get("previousClose", 0)) or 0)
+                                sensex_open = float(item.get("open", 0) or 0)
+                                sensex_high = float(item.get("high", 0) or 0)
+                                sensex_low = float(item.get("low", 0) or 0)
+                except Exception as bse_err:
+                    logging.warning(f"BSE API failed: {bse_err}")
+
+                # Method 2: Google Finance scrape (fallback / supplement for prev close)
+                if sensex_ltp == 0 or sensex_prev == 0:
+                    try:
+                        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+                            gf_resp = await client.get(
+                                "https://www.google.com/finance/quote/SENSEX:INDEXBOM",
+                                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                            )
+                            if gf_resp.status_code == 200:
+                                import re as _re
+                                text = gf_resp.text
+                                # Extract LTP from data-last-price attribute
+                                if sensex_ltp == 0:
+                                    m = _re.search(r'data-last-price="([0-9,.]+)"', text)
+                                    if m:
+                                        sensex_ltp = float(m.group(1).replace(",", ""))
+                                # Extract prev close from "Previous close" section
+                                if sensex_prev == 0:
+                                    m2 = _re.search(r'Previous close.*?>([\d,]+\.\d+)<', text, _re.DOTALL)
+                                    if m2:
+                                        sensex_prev = float(m2.group(1).replace(",", ""))
+                    except Exception as gf_err:
+                        logging.warning(f"Google Finance SENSEX failed: {gf_err}")
+
+                # Method 3: Yahoo Finance (last resort for LTP, or for %change if prev close missing)
+                yf_pct = None
+                if sensex_ltp == 0 or sensex_prev == 0:
+                    try:
+                        yf_data = await fetch_index_data("^BSESN")
+                        if yf_data and yf_data.get("price"):
+                            if sensex_ltp == 0:
+                                sensex_ltp = float(yf_data["price"])
+                            yf_pct = float(yf_data.get("change", 0) or 0)
+                    except Exception as yf_err:
+                        logging.warning(f"Yahoo SENSEX failed: {yf_err}")
+
+                if sensex_ltp > 0:
+                    if sensex_prev > 0:
+                        chg = sensex_ltp - sensex_prev
+                        pct = (chg / sensex_prev * 100)
+                    elif yf_pct is not None:
+                        pct = yf_pct
+                        chg = sensex_ltp * pct / (100 + pct) if (100 + pct) != 0 else 0
+                        sensex_prev = sensex_ltp - chg
+                    else:
+                        chg = 0
+                        pct = 0
+                    formatted_indices.append({
+                        "symbol": "SENSEX",
+                        "name": "SENSEX",
+                        "last": round(sensex_ltp, 2),
+                        "change": round(chg, 2),
+                        "pChange": round(pct, 2),
+                        "open": round(sensex_open, 2),
+                        "high": round(sensex_high, 2),
+                        "low": round(sensex_low, 2),
+                        "previousClose": round(sensex_prev, 2),
+                        "yearHigh": 0,
+                        "yearLow": 0,
+                        "pe": "",
+                        "pb": "",
+                        "dividendYield": "",
+                        "advances": 0,
+                        "declines": 0,
+                        "unchanged": 0,
+                        "perChange30d": 0,
+                        "perChange365d": 0,
+                        "chartTodayPath": "",
+                        "chart30dPath": "",
+                        "category": "BROAD MARKET",
+                    })
+                    categorized["broad_market"].append(formatted_indices[-1])
+                    logging.info(f"SENSEX added: {sensex_ltp} ({pct:.2f}%)")
+                else:
+                    logging.warning("All SENSEX data sources failed")
+            except Exception as sensex_err:
+                logging.warning(f"Failed to add SENSEX: {sensex_err}")
+
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_indices": len(formatted_indices),
