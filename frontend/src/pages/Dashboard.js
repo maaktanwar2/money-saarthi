@@ -313,14 +313,14 @@ const SectorPerformance = () => {
   }, [sectorStocks]);
 
   const getColorForChange = (pct) => {
-    if (pct >= 2) return 'bg-green-500';
-    if (pct >= 1) return 'bg-green-400';
-    if (pct >= 0.3) return 'bg-green-300/80';
-    if (pct >= 0) return 'bg-green-200/60';
-    if (pct >= -0.3) return 'bg-red-200/60';
-    if (pct >= -1) return 'bg-red-300/80';
-    if (pct >= -2) return 'bg-red-400';
-    return 'bg-red-500';
+    if (pct >= 2) return 'bg-green-600';
+    if (pct >= 1) return 'bg-green-500';
+    if (pct >= 0.3) return 'bg-green-700/80';
+    if (pct >= 0) return 'bg-green-800/60';
+    if (pct >= -0.3) return 'bg-red-800/60';
+    if (pct >= -1) return 'bg-red-700/80';
+    if (pct >= -2) return 'bg-red-600';
+    return 'bg-red-700';
   };
 
   if (loading) {
@@ -361,14 +361,14 @@ const SectorPerformance = () => {
                 isSelected && 'ring-2 ring-primary shadow-lg scale-[1.02]'
               )}
             >
-              <div className="text-[10px] font-bold leading-tight truncate opacity-90">
+              <div className="text-[10px] font-bold leading-tight truncate">
                 {sector.name}
               </div>
               <div className="text-sm font-bold mt-0.5">
                 {isPositive ? '+' : ''}{Number(pct).toFixed(2)}%
               </div>
               {sector.advances != null && (
-                <div className="text-[9px] opacity-70 mt-0.5">
+                <div className="text-[9px] mt-0.5">
                   A:{sector.advances} D:{sector.declines}
                 </div>
               )}
@@ -629,7 +629,7 @@ const TopMovers = () => {
                 <p className="text-xs text-muted-foreground">
                   {formatINR(priceValue)}
                   {volumeRatio > 1.3 && (
-                    <span className="ml-1 text-[10px] opacity-70">Vol {volumeRatio.toFixed(1)}×</span>
+                    <span className="ml-1 text-[10px] text-muted-foreground">Vol {volumeRatio.toFixed(1)}×</span>
                   )}
                 </p>
               </div>
@@ -638,8 +638,8 @@ const TopMovers = () => {
               <span className={cn(
                 'text-sm font-bold px-2 py-1 rounded-lg',
                 type === 'gainer' 
-                  ? 'text-bullish bg-bullish/10' 
-                  : 'text-bearish bg-bearish/10'
+                  ? 'text-bullish-light bg-bullish/10' 
+                  : 'text-bearish-light bg-bearish/10'
               )}>
                 {changePct >= 0 ? '+' : ''}{Number(changePct).toFixed(2)}%
               </span>
@@ -697,7 +697,7 @@ const TopMovers = () => {
               </div>
               <CardTitle className="text-lg text-bearish">Top Losers</CardTitle>
             </div>
-            <Badge variant="outline" className="bg-bearish/10 text-bearish border-bearish/30 text-xs">
+            <Badge variant="outline" className="bg-bearish/15 text-bearish-light border-bearish/30 text-xs">
               🔥 Strong Only
             </Badge>
           </div>

@@ -188,6 +188,7 @@ export const Header = ({ onMenuClick }) => {
             ) : (
               <button
                 onClick={() => setSearchOpen(true)}
+                aria-label="Search stocks and tools"
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
               >
                 <Search className="w-[18px] h-[18px]" />
@@ -198,6 +199,7 @@ export const Header = ({ onMenuClick }) => {
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
           >
             {theme === 'dark' ? (
@@ -220,7 +222,7 @@ export const Header = ({ onMenuClick }) => {
           )}
 
           {/* Notifications */}
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative">
+          <button aria-label="Notifications" className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative">
             <Bell className="w-[18px] h-[18px]" />
             {notifications > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-red-500/30">
