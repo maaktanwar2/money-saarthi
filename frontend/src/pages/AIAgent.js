@@ -177,7 +177,7 @@ const AIAgent = () => {
   // Polling
   useEffect(() => {
     fetchStatus();
-    pollRef.current = setInterval(fetchStatus, POLL_INTERVAL);
+    pollRef.current = setInterval(() => { if (!document.hidden) fetchStatus(); }, POLL_INTERVAL);
     return () => clearInterval(pollRef.current);
   }, [fetchStatus]);
 

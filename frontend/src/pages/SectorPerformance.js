@@ -181,7 +181,7 @@ const SectorPerformance = () => {
 
   useEffect(() => {
     fetchData();
-    const iv = setInterval(() => fetchData(true), 120_000); // 2 min refresh
+    const iv = setInterval(() => { if (!document.hidden) fetchData(true); }, 120_000); // 2 min refresh
     return () => clearInterval(iv);
   }, [fetchData]);
 

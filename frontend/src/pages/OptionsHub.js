@@ -86,7 +86,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
     fetchChain(false);
     // Auto-refresh
     intervalRef.current = setInterval(() => {
-      if (isMarketHours()) fetchChain(true);
+      if (!document.hidden && isMarketHours()) fetchChain(true);
     }, REFRESH_INTERVAL);
     return () => clearInterval(intervalRef.current);
   }, [fetchChain]);
@@ -332,7 +332,7 @@ const OIAnalysis = ({ symbol }) => {
   useEffect(() => {
     fetchOI(false);
     intervalRef.current = setInterval(() => {
-      if (isMarketHours()) fetchOI(true);
+      if (!document.hidden && isMarketHours()) fetchOI(true);
     }, REFRESH_INTERVAL);
     return () => clearInterval(intervalRef.current);
   }, [fetchOI]);

@@ -104,7 +104,7 @@ export default function TradeFinder() {
   useEffect(() => {
     if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     if (autoRefresh) {
-      refreshTimerRef.current = setInterval(() => { if (isMarketHours()) fetchData(); }, 30000);
+      refreshTimerRef.current = setInterval(() => { if (!document.hidden && isMarketHours()) fetchData(); }, 30000);
     }
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
   }, [autoRefresh, fetchData]);

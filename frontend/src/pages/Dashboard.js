@@ -61,7 +61,7 @@ const MarketOverview = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(() => { if (!document.hidden) fetchData(); }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -270,7 +270,7 @@ const SectorPerformance = () => {
       }
     };
     fetchSectors();
-    const interval = setInterval(fetchSectors, 60000);
+    const interval = setInterval(() => { if (!document.hidden) fetchSectors(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -582,7 +582,7 @@ const TopMovers = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Refresh every minute
+    const interval = setInterval(() => { if (!document.hidden) fetchData(); }, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 

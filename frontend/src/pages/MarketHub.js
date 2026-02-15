@@ -41,7 +41,7 @@ const LiveIndicesTicker = () => {
       }
     };
     fetchIndices();
-    const interval = setInterval(fetchIndices, 30000);
+    const interval = setInterval(() => { if (!document.hidden) fetchIndices(); }, 30000);
     return () => clearInterval(interval);
   }, []);
 

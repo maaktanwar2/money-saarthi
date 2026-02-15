@@ -310,7 +310,7 @@ export const Sidebar = () => {
     window.addEventListener('storage', updateStatus);
     
     // Also check periodically in case of same-tab changes (60s is plenty)
-    const interval = setInterval(updateStatus, 60000);
+    const interval = setInterval(() => { if (!document.hidden) updateStatus(); }, 60000);
     
     return () => {
       window.removeEventListener('storage', updateStatus);

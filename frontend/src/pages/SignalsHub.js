@@ -385,7 +385,7 @@ const SignalsHub = () => {
     };
     
     fetchScannerData();
-    const interval = setInterval(fetchScannerData, 60000);
+    const interval = setInterval(() => { if (!document.hidden) fetchScannerData(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 

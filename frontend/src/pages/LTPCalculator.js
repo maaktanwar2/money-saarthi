@@ -220,7 +220,7 @@ export default function LTPCalculator() {
     if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     if (autoRefresh) {
       refreshTimerRef.current = setInterval(() => {
-        if (isMarketHours()) fetchData();
+        if (!document.hidden && isMarketHours()) fetchData();
       }, 30000);
     }
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };

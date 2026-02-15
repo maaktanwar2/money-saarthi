@@ -206,7 +206,7 @@ const Sectors = () => {
   useEffect(() => {
     fetchSectors();
     // Auto-refresh every 2 minutes
-    const interval = setInterval(() => fetchSectors(true), 120000);
+    const interval = setInterval(() => { if (!document.hidden) fetchSectors(true); }, 120000);
     return () => clearInterval(interval);
   }, [fetchSectors]);
 

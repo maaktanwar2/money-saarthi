@@ -362,7 +362,7 @@ const AlgoTrading = () => {
   useEffect(() => {
     if (brokerConnected) {
       fetchBotStatuses();
-      const interval = setInterval(fetchBotStatuses, POLL_INTERVAL);
+      const interval = setInterval(() => { if (!document.hidden) fetchBotStatuses(); }, POLL_INTERVAL);
       return () => clearInterval(interval);
     }
   }, [brokerConnected, fetchBotStatuses]);

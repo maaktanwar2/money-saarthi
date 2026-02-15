@@ -38,7 +38,7 @@ const MarketTicker = () => {
     };
 
     fetchIndices();
-    const interval = setInterval(fetchIndices, 60000); // Update every minute
+    const interval = setInterval(() => { if (!document.hidden) fetchIndices(); }, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -123,7 +123,7 @@ export const Header = ({ onMenuClick }) => {
       } catch (e) { /* ignore */ }
     };
     loadTokens();
-    const interval = setInterval(loadTokens, 60000);
+    const interval = setInterval(() => { if (!document.hidden) loadTokens(); }, 60000);
     return () => clearInterval(interval);
   }, [user?.email]);
 
