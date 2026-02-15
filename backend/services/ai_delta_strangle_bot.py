@@ -15,6 +15,7 @@ Version: 2.0
 import asyncio
 import logging
 import json
+import os
 import httpx
 from datetime import datetime, time, timedelta, timezone
 from dataclasses import dataclass, field, asdict
@@ -630,12 +631,11 @@ class AIDeltaStrangleBot:
         broker_service: Any,
         access_token: str,
         broker: str = "dhan",
-        claude_api_key: Optional[str] = None
     ):
         self.broker_service = broker_service
         self.access_token = access_token
         self.broker = broker.lower()
-        self.claude_api_key = claude_api_key
+        self.claude_api_key = os.environ.get('ANTHROPIC_API_KEY', '')
         
         # State
         self.config = DeltaStrangleConfig()

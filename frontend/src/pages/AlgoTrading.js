@@ -11,7 +11,7 @@ import {
   AlertCircle, CheckCircle2, Clock, Percent,
   RefreshCw, Eye, EyeOff, ChevronRight, ChevronDown, Power,
   Rocket, LineChart, Gauge, Wallet, Link, Unlink, ArrowUpRight,
-  ArrowDownRight, Timer, Calendar, Sparkles, Lock, Crown, Info, Coins
+  ArrowDownRight, Timer, Calendar, Sparkles, Crown, Info, Coins
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
 import {
@@ -124,8 +124,7 @@ const AlgoTrading = () => {
     aiConfidenceThreshold: 70,
     maxAdjustmentsPerDay: 3,
     entryTime: '09:30',
-    exitTime: '15:15',
-    claudeApiKey: ''
+    exitTime: '15:15'
   });
   
   const [deltaConfig, setDeltaConfig] = useState({
@@ -478,7 +477,6 @@ const AlgoTrading = () => {
         body: JSON.stringify({
           access_token: localStorage.getItem('ms_broker_token'),
           broker: connectedBroker,
-          claude_api_key: strangleConfig.claudeApiKey || null,
           underlying: strangleConfig.underlying,
           num_lots: strangleConfig.numLots,
           entry_delta: strangleConfig.entryDelta,
@@ -1256,19 +1254,6 @@ const AlgoTrading = () => {
               value={strangleConfig.maxAdjustmentsPerDay}
               onChange={(e) => setStrangleConfig(prev => ({ ...prev, maxAdjustmentsPerDay: Number(e.target.value) }))}
               className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-foreground-muted flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Claude API Key
-            </label>
-            <Input
-              type="password"
-              placeholder="sk-ant-..."
-              value={strangleConfig.claudeApiKey}
-              onChange={(e) => setStrangleConfig(prev => ({ ...prev, claudeApiKey: e.target.value }))}
-              className="mt-1"
-              disabled={!strangleConfig.useAI}
             />
           </div>
         </div>

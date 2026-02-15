@@ -2169,8 +2169,6 @@ class DeltaStrangleStartRequest(BaseModel):
     profit_target_pct: int = Field(default=50, ge=20, le=80, description="Profit target % of premium (20-80)")
     max_loss_multiplier: float = Field(default=2.0, ge=1.0, le=5.0, description="Max loss as multiple of credit")
     use_ai: bool = Field(default=True, description="Enable Claude AI decisions")
-    ai_confidence_threshold: int = Field(default=70, ge=50, le=100, description="Min AI confidence to act (50-100)")
-    claude_api_key: Optional[str] = Field(default=None, description="Claude API key for AI decisions")
     entry_time: str = Field(default="09:20", description="Entry window start (HH:MM IST)")
     exit_time: str = Field(default="15:15", description="Exit window end (HH:MM IST)")
     max_adjustments_per_day: int = Field(default=3, ge=0, le=10, description="Max adjustments per day (0-10)")
@@ -2284,7 +2282,6 @@ async def start_ai_delta_strangle(request: DeltaStrangleStartRequest):
             broker_service=broker_service,
             access_token=request.access_token,
             broker=request.broker.lower(),
-            claude_api_key=request.claude_api_key
         )
         
         result = await bot.start(config)
