@@ -1,5 +1,5 @@
 // Stock Scanner Hub - Real scanner data from NSE
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -295,99 +295,99 @@ const SignalsHub = () => {
   const [timeframe, setTimeframe] = useState('all');
   const [selectedStock, setSelectedStock] = useState(null);
 
+  const fetchScannerData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [gainers, losers, swing] = await Promise.all([
+        fetchAPI('/scanners/day-gainers?limit=8').catch(() => ({ data: [] })),
+        fetchAPI('/scanners/day-losers?limit=8').catch(() => ({ data: [] })),
+        fetchAPI('/scanners/swing?limit=8').catch(() => ({ data: [] }))
+      ]);
+      
+      const scannedStocks = [];
+      
+      // Gainers — show real data only
+      (gainers?.data || []).forEach((s, i) => {
+        scannedStocks.push({
+          id: `gainer-${i}`,
+          symbol: s.symbol,
+          type: 'BUY',
+          category: 'Day Gainer',
+          strategy: 'Momentum',
+          ltp: s.ltp || s.entry || 0,
+          changePercent: s.change_percent || 0,
+          target: s.target_1 || null,       // only if scanner provides it
+          stopLoss: s.stop_loss || null,     // only if scanner provides it
+          score: s.score || null,
+          volume: s.volume || null,
+          timeframe: 'Intraday',
+          riskReward: (s.target_1 && s.stop_loss && s.ltp)
+            ? (((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
+            : null,
+          reason: s.signal || (s.change_percent > 3
+            ? `Up ${s.change_percent.toFixed(1)}% today with momentum.`
+            : `Moderate gain of ${(s.change_percent || 0).toFixed(1)}%.`),
+        });
+      });
+      
+      // Losers — show real data only
+      (losers?.data || []).forEach((s, i) => {
+        scannedStocks.push({
+          id: `loser-${i}`,
+          symbol: s.symbol,
+          type: 'SELL',
+          category: 'Day Loser',
+          strategy: 'Breakdown',
+          ltp: s.ltp || s.entry || 0,
+          changePercent: s.change_percent || 0,
+          target: s.target_1 || null,
+          stopLoss: s.stop_loss || null,
+          score: s.score || null,
+          volume: s.volume || null,
+          timeframe: 'Intraday',
+          riskReward: (s.target_1 && s.stop_loss && s.ltp)
+            ? (((s.ltp - s.target_1) / (s.stop_loss - s.ltp)).toFixed(1))
+            : null,
+          reason: s.signal || `Down ${Math.abs(s.change_percent || 0).toFixed(1)}% today.`,
+        });
+      });
+      
+      // Swing setups — show real data only
+      (swing?.data || []).forEach((s, i) => {
+        scannedStocks.push({
+          id: `swing-${i}`,
+          symbol: s.symbol,
+          type: s.signal === 'SELL' ? 'SELL' : 'BUY',
+          category: 'Swing Setup',
+          strategy: 'Swing Trade',
+          ltp: s.ltp || s.entry || 0,
+          changePercent: s.change_percent || 0,
+          target: s.target_1 || null,
+          stopLoss: s.stop_loss || null,
+          score: s.score || null,
+          volume: s.volume || null,
+          timeframe: 'Swing',
+          riskReward: (s.target_1 && s.stop_loss && s.ltp)
+            ? (Math.abs((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
+            : null,
+          reason: s.reason || s.signal || 'Swing setup detected by scanner.',
+        });
+      });
+      
+      setStocks(scannedStocks);
+    } catch (error) {
+      console.error('Error fetching scanner data:', error);
+      setStocks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchScannerData = async () => {
-      setLoading(true);
-      try {
-        const [gainers, losers, swing] = await Promise.all([
-          fetchAPI('/scanners/day-gainers?limit=8').catch(() => ({ data: [] })),
-          fetchAPI('/scanners/day-losers?limit=8').catch(() => ({ data: [] })),
-          fetchAPI('/scanners/swing?limit=8').catch(() => ({ data: [] }))
-        ]);
-        
-        const scannedStocks = [];
-        
-        // Gainers — show real data only
-        (gainers?.data || []).forEach((s, i) => {
-          scannedStocks.push({
-            id: `gainer-${i}`,
-            symbol: s.symbol,
-            type: 'BUY',
-            category: 'Day Gainer',
-            strategy: 'Momentum',
-            ltp: s.ltp || s.entry || 0,
-            changePercent: s.change_percent || 0,
-            target: s.target_1 || null,       // only if scanner provides it
-            stopLoss: s.stop_loss || null,     // only if scanner provides it
-            score: s.score || null,
-            volume: s.volume || null,
-            timeframe: 'Intraday',
-            riskReward: (s.target_1 && s.stop_loss && s.ltp)
-              ? (((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
-              : null,
-            reason: s.signal || (s.change_percent > 3
-              ? `Up ${s.change_percent.toFixed(1)}% today with momentum.`
-              : `Moderate gain of ${(s.change_percent || 0).toFixed(1)}%.`),
-          });
-        });
-        
-        // Losers — show real data only
-        (losers?.data || []).forEach((s, i) => {
-          scannedStocks.push({
-            id: `loser-${i}`,
-            symbol: s.symbol,
-            type: 'SELL',
-            category: 'Day Loser',
-            strategy: 'Breakdown',
-            ltp: s.ltp || s.entry || 0,
-            changePercent: s.change_percent || 0,
-            target: s.target_1 || null,
-            stopLoss: s.stop_loss || null,
-            score: s.score || null,
-            volume: s.volume || null,
-            timeframe: 'Intraday',
-            riskReward: (s.target_1 && s.stop_loss && s.ltp)
-              ? (((s.ltp - s.target_1) / (s.stop_loss - s.ltp)).toFixed(1))
-              : null,
-            reason: s.signal || `Down ${Math.abs(s.change_percent || 0).toFixed(1)}% today.`,
-          });
-        });
-        
-        // Swing setups — show real data only
-        (swing?.data || []).forEach((s, i) => {
-          scannedStocks.push({
-            id: `swing-${i}`,
-            symbol: s.symbol,
-            type: s.signal === 'SELL' ? 'SELL' : 'BUY',
-            category: 'Swing Setup',
-            strategy: 'Swing Trade',
-            ltp: s.ltp || s.entry || 0,
-            changePercent: s.change_percent || 0,
-            target: s.target_1 || null,
-            stopLoss: s.stop_loss || null,
-            score: s.score || null,
-            volume: s.volume || null,
-            timeframe: 'Swing',
-            riskReward: (s.target_1 && s.stop_loss && s.ltp)
-              ? (Math.abs((s.target_1 - s.ltp) / (s.ltp - s.stop_loss)).toFixed(1))
-              : null,
-            reason: s.reason || s.signal || 'Swing setup detected by scanner.',
-          });
-        });
-        
-        setStocks(scannedStocks);
-      } catch (error) {
-        console.error('Error fetching scanner data:', error);
-        setStocks([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchScannerData();
     const interval = setInterval(() => { if (!document.hidden) fetchScannerData(); }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchScannerData]);
 
   // Filter stocks
   const filteredStocks = useMemo(() => {
@@ -411,7 +411,7 @@ const SignalsHub = () => {
           { label: 'Scanner' },
         ]}
         actions={
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          <Button variant="outline" size="sm" onClick={fetchScannerData}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>

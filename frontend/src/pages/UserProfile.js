@@ -209,7 +209,7 @@ export default function UserProfile() {
 
   const handleLogout = () => {
     clearUserFromStorage();
-    window.location.href = '/';
+    navigate('/');
   };
 
   if (!user) {

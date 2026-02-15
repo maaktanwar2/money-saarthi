@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, Play, Square, Settings, TrendingUp, TrendingDown,
@@ -23,6 +24,7 @@ import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { API_BASE_URL, fetchWithAuth } from '../config/api';
 import { toast } from '../hooks/use-toast';
+import { useConfirm } from '../hooks/useConfirm';
 import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
 import { fetchAPI } from '../lib/utils';
 
@@ -83,6 +85,8 @@ const BOT_CONFIGS = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const AlgoTrading = () => {
+  const navigate = useNavigate();
+  const [ConfirmEl, confirm] = useConfirm();
   // ─────────────────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────────────────
@@ -375,17 +379,15 @@ const AlgoTrading = () => {
     const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
     const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
     const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
-    const confirmed = window.confirm(
-      `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
-      `You are about to start VWAP Momentum Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
-      `• Capital: ₹${vwapConfig.capital.toLocaleString()}\n` +
-      `• Risk per Trade: ${vwapConfig.riskPerTrade}%\n` +
-      `• Max Positions: ${vwapConfig.maxPositions}\n` +
-      `• Target: ${vwapConfig.targetPercent}%\n` +
-      `• Stop Loss: ${vwapConfig.stopLossPercent}%\n\n` +
-      `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL orders on your ${brokerName} account.`}\n\n` +
-      `Are you sure you want to proceed?`
-    );
+    const confirmed = await confirm({
+      title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
+      message: `You are about to start VWAP Momentum Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
+        `Capital: ₹${vwapConfig.capital.toLocaleString()} | Risk: ${vwapConfig.riskPerTrade}%\n` +
+        `Max Positions: ${vwapConfig.maxPositions} | Target: ${vwapConfig.targetPercent}% | SL: ${vwapConfig.stopLossPercent}%\n\n` +
+        `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL orders on your ${brokerName} account.`}`,
+      confirmText: 'Start Bot',
+      variant: isSandboxMode ? 'default' : 'destructive',
+    });
     if (!confirmed) return;
     
     // Check & deduct tokens (VWAP = basic, 15 tokens)
@@ -449,20 +451,17 @@ const AlgoTrading = () => {
     const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
     const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
     const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
-    const confirmed = window.confirm(
-      `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
-      `You are about to start QuantStrangle AI Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
-      `Strategy: Delta-Neutral Short Strangle\n` +
-      `• Underlying: ${strangleConfig.underlying}\n` +
-      `• Number of Lots: ${strangleConfig.numLots}\n` +
-      `• Entry Delta: ${strangleConfig.entryDelta} (sell at 15-16 delta)\n` +
-      `• Adjustment Trigger: ${strangleConfig.adjustmentDelta} delta\n` +
-      `• Profit Target: ${strangleConfig.profitTargetPct}%\n` +
-      `• Claude AI: ${strangleConfig.useAI ? 'ENABLED' : 'DISABLED'}\n` +
-      `• Token Cost: 60 tokens\n\n` +
-      `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}\n\n` +
-      `Are you sure you want to proceed?`
-    );
+    const confirmed = await confirm({
+      title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
+      message: `You are about to start QuantStrangle AI Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
+        `Strategy: Delta-Neutral Short Strangle\n` +
+        `Underlying: ${strangleConfig.underlying} | Lots: ${strangleConfig.numLots} | Entry Delta: ${strangleConfig.entryDelta}\n` +
+        `Adjustment Trigger: ${strangleConfig.adjustmentDelta} delta | Profit Target: ${strangleConfig.profitTargetPct}%\n` +
+        `Claude AI: ${strangleConfig.useAI ? 'ENABLED' : 'DISABLED'} | Token Cost: 60 tokens\n\n` +
+        `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}`,
+      confirmText: 'Start Bot',
+      variant: isSandboxMode ? 'default' : 'destructive',
+    });
     if (!confirmed) return;
     
     // Check & deduct tokens (QuantStrangle AI = 60 tokens)
@@ -575,19 +574,17 @@ const AlgoTrading = () => {
     const timeframeLabel = TIMEFRAME_LABELS[deltaConfig.timeframe] || deltaConfig.timeframe;
     const isDefinedRisk = ['iron_condor', 'iron_butterfly'].includes(deltaConfig.strategyMode);
     
-    const confirmed = window.confirm(
-      `⚠️ ${isSandboxMode ? 'SANDBOX' : 'LIVE'} TRADING CONFIRMATION ⚠️\n\n` +
-      `You are about to start Delta Neutral Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
-      `📊 Strategy: ${strategyLabel}\n` +
-      `⏱️ Timeframe: ${timeframeLabel}\n` +
-      `• Underlying: ${deltaConfig.underlying}\n` +
-      `• Entry Delta: ${deltaConfig.entryDelta}δ\n` +
-      (isDefinedRisk ? `• Wing Protection: ${deltaConfig.wingWidth} pts (capped loss)\n` : '• ⚠️ Unlimited risk — no wing protection\n') +
-      `• Profit Target: ${deltaConfig.profitTargetPct}%${deltaConfig.trailingProfit ? ' (trailing)' : ''}\n` +
-      `• Token Cost: 40 tokens\n\n` +
-      `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}\n\n` +
-      `Are you sure you want to proceed?`
-    );
+    const confirmed = await confirm({
+      title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
+      message: `You are about to start Delta Neutral Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
+        `Strategy: ${strategyLabel} | Timeframe: ${timeframeLabel}\n` +
+        `Underlying: ${deltaConfig.underlying} | Entry Delta: ${deltaConfig.entryDelta}δ\n` +
+        (isDefinedRisk ? `Wing Protection: ${deltaConfig.wingWidth} pts (capped loss)\n` : 'Unlimited risk — no wing protection\n') +
+        `Profit Target: ${deltaConfig.profitTargetPct}%${deltaConfig.trailingProfit ? ' (trailing)' : ''} | Token Cost: 40 tokens\n\n` +
+        `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}`,
+      confirmText: 'Start Bot',
+      variant: isSandboxMode ? 'default' : 'destructive',
+    });
     if (!confirmed) return;
     
     // Check & deduct tokens (Delta Neutral with auto hedging = 40 tokens)
@@ -1511,6 +1508,7 @@ const AlgoTrading = () => {
   
   return (
     <PageLayout>
+      {ConfirmEl}
       <SEO {...getSeoConfig('/algo')} path="/algo" />
       <PageHeader
         title="Algo Trading"
@@ -1544,7 +1542,7 @@ const AlgoTrading = () => {
               <p className="text-sm font-semibold text-violet-500">15 - 60 tokens</p>
             </div>
             {!isAdminUser && tokenBalance < 15 && (
-              <Button size="sm" onClick={() => window.location.href = '/profile'} className="bg-violet-600 hover:bg-violet-700">
+              <Button size="sm" onClick={() => navigate('/profile')} className="bg-violet-600 hover:bg-violet-700">
                 <Coins className="w-4 h-4 mr-2" />Recharge
               </Button>
             )}

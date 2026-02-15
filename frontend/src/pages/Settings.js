@@ -4,6 +4,7 @@ import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardContent, Input, Button } from '../components/ui';
+import { useConfirm } from '../hooks/useConfirm';
 
 const SETTINGS_KEY = 'ms_settings';
 
@@ -23,6 +24,7 @@ export default function Settings() {
   const [settings, setSettings] = useState(getSettings);
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
+  const [ConfirmEl, confirm] = useConfirm();
 
   const update = (key, value) => {
     const updated = { ...settings, [key]: value };
@@ -36,6 +38,7 @@ export default function Settings() {
 
   return (
     <PageLayout>
+      {ConfirmEl}
       <SEO {...getSeoConfig('/settings')} path="/settings" />
       <PageHeader
         title="Settings"
@@ -256,8 +259,14 @@ export default function Settings() {
                       <Button 
                         variant="outline" 
                         className="text-red-500 border-red-500/20 hover:bg-red-500/10"
-                        onClick={() => {
-                          if (window.confirm('This will delete all your local data including settings, saved signals, and broker tokens. Continue?')) {
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: 'Delete All Data',
+                            message: 'This will delete all your local data including settings, saved signals, and broker tokens. Continue?',
+                            confirmText: 'Delete All',
+                            variant: 'destructive',
+                          });
+                          if (ok) {
                             const keysToRemove = [];
                             for (let i = 0; i < localStorage.length; i++) {
                               const key = localStorage.key(i);
@@ -266,7 +275,6 @@ export default function Settings() {
                             keysToRemove.forEach(k => localStorage.removeItem(k));
                             localStorage.removeItem(SETTINGS_KEY);
                             setSettings({});
-                            window.location.reload();
                           }
                         }}
                       >

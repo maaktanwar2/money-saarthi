@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
@@ -478,6 +479,7 @@ function SIPCalculator() {
 
 // Main Calculators Page
 export default function Calculators() {
+  const navigate = useNavigate();
   const [activeCalc, setActiveCalc] = useState('margin');
 
   return (
@@ -526,7 +528,7 @@ export default function Calculators() {
                 </CardHeader>
                 <CardContent className="text-center text-foreground-muted py-8">
                   Use the Options Hub for comprehensive Greeks and premium calculation
-                  <Button className="mt-4 block mx-auto" variant="outline" onClick={() => window.location.href = '/options'}>
+                  <Button className="mt-4 block mx-auto" variant="outline" onClick={() => navigate('/options')}>
                     Go to Options Hub
                   </Button>
                 </CardContent>

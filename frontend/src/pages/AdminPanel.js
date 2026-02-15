@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge, Tabs } 
 import { formatINR, cn } from '../lib/utils';
 import { getUserFromStorage, isAdmin } from './UserProfile';
 import * as adminService from '../services/adminService';
+import { useConfirm } from '../hooks/useConfirm';
 import {
   Users, Crown, TrendingUp, DollarSign, Activity, Settings, Shield,
   Bell, FileText, BarChart3, Zap, AlertTriangle, CheckCircle, XCircle,
@@ -19,6 +20,7 @@ import {
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const [ConfirmEl, confirmAction] = useConfirm();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -115,7 +117,13 @@ export default function AdminPanel() {
 
   // Delete user handler
   const handleDeleteUser = async (email) => {
-    if (window.confirm(`Are you sure you want to delete user ${email}?`)) {
+    const ok = await confirmAction({
+      title: 'Delete User',
+      message: `Are you sure you want to delete user ${email}?`,
+      confirmText: 'Delete',
+      variant: 'destructive',
+    });
+    if (ok) {
       await adminService.deleteUser(email);
       loadData();
     }
@@ -147,8 +155,14 @@ export default function AdminPanel() {
   };
 
   // Delete signal handler
-  const handleDeleteSignal = (id) => {
-    if (window.confirm('Delete this signal?')) {
+  const handleDeleteSignal = async (id) => {
+    const ok = await confirmAction({
+      title: 'Delete Signal',
+      message: 'Are you sure you want to delete this signal?',
+      confirmText: 'Delete',
+      variant: 'destructive',
+    });
+    if (ok) {
       adminService.deleteSignal(id);
       loadData();
     }
@@ -189,8 +203,14 @@ export default function AdminPanel() {
   };
 
   // Clear cache
-  const handleClearCache = () => {
-    if (window.confirm('Clear all cache?')) {
+  const handleClearCache = async () => {
+    const ok = await confirmAction({
+      title: 'Clear Cache',
+      message: 'This will clear all cached data. Continue?',
+      confirmText: 'Clear Cache',
+      variant: 'destructive',
+    });
+    if (ok) {
       adminService.clearAllCache();
       alert('Cache cleared!');
     }
@@ -227,6 +247,7 @@ export default function AdminPanel() {
 
   return (
     <PageLayout>
+      {ConfirmEl}
       <PageHeader
         title="Admin Panel"
         subtitle="Complete control over Money Saarthi platform"
@@ -1231,22 +1252,29 @@ export default function AdminPanel() {
                 {[
                   { label: 'Clear All Cache', desc: 'Remove all cached data', action: 'Clear Cache', onClick: handleClearCache },
                   { label: 'Export All Data', desc: 'Download backup JSON', action: 'Export', onClick: handleExportData },
-                  { label: 'Reset All Signals', desc: 'Close all active signals', action: 'Reset Signals', onClick: () => {
-                    if (window.confirm('Close all active signals?')) {
+                  { label: 'Reset All Signals', desc: 'Close all active signals', action: 'Reset Signals', onClick: async () => {
+                    const ok = await confirmAction({
+                      title: 'Reset All Signals',
+                      message: 'Close all active signals? This cannot be undone.',
+                      confirmText: 'Reset Signals',
+                      variant: 'destructive',
+                    });
+                    if (ok) {
                       signals.forEach(s => s.status === 'active' && adminService.updateSignal(s.id, { status: 'closed' }));
                       loadData();
                       alert('All signals closed!');
                     }
                   }},
-                  { label: 'Clear All Data', desc: 'Remove all stored data (dangerous!)', action: 'Clear All', onClick: () => {
-                    if (window.confirm('⚠️ This will delete ALL data. Are you sure?')) {
-                      if (window.confirm('This action cannot be undone. Type "DELETE" in the next prompt to confirm.')) {
-                        const confirm = window.prompt('Type DELETE to confirm:');
-                        if (confirm === 'DELETE') {
-                          localStorage.clear();
-                          window.location.reload();
-                        }
-                      }
+                  { label: 'Clear All Data', desc: 'Remove all stored data (dangerous!)', action: 'Clear All', onClick: async () => {
+                    const ok = await confirmAction({
+                      title: 'Clear ALL Data',
+                      message: 'This will permanently delete ALL stored data. This action cannot be undone. Are you absolutely sure?',
+                      confirmText: 'Delete Everything',
+                      variant: 'destructive',
+                    });
+                    if (ok) {
+                      localStorage.clear();
+                      navigate('/login');
                     }
                   }},
                 ].map(item => (

@@ -131,7 +131,7 @@ export const Header = ({ onMenuClick }) => {
     localStorage.removeItem('ms_user');
     localStorage.removeItem('authToken');
     sessionStorage.removeItem('authToken');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   return (
