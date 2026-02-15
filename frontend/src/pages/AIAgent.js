@@ -30,7 +30,7 @@ import {
 import { cn, formatINR } from '../lib/utils';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, fetchWithAuth } from '../config/api';
 
 const API = `${API_BASE_URL}/api`;
 const POLL_INTERVAL = 3000;
@@ -113,7 +113,7 @@ const AIAgent = () => {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/ai-agent/status?user_id=default`);
+      const res = await fetchWithAuth(`/ai-agent/status?user_id=default`);
       const data = await res.json();
       if (data.success) {
         setAgentStatus(data.data);
@@ -128,7 +128,7 @@ const AIAgent = () => {
   const startAgent = async () => {
     setStarting(true);
     try {
-      const res = await fetch(`${API}/ai-agent/start`, {
+      const res = await fetchWithAuth(`/ai-agent/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 'default', ...config }),
@@ -148,7 +148,7 @@ const AIAgent = () => {
   const stopAgent = async () => {
     setStopping(true);
     try {
-      const res = await fetch(`${API}/ai-agent/stop?user_id=default`, { method: 'POST' });
+      const res = await fetchWithAuth(`/ai-agent/stop?user_id=default`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         setAgentStatus(prev => ({ ...prev, state: 'stopped', active: false }));
@@ -162,14 +162,14 @@ const AIAgent = () => {
 
   const pauseAgent = async () => {
     try {
-      await fetch(`${API}/ai-agent/pause?user_id=default`, { method: 'POST' });
+      await fetchWithAuth(`/ai-agent/pause?user_id=default`, { method: 'POST' });
       fetchStatus();
     } catch (err) { console.error(err); }
   };
 
   const resumeAgent = async () => {
     try {
-      await fetch(`${API}/ai-agent/resume?user_id=default`, { method: 'POST' });
+      await fetchWithAuth(`/ai-agent/resume?user_id=default`, { method: 'POST' });
       fetchStatus();
     } catch (err) { console.error(err); }
   };
@@ -1020,7 +1020,7 @@ const ThoughtLogPanel = ({ agentStatus }) => {
   useEffect(() => {
     const fetchThoughts = async () => {
       try {
-        const res = await fetch(`${API}/ai-agent/thought-log?user_id=default&limit=10`);
+        const res = await fetchWithAuth(`/ai-agent/thought-log?user_id=default&limit=10`);
         const data = await res.json();
         if (data.success) setThoughts(data.data.thoughts || []);
       } catch (err) { console.error(err); }

@@ -9,6 +9,7 @@ from typing import Optional, List, Dict
 from datetime import datetime
 import logging
 
+from middleware.auth import require_admin, AuthUser
 from services.delta_neutral_strategy import (
     DeltaNeutralStrategy,
     get_strategy,
@@ -87,16 +88,12 @@ class BrokerCredentialsRequest(BaseModel):
     access_token: str
     
 
-# Dependency to check admin access
-async def verify_admin(user_id: str = None):
-    """Verify user is admin - would integrate with your auth system"""
-    # In production, this would check the user's role from JWT/session
-    # For now, return True for testing
-    return True
+# Auth dependency — require admin for all strategy endpoints
+# Uses shared middleware/auth.py which validates session token
 
 
 @router.get("/status")
-async def get_strategy_status(is_admin: bool = Depends(verify_admin)):
+async def get_strategy_status(user: AuthUser = Depends(require_admin)):
     """Get current strategy status and all positions"""
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -118,7 +115,7 @@ class StartStrategyRequest(BaseModel):
 @router.post("/start")
 async def start_strategy(
     request: StartStrategyRequest = None,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Start the delta neutral strategy with configuration"""
     if not is_admin:
@@ -170,7 +167,7 @@ async def start_strategy(
 
 
 @router.post("/stop")
-async def stop_strategy(is_admin: bool = Depends(verify_admin)):
+async def stop_strategy(user: AuthUser = Depends(require_admin)):
     """Stop the strategy monitoring"""
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -184,7 +181,7 @@ async def stop_strategy(is_admin: bool = Depends(verify_admin)):
 @router.post("/position/create")
 async def create_position(
     request: CreatePositionRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """
     Create a new straddle/strangle position
@@ -235,7 +232,7 @@ async def create_position(
 @router.post("/position/execute/{position_id}")
 async def execute_position(
     position_id: str,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Execute pending position orders"""
     if not is_admin:
@@ -275,7 +272,7 @@ async def execute_position(
 async def adjust_position(
     position_id: str,
     request: AdjustPositionRequest = None,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Manually trigger position adjustment"""
     if not is_admin:
@@ -317,7 +314,7 @@ async def adjust_position(
 @router.post("/position/exit/{position_id}")
 async def exit_position(
     position_id: str,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Manually exit a position"""
     if not is_admin:
@@ -347,7 +344,7 @@ async def exit_position(
 @router.get("/position/{position_id}")
 async def get_position(
     position_id: str,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Get details of a specific position"""
     if not is_admin:
@@ -376,7 +373,7 @@ async def get_position(
 @router.get("/positions")
 async def get_all_positions(
     status: Optional[str] = None,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Get all positions, optionally filtered by status"""
     if not is_admin:
@@ -398,7 +395,7 @@ async def get_all_positions(
 @router.put("/settings")
 async def update_settings(
     request: StrategySettingsRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Update strategy parameters"""
     if not is_admin:
@@ -438,7 +435,7 @@ async def update_settings(
 @router.post("/broker/connect")
 async def connect_broker(
     request: BrokerCredentialsRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Connect to broker API"""
     if not is_admin:
@@ -469,7 +466,7 @@ async def connect_broker(
 @router.get("/trade-log")
 async def get_trade_log(
     limit: int = 50,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Get trade history log"""
     if not is_admin:
@@ -486,7 +483,7 @@ async def get_trade_log(
 
 
 @router.get("/analytics")
-async def get_analytics(is_admin: bool = Depends(verify_admin)):
+async def get_analytics(user: AuthUser = Depends(require_admin)):
     """Get strategy performance analytics"""
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -524,7 +521,7 @@ async def calculate_strikes(
     spot_price: float,
     expiry: str,
     iv: float = 15.0,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """Calculate optimal strikes for given parameters (preview mode)"""
     if not is_admin:
@@ -632,7 +629,7 @@ async def get_broker_setup_instructions(broker: str = None):
 @router.post("/broker/configure/dhan")
 async def configure_dhan_broker(
     request: DhanBrokerRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """
     Configure Dhan broker for algo trading
@@ -679,7 +676,7 @@ async def configure_dhan_broker(
 @router.post("/broker/configure/upstox")
 async def configure_upstox_broker(
     request: UpstoxBrokerRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """
     Configure Upstox broker for algo trading
@@ -740,7 +737,7 @@ async def configure_upstox_broker(
 @router.post("/broker/upstox/oauth-callback")
 async def upstox_oauth_callback(
     request: UpstoxOAuthRequest,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """
     Complete Upstox OAuth flow with authorization code
@@ -773,7 +770,7 @@ async def upstox_oauth_callback(
 
 
 @router.get("/broker/status")
-async def get_broker_status(is_admin: bool = Depends(verify_admin)):
+async def get_broker_status(user: AuthUser = Depends(require_admin)):
     """Get current broker configuration status and funds"""
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -800,7 +797,7 @@ async def get_broker_status(is_admin: bool = Depends(verify_admin)):
 @router.post("/broker/set-capital")
 async def set_strategy_capital(
     capital: float,
-    is_admin: bool = Depends(verify_admin)
+    user: AuthUser = Depends(require_admin)
 ):
     """
     Set the capital amount to use for the strategy

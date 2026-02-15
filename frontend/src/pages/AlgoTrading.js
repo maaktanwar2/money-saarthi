@@ -21,7 +21,7 @@ import {
 import { cn, formatINR } from '../lib/utils';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, fetchWithAuth } from '../config/api';
 import { toast } from '../hooks/use-toast';
 import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
 import { fetchAPI } from '../lib/utils';
@@ -231,12 +231,12 @@ const AlgoTrading = () => {
     };
     
     // Use the appropriate validation endpoint based on selected broker
-    const validateEndpoint = selectedBroker === 'upstox' 
-      ? `${API_BASE_URL}/api/upstox/validate-token`
-      : `${API_BASE_URL}/api/dhan/validate-token`;
+    const validatePath = selectedBroker === 'upstox' 
+      ? '/upstox/validate-token'
+      : '/dhan/validate-token';
     
     try {
-      const response = await fetch(validateEndpoint, {
+      const response = await fetchWithAuth(validatePath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -298,7 +298,7 @@ const AlgoTrading = () => {
     
     try {
       // Fetch VWAP Bot Status
-      const vwapRes = await fetch(`${API_BASE_URL}/api/trade-algo/vwap-bot/status`);
+      const vwapRes = await fetchWithAuth('/trade-algo/vwap-bot/status');
       if (vwapRes.ok) {
         vwapData = await vwapRes.json();
         setVwapBot(prev => ({
@@ -309,7 +309,7 @@ const AlgoTrading = () => {
       }
       
       // Fetch AI Delta Strangle Bot Status (QuantStrangle AI)
-      const strangleRes = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/status`);
+      const strangleRes = await fetchWithAuth('/trade-algo/ai-delta-strangle/status');
       if (strangleRes.ok) {
         strangleData = await strangleRes.json();
         setStrangleBot(prev => ({
@@ -320,7 +320,7 @@ const AlgoTrading = () => {
       }
       
       // Fetch Delta Neutral Bot Status
-      const deltaRes = await fetch(`${API_BASE_URL}/api/trade-algo/delta-neutral/status`);
+      const deltaRes = await fetchWithAuth('/trade-algo/delta-neutral/status');
       if (deltaRes.ok) {
         deltaData = await deltaRes.json();
         setDeltaBot(prev => ({
@@ -395,7 +395,7 @@ const AlgoTrading = () => {
     
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/vwap-bot/start`, {
+      const response = await fetchWithAuth('/trade-algo/vwap-bot/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -430,7 +430,7 @@ const AlgoTrading = () => {
   const stopVwapBot = async () => {
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/vwap-bot/stop`, {
+      const response = await fetchWithAuth('/trade-algo/vwap-bot/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -472,7 +472,7 @@ const AlgoTrading = () => {
     
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/start`, {
+      const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -507,7 +507,7 @@ const AlgoTrading = () => {
   const stopStrangleBot = async () => {
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/stop`, {
+      const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 'default', close_positions: true })
@@ -526,7 +526,7 @@ const AlgoTrading = () => {
   // Scan function for serverless execution
   const scanStrangleBot = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/scan`, {
+      const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -547,7 +547,7 @@ const AlgoTrading = () => {
   // Get strangle bot status
   const getStrangleBotStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/ai-delta-strangle/status`);
+      const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/status');
       const data = await response.json();
       setStrangleBot(prev => ({ ...prev, status: data, running: data.is_running }));
       return data;
@@ -598,7 +598,7 @@ const AlgoTrading = () => {
     
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/delta-neutral/start`, {
+      const response = await fetchWithAuth('/trade-algo/delta-neutral/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -639,7 +639,7 @@ const AlgoTrading = () => {
   const stopDeltaBot = async () => {
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trade-algo/delta-neutral/stop`, {
+      const response = await fetchWithAuth('/trade-algo/delta-neutral/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 'default' })

@@ -9,7 +9,7 @@ Endpoints for:
 - Position & fund tracking
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 from datetime import datetime
@@ -19,6 +19,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from middleware.auth import get_current_user
 from services.trade_algo_service import get_trade_algo_service, TradeAlgoService
 from middleware.error_handler import error_response, success_response
 
@@ -27,7 +28,11 @@ logger = logging.getLogger(__name__)
 # AI Delta Strangle Bot instances (per user)
 _ai_delta_strangle_bots: Dict[str, Any] = {}
 
-router = APIRouter(prefix="/trade-algo", tags=["Trade Algo"])
+# Protected router — all endpoints require authentication
+router = APIRouter(prefix="/trade-algo", tags=["Trade Algo"], dependencies=[Depends(get_current_user)])
+
+# Public router — OAuth callback (no auth needed, user redirected from broker)
+public_router = APIRouter(prefix="/trade-algo", tags=["Trade Algo OAuth"])
 
 
 # ============================================
@@ -616,7 +621,7 @@ async def exchange_upstox_token(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/callback")
+@public_router.get("/callback")
 async def oauth_callback(code: str = Query(None), error: str = Query(None)):
     """
     OAuth callback handler for Upstox

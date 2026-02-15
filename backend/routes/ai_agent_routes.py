@@ -9,7 +9,7 @@ Endpoints for:
 - Viewing agent memory and thought logs
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from pydantic import BaseModel, Field
 from typing import Dict, Optional, List, Any
 from datetime import datetime
@@ -20,6 +20,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from middleware.auth import get_current_user
 from services.ai_agent_engine import (
     AutonomousAIAgent, AgentConfig, AgentState, RiskLevel,
     get_agent, get_or_create_agent, remove_agent, list_agents
@@ -27,7 +28,7 @@ from services.ai_agent_engine import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/ai-agent", tags=["AI Agent"])
+router = APIRouter(prefix="/api/ai-agent", tags=["AI Agent"], dependencies=[Depends(get_current_user)])
 
 
 # ============================================

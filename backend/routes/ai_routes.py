@@ -3,12 +3,13 @@ AI Advisor Routes
 API endpoints for AI trading analysis, scalping bots, and token management
 """
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 
+from middleware.auth import get_current_user
 from services.token_service import token_service
 
 # Try to import advanced AI service, fallback to basic
@@ -21,7 +22,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 logger.info(logger_msg)
-router = APIRouter(prefix="/ai", tags=["AI Advisor"])
+router = APIRouter(prefix="/ai", tags=["AI Advisor"], dependencies=[Depends(get_current_user)])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

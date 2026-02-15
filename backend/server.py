@@ -23213,8 +23213,9 @@ except Exception as e:
 
 # ==================== TRADE ALGO ROUTES ====================
 try:
-    from routes.trade_algo_routes import router as trade_algo_router
+    from routes.trade_algo_routes import router as trade_algo_router, public_router as trade_algo_public_router
     api_router.include_router(trade_algo_router)
+    api_router.include_router(trade_algo_public_router)
     logging.info("✅ Trade Algo routes loaded successfully")
 except ImportError as e:
     logging.warning(f"⚠️ Trade Algo routes not loaded: {e}")
