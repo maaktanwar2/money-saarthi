@@ -63,10 +63,22 @@ const queryClient = new QueryClient({
   },
 });
 
-// Loading Component
+// Loading Component — skeleton shimmer instead of spinner
 const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+  <div className="min-h-screen bg-background p-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="skeleton h-24 rounded-2xl" />
+        ))}
+      </div>
+      {/* Chart + table */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 skeleton h-64 rounded-2xl" />
+        <div className="skeleton h-64 rounded-2xl" />
+      </div>
+    </div>
   </div>
 );
 
@@ -347,7 +359,9 @@ const Sectors = lazy(() => import('./pages/Sectors'));
 const SectorPerformance = lazy(() => import('./pages/SectorPerformance'));
 
 function AppRouter() {
+  const location = useLocation();
   return (
+    <ErrorBoundary resetKey={location.pathname}>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public Pages - No login required */}
@@ -430,6 +444,7 @@ function AppRouter() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 }
 

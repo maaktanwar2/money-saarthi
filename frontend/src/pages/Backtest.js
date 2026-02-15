@@ -6,6 +6,7 @@ import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import { TradingAreaChart, TradingBarChart } from '../components/ui/Charts';
 import { formatINR } from '../lib/utils';
+import { SkeletonChart, SkeletonTable, SkeletonPage } from '../components/ui/Skeleton';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'https://moneysaarthi-backend-517321998192.asia-south1.run.app';
 
@@ -164,11 +165,10 @@ export default function Backtest() {
   if (loading) {
     return (
       <PageLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-foreground-muted">Loading backtest results...</p>
-          </div>
+        <div className="space-y-6 py-6">
+          <SkeletonPage cards={4} cols={4} />
+          <SkeletonChart />
+          <SkeletonTable rows={6} cols={5} />
         </div>
       </PageLayout>
     );

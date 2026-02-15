@@ -9,7 +9,8 @@ import {
   Activity, ExternalLink
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
-import { Card, Spinner } from '../components/ui';
+import { Card } from '../components/ui';
+import { SkeletonPage } from '../components/ui/Skeleton';
 import { cn, fetchAPI, formatINR } from '../lib/utils';
 
 // ─── colour helpers ──────────────────────────────────────────
@@ -302,12 +303,7 @@ const SectorPerformance = () => {
       )}
 
       {/* ── Loading ── */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Spinner className="w-8 h-8" />
-          <p className="text-sm text-foreground-muted">Loading sector performance…</p>
-        </div>
-      )}
+      {loading && <SkeletonPage cards={11} cols={4} />}
 
       {/* ── Error ── */}
       {error && !loading && (

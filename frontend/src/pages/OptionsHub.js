@@ -16,6 +16,7 @@ import {
 } from '../components/ui';
 import { TradingAreaChart, TradingBarChart } from '../components/ui/Charts';
 import { cn, formatINR, formatNumber, fetchAPI, getChangeColor, isMarketHours } from '../lib/utils';
+import { OptionsChainSkeleton, SkeletonChart, SkeletonTable } from '../components/ui/Skeleton';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIG
@@ -92,14 +93,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
   }, [fetchChain]);
 
   if (loading) {
-    return (
-      <Card className="p-8">
-        <div className="flex flex-col items-center justify-center gap-3">
-          <Spinner size="lg" />
-          <span className="text-foreground-muted">Fetching real-time option chain for {symbol}...</span>
-        </div>
-      </Card>
-    );
+    return <OptionsChainSkeleton />;
   }
 
   if (error && data.length === 0) {
@@ -339,12 +333,10 @@ const OIAnalysis = ({ symbol }) => {
 
   if (loading) {
     return (
-      <Card className="p-8">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner size="lg" />
-          <span className="text-foreground-muted">Loading OI analytics for {symbol}...</span>
-        </div>
-      </Card>
+      <div className="space-y-4">
+        <SkeletonChart />
+        <SkeletonTable rows={6} cols={5} />
+      </div>
     );
   }
 
@@ -603,7 +595,7 @@ const IVSkewAnalysis = ({ symbol }) => {
   useEffect(() => { fetchIVSkew(false); }, [fetchIVSkew]);
 
   if (loading) {
-    return <Card className="p-8"><div className="flex flex-col items-center gap-3"><Spinner size="lg" /><span className="text-foreground-muted">Loading IV Skew data...</span></div></Card>;
+    return <SkeletonChart />;
   }
 
   if (!data) {

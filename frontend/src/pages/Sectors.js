@@ -9,7 +9,8 @@ import {
   BarChart3, Filter, ExternalLink, Layers
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
-import { Card, CardHeader, CardTitle, CardContent, Badge, Spinner } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui';
+import { SkeletonPage } from '../components/ui/Skeleton';
 import { cn, fetchAPI, formatINR } from '../lib/utils';
 
 // ═══════════════════════════════════════════════════════════════
@@ -359,12 +360,7 @@ const Sectors = () => {
       </div>
 
       {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Spinner className="w-8 h-8" />
-          <p className="text-sm text-foreground-muted">Loading sector data...</p>
-        </div>
-      )}
+      {loading && <SkeletonPage cards={8} cols={4} />}
 
       {/* Error State */}
       {error && !loading && (

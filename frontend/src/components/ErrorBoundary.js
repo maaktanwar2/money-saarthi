@@ -10,12 +10,18 @@ class ErrorBoundary extends React.Component {
     return { hasError: true };
   }
 
+  componentDidUpdate(prevProps) {
+    // Auto-reset when the route key changes (navigating to another page)
+    if (this.props.resetKey !== prevProps.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+    }
+  }
+
   componentDidCatch(error, errorInfo) {
     this.setState({
       error: error,
       errorInfo: errorInfo
     });
-    // You can also log the error to an error reporting service
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
@@ -24,8 +30,21 @@ class ErrorBoundary extends React.Component {
     window.location.href = '/';
   };
 
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  };
+
   render() {
     if (this.state.hasError) {
+      // If a custom fallback is provided, use it
+      if (this.props.fallback) {
+        return this.props.fallback({
+          error: this.state.error,
+          retry: this.handleRetry,
+          goHome: this.handleReset,
+        });
+      }
+
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center">
@@ -58,6 +77,12 @@ class ErrorBoundary extends React.Component {
             {/* Actions */}
             <div className="flex gap-3 justify-center">
               <button
+                onClick={this.handleRetry}
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground hover:bg-accent transition-colors"
+              >
+                Try Again
+              </button>
+              <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 rounded-lg bg-card border border-border text-foreground hover:bg-accent transition-colors"
               >
@@ -80,4 +105,3 @@ class ErrorBoundary extends React.Component {
 }
 
 export default ErrorBoundary;
-
