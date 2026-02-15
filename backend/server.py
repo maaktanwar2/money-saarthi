@@ -7560,6 +7560,56 @@ async def get_fno_sector_performance():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@api_router.get("/fno/sectors/{sector_id}/stocks")
+async def get_fno_sector_stocks(sector_id: str):
+    """
+    Get live stock data for a specific F&O sector.
+    sector_id: one of the keys in FNO_SECTORS (banking, it, auto, etc.)
+    """
+    cfg = FNO_SECTORS.get(sector_id)
+    if not cfg:
+        # Also try matching by name
+        for sid, sc in FNO_SECTORS.items():
+            if sc["name"].lower() == sector_id.lower():
+                cfg = sc
+                sector_id = sid
+                break
+        if not cfg:
+            raise HTTPException(status_code=404, detail=f"Sector '{sector_id}' not found")
+
+    try:
+        stocks = await get_stocks_fresh(cfg["stocks"])
+        valid = [s for s in stocks if s is not None]
+
+        stock_list = []
+        for s in valid:
+            chg = s.get("change_pct", 0)
+            vol_r = s.get("volume_ratio", 1)
+            stock_list.append({
+                "symbol": s["symbol"],
+                "name": s.get("name", ""),
+                "price": round(s.get("price", 0), 2),
+                "change_pct": round(chg, 2),
+                "volume": s.get("volume", 0),
+                "volume_ratio": round(vol_r, 2),
+                "high": round(s.get("high", 0), 2),
+                "low": round(s.get("low", 0), 2),
+            })
+
+        stock_list.sort(key=lambda x: x["change_pct"], reverse=True)
+
+        return {
+            "sector_id": sector_id,
+            "sector_name": cfg["name"],
+            "index_name": cfg["index_name"],
+            "stocks": stock_list,
+            "count": len(stock_list),
+        }
+    except Exception as e:
+        logging.error(f"Error fetching stocks for sector {sector_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/nse/52week-high-low")
 async def get_nse_52week_high_low(index: str = "NIFTY 500"):
     """

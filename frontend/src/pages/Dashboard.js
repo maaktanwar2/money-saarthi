@@ -255,11 +255,10 @@ const SectorPerformance = () => {
   useEffect(() => {
     const fetchSectors = async () => {
       try {
-        const res = await fetchAPI('/nse/sector-performance');
-        // API returns array of {name, change, advances, declines, ...} OR {sectors: [...]}
-        const arr = Array.isArray(res) ? res : (res?.sectors || res?.data || []);
-        // Sort by absolute change — biggest moves first
-        const sorted = arr.sort((a, b) => Math.abs(b.change || b.pChange || 0) - Math.abs(a.change || a.pChange || 0));
+        const res = await fetchAPI('/fno/sectors/performance');
+        const arr = res?.sectors || [];
+        // Sort by absolute change_percent — biggest moves first
+        const sorted = arr.sort((a, b) => Math.abs(b.change_percent || 0) - Math.abs(a.change_percent || 0));
         setSectors(sorted);
       } catch (err) {
         console.error('Sector fetch error:', err);
@@ -275,7 +274,7 @@ const SectorPerformance = () => {
 
   // When a sector is selected, fetch its constituent stocks
   const handleSectorClick = useCallback(async (sector) => {
-    if (selectedSector?.name === sector.name) {
+    if (selectedSector?.id === sector.id) {
       setSelectedSector(null);
       setSectorStocks([]);
       return;
@@ -283,10 +282,8 @@ const SectorPerformance = () => {
     setSelectedSector(sector);
     setStocksLoading(true);
     try {
-      // Try the FNO by sector endpoint — returns stocks in each sector
-      const sectorParam = encodeURIComponent(sector.name || sector.sector || '');
-      const res = await fetchAPI(`/tools/sector/${sectorParam}/stocks`);
-      const stocks = Array.isArray(res) ? res : (res?.stocks || res?.data || []);
+      const res = await fetchAPI(`/fno/sectors/${sector.id}/stocks`);
+      const stocks = res?.stocks || [];
       setSectorStocks(stocks);
     } catch {
       setSectorStocks([]);
@@ -299,16 +296,16 @@ const SectorPerformance = () => {
   const { momentumStocks, correctionStocks } = useMemo(() => {
     if (!sectorStocks.length) return { momentumStocks: [], correctionStocks: [] };
     const momentum = sectorStocks.filter(s => {
-      const chg = s.change_pct ?? s.pChange ?? 0;
-      const volR = s.volume_ratio ?? s.relativeVolume ?? 1;
+      const chg = s.change_pct ?? 0;
+      const volR = s.volume_ratio ?? 1;
       return chg > 0.5 && volR >= 1.0;
-    }).sort((a, b) => (b.change_pct ?? b.pChange ?? 0) - (a.change_pct ?? a.pChange ?? 0));
+    }).sort((a, b) => (b.change_pct ?? 0) - (a.change_pct ?? 0));
 
     const correction = sectorStocks.filter(s => {
-      const chg = s.change_pct ?? s.pChange ?? 0;
+      const chg = s.change_pct ?? 0;
       // Healthy pullback: slightly negative on lower volume
       return chg < -0.3 && chg > -5;
-    }).sort((a, b) => (a.change_pct ?? a.pChange ?? 0) - (b.change_pct ?? b.pChange ?? 0));
+    }).sort((a, b) => (a.change_pct ?? 0) - (b.change_pct ?? 0));
 
     return { momentumStocks: momentum.slice(0, 8), correctionStocks: correction.slice(0, 8) };
   }, [sectorStocks]);
@@ -326,8 +323,8 @@ const SectorPerformance = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
-        {[...Array(14)].map((_, i) => <div key={i} className="h-16 skeleton rounded-xl" />)}
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        {[...Array(11)].map((_, i) => <div key={i} className="h-16 skeleton rounded-xl" />)}
       </div>
     );
   }
@@ -343,14 +340,14 @@ const SectorPerformance = () => {
   return (
     <div className="space-y-4">
       {/* Sector Heatmap */}
-      <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {sectors.map((sector, i) => {
-          const pct = sector.change ?? sector.pChange ?? 0;
+          const pct = sector.change_percent ?? 0;
           const isPositive = pct >= 0;
-          const isSelected = selectedSector?.name === sector.name;
+          const isSelected = selectedSector?.id === sector.id;
           return (
             <motion.button
-              key={sector.name || i}
+              key={sector.id || i}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.03 }}
@@ -363,7 +360,7 @@ const SectorPerformance = () => {
               )}
             >
               <div className="text-[10px] font-bold leading-tight truncate opacity-90">
-                {(sector.name || sector.sector || '').replace('NIFTY ', '')}
+                {sector.name}
               </div>
               <div className="text-sm font-bold mt-0.5">
                 {isPositive ? '+' : ''}{Number(pct).toFixed(2)}%
@@ -396,11 +393,11 @@ const SectorPerformance = () => {
                     </CardTitle>
                     <Badge className={cn(
                       'text-xs',
-                      (selectedSector.change ?? 0) >= 0
+                      (selectedSector.change_percent ?? 0) >= 0
                         ? 'bg-bullish/20 text-bullish'
                         : 'bg-bearish/20 text-bearish'
                     )}>
-                      {(selectedSector.change ?? 0) >= 0 ? '+' : ''}{Number(selectedSector.change ?? 0).toFixed(2)}%
+                      {(selectedSector.change_percent ?? 0) >= 0 ? '+' : ''}{Number(selectedSector.change_percent ?? 0).toFixed(2)}%
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -444,9 +441,9 @@ const SectorPerformance = () => {
                         {momentumStocks.length === 0 ? (
                           <p className="text-sm text-muted-foreground col-span-full text-center py-4">No strong momentum stocks in this sector right now</p>
                         ) : momentumStocks.map((stock, i) => {
-                          const chg = stock.change_pct ?? stock.pChange ?? 0;
-                          const price = stock.price ?? stock.lastPrice ?? stock.ltp ?? 0;
-                          const volR = stock.volume_ratio ?? stock.relativeVolume ?? 1;
+                          const chg = stock.change_pct ?? 0;
+                          const price = stock.price ?? 0;
+                          const volR = stock.volume_ratio ?? 1;
                           return (
                             <motion.div
                               key={stock.symbol}
@@ -479,9 +476,9 @@ const SectorPerformance = () => {
                         {correctionStocks.length === 0 ? (
                           <p className="text-sm text-muted-foreground col-span-full text-center py-4">No healthy pullback stocks in this sector right now</p>
                         ) : correctionStocks.map((stock, i) => {
-                          const chg = stock.change_pct ?? stock.pChange ?? 0;
-                          const price = stock.price ?? stock.lastPrice ?? stock.ltp ?? 0;
-                          const volR = stock.volume_ratio ?? stock.relativeVolume ?? 1;
+                          const chg = stock.change_pct ?? 0;
+                          const price = stock.price ?? 0;
+                          const volR = stock.volume_ratio ?? 1;
                           return (
                             <motion.div
                               key={stock.symbol}
