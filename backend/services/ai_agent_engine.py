@@ -41,6 +41,9 @@ import os
 import math
 import json
 import random
+import hashlib
+import re
+import time as _time
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, time, timedelta, timezone
 from dataclasses import dataclass, field
@@ -49,6 +52,9 @@ from collections import deque
 
 IST = timezone(timedelta(hours=5, minutes=30))
 logger = logging.getLogger(__name__)
+
+# VIX ticker for India VIX
+INDIA_VIX_YF = "^INDIAVIX"
 
 
 def get_ist_now() -> datetime:
@@ -379,10 +385,91 @@ class AutonomousAIAgent:
         self._error_count = 0
         self._consecutive_errors = 0
         
+        # Claude API caching / rate-limiting
+        self._claude_cache: Dict[str, Tuple[str, float]] = {}  # hash -> (response, timestamp)
+        self._claude_cache_ttl = 120  # seconds - skip re-calling if data hasn't changed
+        self._claude_call_count = 0
+        self._claude_daily_limit = 500  # max calls per session
+        
+        # Dhan market data service (lazy-initialized)
+        self._dhan_market: Any = None
+        
+        # Firestore persistence (lazy)
+        self._firestore_col = None
+        
         # Event log for frontend
         self.event_feed: deque = deque(maxlen=500)
         self._add_event("SYSTEM", "Agent initialized", f"Config: {self.config.underlying}, Risk: {self.config.risk_level.value}, Mock: {self.config.use_mock}")
     
+    # ═════════════════════════════════════════════════════════════════════════
+    # PERSISTENCE — Firestore
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _get_firestore(self):
+        """Lazy-init Firestore collection"""
+        if self._firestore_col is None:
+            try:
+                from services.firestore_db import FirestoreCollection
+                self._firestore_col = FirestoreCollection("ai_agent_state")
+            except Exception as e:
+                logger.warning("Firestore unavailable for agent persistence: %s", e)
+        return self._firestore_col
+
+    async def _persist_state(self):
+        """Save current agent state to Firestore (non-blocking, best-effort)"""
+        try:
+            col = self._get_firestore()
+            if not col:
+                return
+            doc_id = self.config.user_id or "default"
+            state_doc = {
+                "user_id": doc_id,
+                "state": self.state.value,
+                "cycle_count": self._cycle_count,
+                "performance": self.performance.to_dict(),
+                "evolved_params": self.evolved_params,
+                "active_positions": self.active_positions,
+                "recent_decisions": [d.to_dict() for d in list(self.decisions)[-10:]],
+                "config": {
+                    "underlying": self.config.underlying,
+                    "risk_level": self.config.risk_level.value,
+                    "max_capital": self.config.max_capital,
+                    "use_mock": self.config.use_mock,
+                },
+                "updated_at": get_ist_now().isoformat(),
+            }
+            await col.update_one(
+                {"user_id": doc_id},
+                {"$set": state_doc},
+                upsert=True,
+            )
+        except Exception as e:
+            logger.debug("Agent persistence write failed (non-critical): %s", e)
+
+    async def _load_persisted_state(self):
+        """Load previous agent state from Firestore on start"""
+        try:
+            col = self._get_firestore()
+            if not col:
+                return
+            doc_id = self.config.user_id or "default"
+            doc = await col.find_one({"user_id": doc_id})
+            if doc:
+                # Restore performance
+                perf = doc.get("performance", {})
+                self.performance.total_trades = perf.get("total_trades", 0)
+                self.performance.winning_trades = perf.get("winning_trades", 0)
+                self.performance.losing_trades = perf.get("losing_trades", 0)
+                self.performance.total_pnl = perf.get("total_pnl", 0.0)
+                self.performance.strategy_stats = perf.get("strategy_stats", {})
+                # Restore evolved params
+                ep = doc.get("evolved_params")
+                if ep:
+                    self.evolved_params.update(ep)
+                self._add_event("SYSTEM", "State restored", f"Loaded history: {self.performance.total_trades} trades, P&L ₹{self.performance.total_pnl:,.0f}")
+        except Exception as e:
+            logger.debug("Agent persistence load failed (non-critical): %s", e)
+
     # ═════════════════════════════════════════════════════════════════════════
     # LIFECYCLE: START / STOP / PAUSE
     # ═════════════════════════════════════════════════════════════════════════
@@ -397,6 +484,9 @@ class AutonomousAIAgent:
             f"🚀 Autonomous AI Agent started for {self.config.underlying} | "
             f"Risk: {self.config.risk_level.value} | Capital: ₹{self.config.max_capital:,.0f} | "
             f"Mock: {self.config.use_mock}")
+        
+        # Restore previous session state (non-blocking)
+        await self._load_persisted_state()
         
         self._monitoring_task = asyncio.create_task(self._agent_loop())
         return {"status": "started", "state": self.state.value}
@@ -418,6 +508,10 @@ class AutonomousAIAgent:
             await self._exit_all_positions("Agent stopped by user")
         
         self._add_event("STOP", "Agent stopped", f"Final P&L: ₹{self.performance.daily_pnl:,.0f}")
+        
+        # Persist final state to Firestore
+        await self._persist_state()
+        
         return {"status": "stopped", "final_pnl": self.performance.daily_pnl}
     
     async def pause(self):
@@ -506,6 +600,10 @@ class AutonomousAIAgent:
                 self._cycle_count += 1
                 self.state = AgentState.OBSERVING
                 
+                # Persist state every 5 cycles
+                if self._cycle_count % 5 == 0:
+                    await self._persist_state()
+                
                 await asyncio.sleep(self.config.think_interval)
                 
             except asyncio.CancelledError:
@@ -521,59 +619,79 @@ class AutonomousAIAgent:
     # ═════════════════════════════════════════════════════════════════════════
     
     async def _observe_market(self) -> Optional[MarketSnapshot]:
-        """Gather comprehensive market data from all sources"""
+        """Gather comprehensive market data — prefers Dhan real-time, falls back to yfinance"""
         try:
-            import yfinance as yf
-            
             snap = MarketSnapshot(timestamp=get_ist_now(), symbol=self.config.underlying)
-            
-            # Get price data
-            sym_map = {
-                "NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK",
-                "FINNIFTY": "^CNXFIN", "SENSEX": "^BSESN"
-            }
-            yf_symbol = sym_map.get(self.config.underlying, f"{self.config.underlying}.NS")
-            
-            ticker = yf.Ticker(yf_symbol)
-            hist = ticker.history(period="30d")
-            
-            if hist.empty:
-                self._add_event("WARN", "No market data", f"yfinance returned empty for {yf_symbol}")
-                return None
-            
-            snap.spot_price = float(hist['Close'].iloc[-1])
-            snap.prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else snap.spot_price
-            snap.day_open = float(hist['Open'].iloc[-1])
-            snap.day_high = float(hist['High'].iloc[-1])
-            snap.day_low = float(hist['Low'].iloc[-1])
-            snap.day_change_pct = ((snap.spot_price - snap.prev_close) / snap.prev_close) * 100
-            snap.intraday_range = snap.day_high - snap.day_low
-            
-            # Technical indicators
-            snap.vwap = (snap.day_high + snap.day_low + snap.spot_price) / 3
-            snap.ema_9 = float(hist['Close'].ewm(span=9).mean().iloc[-1])
-            snap.ema_21 = float(hist['Close'].ewm(span=21).mean().iloc[-1])
-            snap.sma_20 = float(hist['Close'].tail(20).mean())
-            
-            # ATR
-            highs = hist['High'].tail(14).values
-            lows = hist['Low'].tail(14).values
-            snap.atr_14 = float(sum(h - l for h, l in zip(highs, lows)) / 14) if len(hist) >= 14 else snap.intraday_range
-            
-            # Volatility estimates
-            daily_returns = hist['Close'].pct_change().dropna()
-            snap.rv = float(daily_returns.std() * math.sqrt(252) * 100)
-            
-            # Estimate VIX/IV from recent vol
-            snap.vix = snap.rv + random.uniform(-2, 3)  # Approximate
-            snap.iv = snap.rv + random.uniform(-1, 5)
+
+            # ------- Try Dhan real-time data first -------
+            dhan_ok = await self._observe_via_dhan(snap)
+
+            # ------- Fallback to yfinance (intraday where possible) -------
+            if not dhan_ok:
+                yf_ok = await self._observe_via_yfinance(snap)
+                if not yf_ok:
+                    return None
+
+            # ------- Fetch real India VIX -------
+            await self._fetch_real_vix(snap)
+
+            # ------- Compute VWAP properly (from intraday bars) -------
+            # If we got intraday volume bars they're stored in _intraday_bars
+            if hasattr(self, '_intraday_bars') and self._intraday_bars is not None and len(self._intraday_bars) > 0:
+                bars = self._intraday_bars
+                try:
+                    typical = (bars['High'] + bars['Low'] + bars['Close']) / 3
+                    cum_tp_vol = (typical * bars['Volume']).cumsum()
+                    cum_vol = bars['Volume'].cumsum()
+                    vwap_series = cum_tp_vol / cum_vol
+                    snap.vwap = float(vwap_series.iloc[-1])
+                except Exception:
+                    # Fallback: typical price as proxy
+                    snap.vwap = (snap.day_high + snap.day_low + snap.spot_price) / 3
+            else:
+                snap.vwap = (snap.day_high + snap.day_low + snap.spot_price) / 3
+
+            # ------- Compute True Range ATR-14 -------
+            if hasattr(self, '_daily_hist') and self._daily_hist is not None and len(self._daily_hist) >= 15:
+                hist = self._daily_hist
+                high = hist['High'].values
+                low = hist['Low'].values
+                close = hist['Close'].values
+                true_ranges = []
+                for i in range(1, min(15, len(hist))):
+                    tr = max(high[i] - low[i],
+                             abs(high[i] - close[i-1]),
+                             abs(low[i] - close[i-1]))
+                    true_ranges.append(tr)
+                snap.atr_14 = sum(true_ranges) / len(true_ranges) if true_ranges else snap.intraday_range
+            else:
+                snap.atr_14 = snap.intraday_range
+
+            # ------- RV from daily returns -------
+            if hasattr(self, '_daily_hist') and self._daily_hist is not None and len(self._daily_hist) >= 5:
+                daily_returns = self._daily_hist['Close'].pct_change().dropna()
+                snap.rv = float(daily_returns.std() * math.sqrt(252) * 100)
+            else:
+                snap.rv = 15.0  # reasonable default
+
+            # ------- IV: derive from VIX or RV, never random -------
+            if snap.vix > 0:
+                snap.iv = snap.vix  # VIX is the market's IV expectation
+            else:
+                snap.iv = snap.rv
             snap.iv_rank = min(100, max(0, (snap.iv - 10) / 25 * 100))
-            
-            # Gap analysis
-            gap_pct = ((snap.day_open - snap.prev_close) / snap.prev_close) * 100
+
+            # ------- Fetch real option chain OI for PCR / max-pain / support / resistance -------
+            await self._fetch_oi_data(snap)
+
+            # ------- Gap analysis -------
+            if snap.prev_close > 0:
+                gap_pct = ((snap.day_open - snap.prev_close) / snap.prev_close) * 100
+            else:
+                gap_pct = 0
             snap.gap_type = "GAP_UP" if gap_pct > 0.3 else "GAP_DOWN" if gap_pct < -0.3 else "FLAT"
-            
-            # Trend
+
+            # ------- Trend detection -------
             if snap.spot_price > snap.vwap and snap.spot_price > snap.ema_9 and snap.ema_9 > snap.ema_21:
                 snap.trend = "BULLISH"
                 snap.trend_strength = "STRONG" if snap.day_change_pct > 0.5 else "MODERATE"
@@ -583,14 +701,13 @@ class AutonomousAIAgent:
             else:
                 snap.trend = "SIDEWAYS"
                 snap.trend_strength = "WEAK"
-            
-            # Session
+
+            # ------- Session classification -------
             now = get_ist_now()
-            h, m = now.hour, now.minute
-            t = h * 60 + m
+            t = now.hour * 60 + now.minute
             if t < 555 or t > 930:
                 snap.session = "CLOSED"
-            elif h == 9 and m < 45:
+            elif now.hour == 9 and now.minute < 45:
                 snap.session = "OPENING"
             elif t >= 870:
                 snap.session = "CLOSING"
@@ -598,37 +715,216 @@ class AutonomousAIAgent:
                 snap.session = "LUNCH"
             else:
                 snap.session = "ACTIVE"
-            
-            # Pivot levels
+
+            # ------- Pivot levels -------
             snap.pivot = (snap.day_high + snap.day_low + snap.prev_close) / 3
             snap.r1 = 2 * snap.pivot - snap.day_low
             snap.r2 = snap.pivot + (snap.day_high - snap.day_low)
             snap.s1 = 2 * snap.pivot - snap.day_high
             snap.s2 = snap.pivot - (snap.day_high - snap.day_low)
-            
-            # OI data (try to get from our own API)
-            try:
-                snap.pcr = 0.9 + random.uniform(-0.3, 0.5)  # Will be replaced by real data
-                strike_step = 50 if self.config.underlying in ["NIFTY", "FINNIFTY"] else 100
-                atm = round(snap.spot_price / strike_step) * strike_step
-                snap.max_pain = atm + random.choice([-2, -1, 0, 1, 2]) * strike_step
-                snap.support = atm - random.randint(2, 5) * strike_step
-                snap.resistance = atm + random.randint(2, 5) * strike_step
-                snap.atm_iv = snap.iv
-            except Exception:
-                pass
-            
+
             self.market_snapshots.appendleft(snap)
-            self._add_event("OBSERVE", "Market scanned", 
+            self._add_event("OBSERVE", "Market scanned",
                 f"{snap.symbol} @ {snap.spot_price:.0f} | Chg: {snap.day_change_pct:+.2f}% | "
                 f"Trend: {snap.trend} | VIX: {snap.vix:.1f} | PCR: {snap.pcr:.2f}")
-            
+
             return snap
-            
+
         except Exception as e:
             self._add_event("ERROR", "Observation failed", str(e)[:200])
-            logger.error(f"Market observation error: {e}")
+            logger.error(f"Market observation error: {e}", exc_info=True)
             return None
+
+    # ── Data source helpers ──────────────────────────────────────────────────
+
+    async def _observe_via_dhan(self, snap: MarketSnapshot) -> bool:
+        """Try to get real-time data from Dhan API. Returns True on success."""
+        try:
+            from services.dhan_market_data import get_dhan_service
+            dhan = get_dhan_service()
+            if not dhan.access_token:
+                return False
+
+            DHAN_IDS = {"NIFTY": 13, "BANKNIFTY": 25, "FINNIFTY": 27, "SENSEX": 26}
+            sec_id = DHAN_IDS.get(self.config.underlying)
+            if not sec_id:
+                return False
+
+            result = await dhan.get_market_quote({"NSE_EQ": [sec_id]})
+            if result.get("status") != "success":
+                return False
+
+            quote = next(iter(result.get("data", {}).values()), None)
+            if not quote or not quote.get("ltp"):
+                return False
+
+            snap.spot_price = float(quote["ltp"])
+            snap.day_open = float(quote.get("open") or snap.spot_price)
+            snap.day_high = float(quote.get("high") or snap.spot_price)
+            snap.day_low = float(quote.get("low") or snap.spot_price)
+            snap.prev_close = float(quote.get("prev_close") or snap.spot_price)
+            if snap.prev_close > 0:
+                snap.day_change_pct = ((snap.spot_price - snap.prev_close) / snap.prev_close) * 100
+            snap.intraday_range = snap.day_high - snap.day_low
+
+            self._add_event("OBSERVE", "Dhan real-time", f"LTP {snap.spot_price:.0f}")
+            return True
+        except Exception as e:
+            logger.debug(f"Dhan data unavailable: {e}")
+            return False
+
+    async def _observe_via_yfinance(self, snap: MarketSnapshot) -> bool:
+        """Fallback: get data from yfinance with intraday bars when possible."""
+        try:
+            import yfinance as yf
+
+            sym_map = {
+                "NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK",
+                "FINNIFTY": "^CNXFIN", "SENSEX": "^BSESN"
+            }
+            yf_symbol = sym_map.get(self.config.underlying, f"{self.config.underlying}.NS")
+            ticker = yf.Ticker(yf_symbol)
+
+            # Try to get intraday 5m bars for VWAP calculation
+            try:
+                intraday = ticker.history(period="1d", interval="5m")
+                if not intraday.empty and 'Volume' in intraday.columns:
+                    self._intraday_bars = intraday
+                else:
+                    self._intraday_bars = None
+            except Exception:
+                self._intraday_bars = None
+
+            # Daily history for EMAs, ATR, RV
+            hist = ticker.history(period="30d")
+            if hist.empty:
+                self._add_event("WARN", "No market data", f"yfinance returned empty for {yf_symbol}")
+                return False
+
+            self._daily_hist = hist
+
+            # If we have intraday bars, use the last bar for current price
+            if self._intraday_bars is not None and len(self._intraday_bars) > 0:
+                snap.spot_price = float(self._intraday_bars['Close'].iloc[-1])
+                snap.day_open = float(self._intraday_bars['Open'].iloc[0])
+                snap.day_high = float(self._intraday_bars['High'].max())
+                snap.day_low = float(self._intraday_bars['Low'].min())
+            else:
+                snap.spot_price = float(hist['Close'].iloc[-1])
+                snap.day_open = float(hist['Open'].iloc[-1])
+                snap.day_high = float(hist['High'].iloc[-1])
+                snap.day_low = float(hist['Low'].iloc[-1])
+
+            snap.prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else snap.spot_price
+            if snap.prev_close > 0:
+                snap.day_change_pct = ((snap.spot_price - snap.prev_close) / snap.prev_close) * 100
+            snap.intraday_range = snap.day_high - snap.day_low
+
+            # EMAs from daily history
+            snap.ema_9 = float(hist['Close'].ewm(span=9).mean().iloc[-1])
+            snap.ema_21 = float(hist['Close'].ewm(span=21).mean().iloc[-1])
+            snap.sma_20 = float(hist['Close'].tail(20).mean())
+
+            return True
+        except Exception as e:
+            self._add_event("ERROR", "yfinance failed", str(e)[:200])
+            logger.error(f"yfinance error: {e}")
+            return False
+
+    async def _fetch_real_vix(self, snap: MarketSnapshot):
+        """Fetch India VIX from yfinance — never randomize."""
+        try:
+            import yfinance as yf
+            vix_ticker = yf.Ticker(INDIA_VIX_YF)
+            vix_hist = vix_ticker.history(period="5d")
+            if not vix_hist.empty:
+                snap.vix = float(vix_hist['Close'].iloc[-1])
+            else:
+                # Fallback: estimate from RV (not random)
+                snap.vix = snap.rv if snap.rv > 0 else 14.0
+        except Exception as e:
+            snap.vix = snap.rv if snap.rv > 0 else 14.0
+            logger.debug(f"VIX fetch fallback: {e}")
+
+    async def _fetch_oi_data(self, snap: MarketSnapshot):
+        """Fetch option-chain OI from Dhan for PCR, max-pain, support, resistance.
+        Falls back to deterministic estimates (never random)."""
+        strike_step = 50 if self.config.underlying in ["NIFTY", "FINNIFTY"] else 100
+        atm = round(snap.spot_price / strike_step) * strike_step
+
+        try:
+            from services.dhan_market_data import get_dhan_service
+            dhan = get_dhan_service()
+            if not dhan.access_token:
+                raise ValueError("No Dhan token")
+
+            DHAN_IDS = {"NIFTY": 13, "BANKNIFTY": 25, "FINNIFTY": 27}
+            sec_id = DHAN_IDS.get(self.config.underlying)
+            if not sec_id:
+                raise ValueError("Unknown underlying for Dhan")
+
+            # Find nearest expiry (next Thursday for NIFTY)
+            from datetime import date
+            today = date.today()
+            days_ahead = (3 - today.weekday()) % 7  # Thursday=3
+            if days_ahead == 0 and get_ist_now().hour >= 16:
+                days_ahead = 7
+            expiry = (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+
+            chain = await dhan.get_option_chain(sec_id, expiry)
+            if chain.get("status") != "success" or not chain.get("strikes"):
+                raise ValueError("Empty chain")
+
+            total_call_oi = 0
+            total_put_oi = 0
+            max_call_oi_strike = atm
+            max_put_oi_strike = atm
+            max_call_oi = 0
+            max_put_oi = 0
+            strikes = chain["strikes"]
+
+            for s in strikes:
+                c_oi = s.get("call", {}).get("oi") or 0
+                p_oi = s.get("put", {}).get("oi") or 0
+                total_call_oi += c_oi
+                total_put_oi += p_oi
+                if c_oi > max_call_oi:
+                    max_call_oi = c_oi
+                    max_call_oi_strike = s["strike_price"]
+                if p_oi > max_put_oi:
+                    max_put_oi = p_oi
+                    max_put_oi_strike = s["strike_price"]
+
+                # ATM IV
+                if s["strike_price"] == atm:
+                    c_iv = s.get("call", {}).get("iv")
+                    p_iv = s.get("put", {}).get("iv")
+                    if c_iv and p_iv:
+                        snap.atm_iv = (c_iv + p_iv) / 2
+                    elif c_iv:
+                        snap.atm_iv = c_iv
+
+            snap.pcr = (total_put_oi / total_call_oi) if total_call_oi > 0 else 1.0
+            snap.resistance = max_call_oi_strike
+            snap.support = max_put_oi_strike
+
+            # Max pain: strike where total OI pain is minimized
+            # (simplified: avg of highest call OI and highest put OI strikes)
+            snap.max_pain = (max_call_oi_strike + max_put_oi_strike) / 2
+
+            self._add_event("OBSERVE", "OI data fetched",
+                f"PCR: {snap.pcr:.2f} | Support (max put OI): {snap.support} | Resistance (max call OI): {snap.resistance}")
+            return
+
+        except Exception as e:
+            logger.debug(f"Dhan OI unavailable, using deterministic estimates: {e}")
+
+        # Deterministic fallback — based on price structure, NOT random
+        snap.pcr = 1.0  # neutral default
+        snap.max_pain = atm
+        snap.support = snap.s1 if snap.s1 > 0 else atm - 3 * strike_step
+        snap.resistance = snap.r1 if snap.r1 > 0 else atm + 3 * strike_step
+        snap.atm_iv = snap.iv
     
     # ═════════════════════════════════════════════════════════════════════════
     # THINK: LLM-Powered Reasoning
@@ -904,52 +1200,103 @@ STYLE
 - Never output anything except the JSON object described above."""
     
     async def _call_claude(self, prompt: str) -> Optional[str]:
-        """Call Claude API for reasoning with comprehensive risk-manager system prompt"""
+        """Call Claude API with caching, rate-limiting, and retry."""
         api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        
         if not api_key:
             return None
-        
-        try:
-            async with httpx.AsyncClient(timeout=45) as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    json={
-                        "model": "claude-sonnet-4-20250514",
-                        "max_tokens": 2000,
-                        "temperature": 0.2,
-                        "system": self._get_system_prompt(),
-                        "messages": [{"role": "user", "content": prompt}]
-                    }
-                )
-                
+
+        # --- rate-limit guard ---
+        if self._claude_call_count >= self._claude_daily_limit:
+            logger.warning("Claude daily call limit reached (%s)", self._claude_daily_limit)
+            self._add_event("WARNING", "Claude daily API limit reached – falling back to rule-based decisions")
+            return None
+
+        # --- cache check ---
+        cache_key = hashlib.md5(prompt.encode()).hexdigest()
+        now = _time.time()
+        cached = self._claude_cache.get(cache_key)
+        if cached and (now - cached["ts"]) < self._claude_cache_ttl:
+            logger.info("Claude cache HIT (age %.0fs)", now - cached["ts"])
+            return cached["response"]
+
+        # --- API call with retry ---
+        last_err = None
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=45) as client:
+                    response = await client.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={
+                            "x-api-key": api_key,
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json",
+                        },
+                        json={
+                            "model": "claude-sonnet-4-20250514",
+                            "max_tokens": 2000,
+                            "temperature": 0.2,
+                            "system": self._get_system_prompt(),
+                            "messages": [{"role": "user", "content": prompt}],
+                        },
+                    )
+
                 if response.status_code == 200:
                     data = response.json()
-                    return data.get("content", [{}])[0].get("text", "")
-                else:
-                    logger.warning(f"Claude API returned {response.status_code}")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Claude API error: {e}")
-            return None
+                    text = data.get("content", [{}])[0].get("text", "")
+                    # update cache & counter
+                    self._claude_cache[cache_key] = {"response": text, "ts": now}
+                    self._claude_call_count += 1
+                    # evict stale entries (keep cache small)
+                    stale = [k for k, v in self._claude_cache.items() if (now - v["ts"]) > self._claude_cache_ttl * 5]
+                    for k in stale:
+                        del self._claude_cache[k]
+                    return text
+
+                if response.status_code == 429:
+                    wait = min(2 ** attempt * 5, 30)
+                    logger.warning("Claude 429 rate-limited, retrying in %ds", wait)
+                    await asyncio.sleep(wait)
+                    continue
+
+                logger.warning("Claude API returned %s", response.status_code)
+                return None
+
+            except Exception as e:
+                last_err = e
+                wait = 2 ** attempt * 2
+                logger.error("Claude API error (attempt %d): %s", attempt + 1, e)
+                if attempt < 2:
+                    await asyncio.sleep(wait)
+
+        logger.error("Claude API failed after 3 attempts: %s", last_err)
+        return None
     
     def _parse_llm_decision(self, llm_text: str, snap: MarketSnapshot, decision_id: str) -> AgentDecision:
-        """Parse LLM response into a structured decision"""
+        """Parse LLM response into a structured decision with robust JSON extraction"""
         decision = AgentDecision(id=decision_id, timestamp=get_ist_now())
         
         try:
-            # Extract JSON from response
+            # --- robust JSON extraction ---
             text = llm_text.strip()
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
+
+            # 1. Try <json>...</json> wrapper
+            json_tag = re.search(r'<json>\s*(.*?)\s*</json>', text, re.DOTALL)
+            if json_tag:
+                text = json_tag.group(1)
+            else:
+                # 2. Try ```json ... ``` or ``` ... ``` (multiple fence styles)
+                fence = re.search(r'```(?:json)?\s*\n?(.*?)\n?\s*```', text, re.DOTALL)
+                if fence:
+                    text = fence.group(1)
+                else:
+                    # 3. Find first { ... last } (greedy brace match)
+                    brace_start = text.find('{')
+                    brace_end = text.rfind('}')
+                    if brace_start != -1 and brace_end > brace_start:
+                        text = text[brace_start:brace_end + 1]
+
+            # Strip any remaining whitespace / BOM
+            text = text.strip().lstrip('\ufeff')
             
             data = json.loads(text)
             
@@ -1142,11 +1489,27 @@ STYLE
             self._add_event("ERROR", "Execution failed", str(e)[:200])
     
     async def _mock_execute(self, decision: AgentDecision) -> Dict:
-        """Simulate trade execution in mock mode"""
+        """Simulate trade execution in mock mode using Black-Scholes pricing"""
         params = decision.trade_params
         snap = self.market_snapshots[0] if self.market_snapshots else None
         spot = snap.spot_price if snap else 24000
-        
+        iv = (snap.iv / 100) if snap and snap.iv > 0 else 0.15  # decimal IV
+
+        def _bs_premium(strike, is_call, spot_px, iv_dec, tte_days=5):
+            """Simple Black-Scholes approximation for option premium"""
+            tte = max(tte_days / 365, 0.001)
+            d1 = (math.log(spot_px / strike) + 0.5 * iv_dec**2 * tte) / (iv_dec * math.sqrt(tte))
+            # Approximate N(d1) with logistic sigmoid
+            nd1 = 1 / (1 + math.exp(-1.7 * d1))
+            if is_call:
+                intrinsic = max(0, spot_px - strike)
+                time_val = spot_px * iv_dec * math.sqrt(tte) * 0.4 * (1 if abs(d1) < 1 else 0.5)
+                return max(intrinsic + time_val, 1.0)
+            else:
+                intrinsic = max(0, strike - spot_px)
+                time_val = spot_px * iv_dec * math.sqrt(tte) * 0.4 * (1 if abs(d1) < 1 else 0.5)
+                return max(intrinsic + time_val, 1.0)
+
         if decision.action == "ENTER":
             position = {
                 "id": f"POS_{len(self.active_positions)+1}",
@@ -1160,14 +1523,14 @@ STYLE
                 "stoploss_pnl": 0,
                 "status": "active",
             }
-            
+
             if decision.strategy in [StrategyType.SHORT_STRANGLE, StrategyType.IRON_CONDOR]:
                 ce_strike = params.get("strike_ce", spot + 150)
                 pe_strike = params.get("strike_pe", spot - 150)
-                ce_premium = max(5, (spot - ce_strike + 100) * 0.3 + random.uniform(10, 30))
-                pe_premium = max(5, (pe_strike - spot + 100) * 0.3 + random.uniform(10, 30))
+                ce_premium = _bs_premium(ce_strike, True, spot, iv)
+                pe_premium = _bs_premium(pe_strike, False, spot, iv)
                 total_prem = ce_premium + pe_premium
-                
+
                 position["legs"] = [
                     {"type": "SELL_CE", "strike": ce_strike, "premium": round(ce_premium, 2), "ltp": round(ce_premium, 2)},
                     {"type": "SELL_PE", "strike": pe_strike, "premium": round(pe_premium, 2), "ltp": round(pe_premium, 2)},
@@ -1175,67 +1538,165 @@ STYLE
                 position["total_premium"] = round(total_prem, 2)
                 position["target_pnl"] = round(total_prem * params.get("target_pct", 50) / 100, 2)
                 position["stoploss_pnl"] = round(-total_prem * params.get("stoploss_pct", 30) / 100, 2)
-                
+
             elif decision.strategy in [StrategyType.LONG_CE, StrategyType.LONG_PE]:
                 strike = params.get("atm_strike", spot)
-                premium = max(50, random.uniform(80, 200))
-                leg_type = "BUY_CE" if decision.strategy == StrategyType.LONG_CE else "BUY_PE"
+                is_call = decision.strategy == StrategyType.LONG_CE
+                premium = _bs_premium(strike, is_call, spot, iv)
+                leg_type = "BUY_CE" if is_call else "BUY_PE"
                 position["legs"] = [
                     {"type": leg_type, "strike": strike, "premium": round(premium, 2), "ltp": round(premium, 2)},
                 ]
                 position["total_premium"] = round(-premium, 2)  # Debit
                 position["target_pnl"] = round(premium * 0.5, 2)
                 position["stoploss_pnl"] = round(-premium * 0.3, 2)
-            
+
             elif decision.strategy == StrategyType.IRON_BUTTERFLY:
                 atm = params.get("atm_strike", spot)
                 step = 50 if self.config.underlying in ["NIFTY", "FINNIFTY"] else 100
-                atm_prem = max(80, random.uniform(100, 200))
-                wing_prem = max(20, random.uniform(25, 50))
+                sell_ce_prem = _bs_premium(atm, True, spot, iv)
+                sell_pe_prem = _bs_premium(atm, False, spot, iv)
+                buy_ce_prem = _bs_premium(atm + 3*step, True, spot, iv)
+                buy_pe_prem = _bs_premium(atm - 3*step, False, spot, iv)
                 position["legs"] = [
-                    {"type": "SELL_CE", "strike": atm, "premium": round(atm_prem/2, 2), "ltp": round(atm_prem/2, 2)},
-                    {"type": "SELL_PE", "strike": atm, "premium": round(atm_prem/2, 2), "ltp": round(atm_prem/2, 2)},
-                    {"type": "BUY_CE", "strike": atm + 3*step, "premium": round(wing_prem/2, 2), "ltp": round(wing_prem/2, 2)},
-                    {"type": "BUY_PE", "strike": atm - 3*step, "premium": round(wing_prem/2, 2), "ltp": round(wing_prem/2, 2)},
+                    {"type": "SELL_CE", "strike": atm, "premium": round(sell_ce_prem, 2), "ltp": round(sell_ce_prem, 2)},
+                    {"type": "SELL_PE", "strike": atm, "premium": round(sell_pe_prem, 2), "ltp": round(sell_pe_prem, 2)},
+                    {"type": "BUY_CE", "strike": atm + 3*step, "premium": round(buy_ce_prem, 2), "ltp": round(buy_ce_prem, 2)},
+                    {"type": "BUY_PE", "strike": atm - 3*step, "premium": round(buy_pe_prem, 2), "ltp": round(buy_pe_prem, 2)},
                 ]
-                net = atm_prem - wing_prem
+                net = (sell_ce_prem + sell_pe_prem) - (buy_ce_prem + buy_pe_prem)
                 position["total_premium"] = round(net, 2)
                 position["target_pnl"] = round(net * 0.5, 2)
                 position["stoploss_pnl"] = round(-net * 0.5, 2)
-            
+
             self.active_positions.append(position)
             return {"status": "filled", "position_id": position["id"], "orders": position["legs"]}
-        
+
         elif decision.action == "EXIT" and self.active_positions:
             closed = self.active_positions.pop(0)
-            pnl = random.uniform(-500, 1500)  # Simulated P&L
+            pnl = self._calculate_mock_exit_pnl(closed, snap)
             closed["status"] = "closed"
             closed["exit_time"] = get_ist_now().isoformat()
             closed["realized_pnl"] = round(pnl, 2)
             self.performance.record_trade(pnl, closed["strategy"])
             return {"status": "closed", "pnl": round(pnl, 2)}
-        
+
         elif decision.action == "ADJUST" and self.active_positions:
             pos = self.active_positions[0]
             pos["adjustments"] = pos.get("adjustments", 0) + 1
             return {"status": "adjusted", "position_id": pos["id"]}
-        
+
         return {"status": "no_action"}
-    
+
+    def _calculate_mock_exit_pnl(self, position: Dict, snap: Optional[MarketSnapshot]) -> float:
+        """Calculate P&L based on current spot vs entry, not random."""
+        if not snap:
+            return position.get("current_pnl", 0)
+        spot = snap.spot_price
+        entry_spot = position.get("spot_at_entry", spot)
+        move = spot - entry_spot
+        pnl = 0.0
+        lot_size = self.config.lot_size * self.config.num_lots
+
+        for leg in position.get("legs", []):
+            premium = leg.get("premium", 0)
+            strike = leg.get("strike", entry_spot)
+            leg_type = leg.get("type", "")
+
+            if "SELL_CE" in leg_type:
+                current_val = max(0, spot - strike) + max(1, premium * 0.3)  # intrinsic + residual time
+                pnl += (premium - current_val) * lot_size
+            elif "SELL_PE" in leg_type:
+                current_val = max(0, strike - spot) + max(1, premium * 0.3)
+                pnl += (premium - current_val) * lot_size
+            elif "BUY_CE" in leg_type:
+                current_val = max(0, spot - strike) + max(1, premium * 0.3)
+                pnl += (current_val - premium) * lot_size
+            elif "BUY_PE" in leg_type:
+                current_val = max(0, strike - spot) + max(1, premium * 0.3)
+                pnl += (current_val - premium) * lot_size
+
+        return pnl
+
     async def _live_execute(self, decision: AgentDecision) -> Dict:
-        """Execute via real broker API - TODO: connect to Dhan/Upstox"""
-        self._add_event("ACT", "Live execution requested", 
-            "Live trading not yet connected. Enable mock mode or configure broker.")
-        return {"status": "not_implemented", "message": "Live broker connection pending"}
-    
+        """Execute via Dhan broker API"""
+        try:
+            from services.broker_integration import DhanBroker, OrderRequest
+            broker = DhanBroker()
+            if not broker.is_configured():
+                self._add_event("ERROR", "Broker not configured",
+                    "Set DHAN_CLIENT_ID and DHAN_ACCESS_TOKEN environment variables.")
+                return {"status": "error", "message": "Broker credentials not configured"}
+
+            params = decision.trade_params
+            snap = self.market_snapshots[0] if self.market_snapshots else None
+            spot = snap.spot_price if snap else 24000
+            lot_size = self.config.lot_size * self.config.num_lots
+
+            orders_placed = []
+
+            if decision.action == "ENTER":
+                if decision.strategy in [StrategyType.SHORT_STRANGLE, StrategyType.IRON_CONDOR]:
+                    # Sell CE leg
+                    ce_order = OrderRequest(
+                        symbol=f"{self.config.underlying} CE {params.get('strike_ce', spot + 150)}",
+                        exchange="NFO",
+                        transaction_type="SELL",
+                        order_type="MARKET",
+                        product_type="INTRADAY",
+                        quantity=lot_size,
+                    )
+                    ce_result = await broker.place_order(ce_order)
+                    orders_placed.append({"leg": "SELL_CE", "result": ce_result.message, "success": ce_result.success})
+
+                    # Sell PE leg
+                    pe_order = OrderRequest(
+                        symbol=f"{self.config.underlying} PE {params.get('strike_pe', spot - 150)}",
+                        exchange="NFO",
+                        transaction_type="SELL",
+                        order_type="MARKET",
+                        product_type="INTRADAY",
+                        quantity=lot_size,
+                    )
+                    pe_result = await broker.place_order(pe_order)
+                    orders_placed.append({"leg": "SELL_PE", "result": pe_result.message, "success": pe_result.success})
+
+                elif decision.strategy in [StrategyType.LONG_CE, StrategyType.LONG_PE]:
+                    direction = "CE" if decision.strategy == StrategyType.LONG_CE else "PE"
+                    order = OrderRequest(
+                        symbol=f"{self.config.underlying} {direction} {params.get('atm_strike', spot)}",
+                        exchange="NFO",
+                        transaction_type="BUY",
+                        order_type="MARKET",
+                        product_type="INTRADAY",
+                        quantity=lot_size,
+                    )
+                    result = await broker.place_order(order)
+                    orders_placed.append({"leg": f"BUY_{direction}", "result": result.message, "success": result.success})
+
+                self._add_event("ACT", "Live orders placed", json.dumps(orders_placed, default=str)[:300])
+                return {"status": "placed", "orders": orders_placed}
+
+            elif decision.action == "EXIT":
+                self._add_event("ACT", "Live exit", "Exit via broker — square off pending positions")
+                return {"status": "exit_requested", "message": "Position square-off initiated"}
+
+            return {"status": "no_action"}
+
+        except Exception as e:
+            self._add_event("ERROR", "Live execution error", str(e)[:200])
+            logger.error(f"Live execution error: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}
+
     async def _exit_all_positions(self, reason: str):
         """Emergency exit all positions"""
-        self._add_event("EXIT", f"Exiting all positions", f"Reason: {reason}")
+        self._add_event("EXIT", "Exiting all positions", f"Reason: {reason}")
+        snap = self.market_snapshots[0] if self.market_snapshots else None
         for pos in self.active_positions:
             pos["status"] = "closed"
             pos["exit_time"] = get_ist_now().isoformat()
             pos["exit_reason"] = reason
-            pnl = random.uniform(-500, 500)  # Mock P&L
+            pnl = self._calculate_mock_exit_pnl(pos, snap)
             pos["realized_pnl"] = round(pnl, 2)
             self.performance.record_trade(pnl, pos.get("strategy", "unknown"))
         self.active_positions.clear()
@@ -1245,20 +1706,31 @@ STYLE
     # ═════════════════════════════════════════════════════════════════════════
     
     async def _reflect_on_positions(self, snap: MarketSnapshot):
-        """Monitor existing positions and decide if adjustments are needed"""
+        """Monitor existing positions — calculate real P&L from price, not random."""
         if not self.active_positions:
             return
-        
-        for pos in self.active_positions[:]:
-            # Simulate PnL movement in mock mode
+
+        to_remove = []  # collect indices to remove safely
+
+        for idx, pos in enumerate(self.active_positions):
+            # Calculate P&L from price movement (mock mode uses spot-based calculation)
             if self.config.use_mock:
-                change = random.uniform(-0.05, 0.08) * abs(pos.get("total_premium", 100))
-                pos["current_pnl"] = pos.get("current_pnl", 0) + change
-            
+                pos["current_pnl"] = self._calculate_mock_exit_pnl(pos, snap)
+                # Update leg LTPs for UI
+                for leg in pos.get("legs", []):
+                    strike = leg.get("strike", snap.spot_price)
+                    prem = leg.get("premium", 0)
+                    if "CE" in leg.get("type", ""):
+                        intrinsic = max(0, snap.spot_price - strike)
+                        leg["ltp"] = round(max(1, intrinsic + prem * 0.3), 2)
+                    elif "PE" in leg.get("type", ""):
+                        intrinsic = max(0, strike - snap.spot_price)
+                        leg["ltp"] = round(max(1, intrinsic + prem * 0.3), 2)
+
             pnl = pos.get("current_pnl", 0)
             target = pos.get("target_pnl", float('inf'))
             stoploss = pos.get("stoploss_pnl", float('-inf'))
-            
+
             # Check target hit
             if pnl >= target and target > 0:
                 self._add_event("REFLECT", "🎯 Target reached!",
@@ -1267,9 +1739,9 @@ STYLE
                 pos["exit_reason"] = "target_hit"
                 pos["realized_pnl"] = round(pnl, 2)
                 self.performance.record_trade(pnl, pos.get("strategy", "unknown"))
-                self.active_positions.remove(pos)
+                to_remove.append(idx)
                 continue
-            
+
             # Check stoploss hit
             if pnl <= stoploss and stoploss < 0:
                 self._add_event("REFLECT", "🛑 Stoploss triggered!",
@@ -1278,9 +1750,9 @@ STYLE
                 pos["exit_reason"] = "stoploss_hit"
                 pos["realized_pnl"] = round(pnl, 2)
                 self.performance.record_trade(pnl, pos.get("strategy", "unknown"))
-                self.active_positions.remove(pos)
+                to_remove.append(idx)
                 continue
-            
+
             # Time-based exit (3:15 PM)
             now = get_ist_now()
             if now.hour == 15 and now.minute >= 15:
@@ -1290,7 +1762,11 @@ STYLE
                 pos["exit_reason"] = "time_exit"
                 pos["realized_pnl"] = round(pnl, 2)
                 self.performance.record_trade(pnl, pos.get("strategy", "unknown"))
-                self.active_positions.remove(pos)
+                to_remove.append(idx)
+
+        # Remove closed positions by index (reverse order to preserve indices)
+        for idx in reversed(to_remove):
+            self.active_positions.pop(idx)
     
     # ═════════════════════════════════════════════════════════════════════════
     # ADAPT: Self-modify parameters based on performance

@@ -121,19 +121,28 @@ async def start_agent(req: AgentStartRequest):
 
 @router.post("/stop")
 async def stop_agent(user_id: str = Query(default="default")):
-    """Stop the agent and close all positions"""
+    """Stop the agent and close all positions, preserving final status"""
     try:
         agent = get_agent(user_id)
         if not agent:
             return {"success": False, "message": "No active agent found"}
         
+        # Capture final status BEFORE stopping (positions/decisions still alive)
+        final_status = agent.get_status()
         result = await agent.stop()
-        remove_agent(user_id)
+
+        # Keep the agent object around for 60s so the UI can fetch final state,
+        # then clean up via a background task.
+        async def _deferred_remove():
+            await asyncio.sleep(60)
+            remove_agent(user_id)
+
+        asyncio.create_task(_deferred_remove())
         
         return {
             "success": True,
             "message": "Agent stopped successfully",
-            "data": result
+            "data": {**final_status, **result, "state": "stopped"},
         }
     except Exception as e:
         logger.error(f"Error stopping agent: {e}")

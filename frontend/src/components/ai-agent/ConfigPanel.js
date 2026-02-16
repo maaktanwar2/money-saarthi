@@ -10,6 +10,35 @@ import { cn } from '../../lib/utils';
 const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
   const update = (k, v) => setConfig(prev => ({ ...prev, [k]: v }));
 
+  // Clamp a numeric field within [min, max]
+  const clamp = (key, min, max) => {
+    const v = Number(config[key]);
+    if (isNaN(v) || v < min) update(key, min);
+    else if (v > max) update(key, max);
+  };
+
+  // Validate all inputs before launch
+  const handleLaunch = () => {
+    const c = config;
+    if (!c.max_capital || c.max_capital < 10000) {
+      alert('Max capital must be at least ₹10,000');
+      return;
+    }
+    if (c.max_capital > 50000000) {
+      alert('Max capital cannot exceed ₹5,00,00,000');
+      return;
+    }
+    if (!c.num_lots || c.num_lots < 1 || c.num_lots > 50) {
+      alert('Lots per trade must be between 1 and 50');
+      return;
+    }
+    if (c.think_interval < 15 || c.think_interval > 600) {
+      alert('Think interval must be between 15 and 600 seconds');
+      return;
+    }
+    onStart();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -89,6 +118,8 @@ const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
                 type="number"
                 value={config.max_capital}
                 onChange={e => update('max_capital', Number(e.target.value))}
+                onBlur={() => clamp('max_capital', 10000, 50000000)}
+                min={10000}
                 className="w-full bg-slate-700/50 border border-slate-600/30 rounded-lg px-3 py-2 text-sm text-white"
               />
             </div>
@@ -98,7 +129,8 @@ const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
                 type="number"
                 value={config.num_lots}
                 onChange={e => update('num_lots', Number(e.target.value))}
-                min={1} max={10}
+                onBlur={() => clamp('num_lots', 1, 50)}
+                min={1} max={50}
                 className="w-full bg-slate-700/50 border border-slate-600/30 rounded-lg px-3 py-2 text-sm text-white"
               />
             </div>
@@ -121,7 +153,8 @@ const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
                 type="number"
                 value={config.think_interval}
                 onChange={e => update('think_interval', Number(e.target.value))}
-                min={30} max={300}
+                onBlur={() => clamp('think_interval', 15, 600)}
+                min={15} max={600}
                 className="w-full bg-slate-700/50 border border-slate-600/30 rounded-lg px-3 py-2 text-sm text-white"
               />
             </div>
@@ -159,7 +192,7 @@ const ConfigPanel = ({ config, setConfig, onStart, onClose, starting }) => {
             Cancel
           </Button>
           <Button
-            onClick={onStart}
+            onClick={handleLaunch}
             disabled={starting}
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
           >

@@ -12,6 +12,7 @@ import {
 import { PageLayout } from '../components/PageLayout';
 import { Button, Badge, Spinner } from '../components/ui';
 import { cn, formatINR } from '../lib/utils';
+import { toast } from '../hooks/use-toast';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { fetchWithAuth } from '../config/api';
@@ -29,7 +30,8 @@ import ThoughtLogPanel from '../components/ai-agent/ThoughtLogPanel';
 import EvolvedParamsCard from '../components/ai-agent/EvolvedParamsCard';
 import IdleView from '../components/ai-agent/IdleView';
 
-const POLL_INTERVAL = 3000;
+const POLL_ACTIVE = 3000;   // 3s when agent is running
+const POLL_IDLE = 30000;    // 30s when idle/stopped
 
 const AIAgent = () => {
   const [agentStatus, setAgentStatus] = useState(null);
@@ -56,6 +58,12 @@ const AIAgent = () => {
     adapt_enabled: true,
   });
 
+  // Determine current poll interval based on agent state
+  const getInterval = useCallback(() => {
+    const active = agentStatus?.active;
+    return active ? POLL_ACTIVE : POLL_IDLE;
+  }, [agentStatus?.active]);
+
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetchWithAuth(`/ai-agent/status?user_id=default`);
@@ -77,9 +85,19 @@ const AIAgent = () => {
         body: JSON.stringify({ user_id: 'default', ...config }),
       });
       const data = await res.json();
-      if (data.success) { setAgentStatus(data.data); setShowConfig(false); }
-    } catch (err) { console.error('Start error:', err); }
-    finally { setStarting(false); }
+      if (data.success) {
+        setAgentStatus(data.data);
+        setShowConfig(false);
+        toast({ title: 'Agent Launched', description: 'Autonomous trading agent is now running.', variant: 'default' });
+      } else {
+        toast({ title: 'Start Failed', description: data.message || 'Could not start agent.', variant: 'destructive' });
+      }
+    } catch (err) {
+      console.error('Start error:', err);
+      toast({ title: 'Start Error', description: err.message || 'Network error starting agent.', variant: 'destructive' });
+    } finally {
+      setStarting(false);
+    }
   };
 
   const stopAgent = async () => {
@@ -87,26 +105,62 @@ const AIAgent = () => {
     try {
       const res = await fetchWithAuth(`/ai-agent/stop?user_id=default`, { method: 'POST' });
       const data = await res.json();
-      if (data.success) setAgentStatus(prev => ({ ...prev, state: 'stopped', active: false }));
-    } catch (err) { console.error('Stop error:', err); }
-    finally { setStopping(false); }
+      if (data.success) {
+        setAgentStatus(prev => ({ ...prev, ...data.data, state: 'stopped', active: false }));
+        toast({ title: 'Agent Stopped', description: 'All positions closed. Final report available.', variant: 'default' });
+      } else {
+        toast({ title: 'Stop Failed', description: data.message || 'Could not stop agent.', variant: 'destructive' });
+      }
+    } catch (err) {
+      console.error('Stop error:', err);
+      toast({ title: 'Stop Error', description: err.message || 'Network error stopping agent.', variant: 'destructive' });
+    } finally {
+      setStopping(false);
+    }
   };
 
   const pauseAgent = async () => {
-    try { await fetchWithAuth(`/ai-agent/pause?user_id=default`, { method: 'POST' }); fetchStatus(); }
-    catch (err) { console.error(err); }
+    try {
+      const res = await fetchWithAuth(`/ai-agent/pause?user_id=default`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        fetchStatus();
+        toast({ title: 'Agent Paused', description: 'Monitoring continues, no new trades.', variant: 'default' });
+      } else {
+        toast({ title: 'Pause Failed', description: data.message || 'Could not pause.', variant: 'destructive' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Pause Error', description: err.message || 'Network error.', variant: 'destructive' });
+    }
   };
 
   const resumeAgent = async () => {
-    try { await fetchWithAuth(`/ai-agent/resume?user_id=default`, { method: 'POST' }); fetchStatus(); }
-    catch (err) { console.error(err); }
+    try {
+      const res = await fetchWithAuth(`/ai-agent/resume?user_id=default`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        fetchStatus();
+        toast({ title: 'Agent Resumed', description: 'Trading operations resumed.', variant: 'default' });
+      } else {
+        toast({ title: 'Resume Failed', description: data.message || 'Could not resume.', variant: 'destructive' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Resume Error', description: err.message || 'Network error.', variant: 'destructive' });
+    }
   };
 
+  // Smart polling: fast when active, slow when idle
   useEffect(() => {
     fetchStatus();
-    pollRef.current = setInterval(() => { if (!document.hidden) fetchStatus(); }, POLL_INTERVAL);
+    const setupPoll = () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => { if (!document.hidden) fetchStatus(); }, getInterval());
+    };
+    setupPoll();
     return () => clearInterval(pollRef.current);
-  }, [fetchStatus]);
+  }, [fetchStatus, getInterval]);
 
   const isActive = agentStatus?.active || false;
   const state = agentStatus?.state || 'idle';
