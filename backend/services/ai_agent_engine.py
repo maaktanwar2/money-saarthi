@@ -537,83 +537,109 @@ class AutonomousAIAgent:
         """Main autonomous loop - runs continuously during market hours"""
         logger.info(f"Agent loop started for {self.config.user_id}")
         
-        while self.state not in [AgentState.STOPPED]:
-            try:
-                if self.state == AgentState.PAUSED:
-                    await asyncio.sleep(10)
-                    continue
-                
-                now = get_ist_now()
-                hour, minute = now.hour, now.minute
-                is_weekday = now.weekday() < 5
-                time_in_mins = hour * 60 + minute
-                
-                # Market hours check (9:15 AM - 3:30 PM IST)
-                market_open = is_weekday and 555 <= time_in_mins <= 930
-                
-                if not market_open:
-                    # Outside market hours - minimal checking
-                    if self.active_positions and is_weekday and time_in_mins > 930:
-                        await self._exit_all_positions("Market closed")
-                    self._add_event("IDLE", "Market closed", "Waiting for market to open...")
-                    await asyncio.sleep(300)  # Check every 5 min outside hours
-                    continue
-                
-                # === OBSERVE ===
-                self.state = AgentState.OBSERVING
-                snapshot = await self._observe_market()
-                if not snapshot:
-                    self._consecutive_errors += 1
-                    if self._consecutive_errors > 5:
-                        self._add_event("ERROR", "Too many observation errors", "Pausing agent")
-                        self.state = AgentState.PAUSED
+        # Start a keep-alive self-pinger for Cloud Run (prevents instance freeze)
+        keepalive_task = asyncio.create_task(self._keepalive_ping())
+        
+        try:
+            while self.state not in [AgentState.STOPPED]:
+                try:
+                    if self.state == AgentState.PAUSED:
+                        await asyncio.sleep(10)
+                        continue
+                    
+                    now = get_ist_now()
+                    hour, minute = now.hour, now.minute
+                    is_weekday = now.weekday() < 5
+                    time_in_mins = hour * 60 + minute
+                    
+                    # Market hours check (9:15 AM - 3:30 PM IST)
+                    market_open = is_weekday and 555 <= time_in_mins <= 930
+                    
+                    if not market_open:
+                        # Outside market hours - minimal checking
+                        if self.active_positions and is_weekday and time_in_mins > 930:
+                            await self._exit_all_positions("Market closed")
+                        self._add_event("IDLE", "Market closed", "Waiting for market to open...")
+                        await asyncio.sleep(300)  # Check every 5 min outside hours
+                        continue
+                    
+                    # === OBSERVE ===
+                    self.state = AgentState.OBSERVING
+                    snapshot = await self._observe_market()
+                    if not snapshot:
+                        self._consecutive_errors += 1
+                        if self._consecutive_errors > 5:
+                            self._add_event("ERROR", "Too many observation errors", "Pausing agent")
+                            self.state = AgentState.PAUSED
+                        await asyncio.sleep(30)
+                        continue
+                    self._consecutive_errors = 0
+                    
+                    # === SAFETY CHECKS ===
+                    should_continue = self._safety_checks()
+                    if not should_continue:
+                        await asyncio.sleep(60)
+                        continue
+                    
+                    # === THINK (LLM Reasoning) ===
+                    self.state = AgentState.THINKING
+                    decision = await self._think_and_decide(snapshot)
+                    
+                    if decision:
+                        self.decisions.appendleft(decision)
+                        
+                        # === ACT ===
+                        if decision.action != "WAIT" and decision.confidence_score >= self.evolved_params["confidence_threshold"]:
+                            self.state = AgentState.ACTING
+                            await self._execute_decision(decision)
+                        
+                        # === REFLECT ===
+                        self.state = AgentState.REFLECTING
+                        await self._reflect_on_positions(snapshot)
+                    
+                    # === ADAPT ===
+                    if self.config.adapt_enabled and self._cycle_count % 10 == 0:
+                        self._self_adapt()
+                    
+                    self._cycle_count += 1
+                    self.state = AgentState.OBSERVING
+                    
+                    # Persist state every 5 cycles
+                    if self._cycle_count % 5 == 0:
+                        await self._persist_state()
+                    
+                    await asyncio.sleep(self.config.think_interval)
+                    
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    self._error_count += 1
+                    self._add_event("ERROR", "Agent loop error", str(e)[:200])
+                    logger.error(f"Agent loop error: {e}", exc_info=True)
                     await asyncio.sleep(30)
-                    continue
-                self._consecutive_errors = 0
-                
-                # === SAFETY CHECKS ===
-                should_continue = self._safety_checks()
-                if not should_continue:
-                    await asyncio.sleep(60)
-                    continue
-                
-                # === THINK (LLM Reasoning) ===
-                self.state = AgentState.THINKING
-                decision = await self._think_and_decide(snapshot)
-                
-                if decision:
-                    self.decisions.appendleft(decision)
-                    
-                    # === ACT ===
-                    if decision.action != "WAIT" and decision.confidence_score >= self.evolved_params["confidence_threshold"]:
-                        self.state = AgentState.ACTING
-                        await self._execute_decision(decision)
-                    
-                    # === REFLECT ===
-                    self.state = AgentState.REFLECTING
-                    await self._reflect_on_positions(snapshot)
-                
-                # === ADAPT ===
-                if self.config.adapt_enabled and self._cycle_count % 10 == 0:
-                    self._self_adapt()
-                
-                self._cycle_count += 1
-                self.state = AgentState.OBSERVING
-                
-                # Persist state every 5 cycles
-                if self._cycle_count % 5 == 0:
-                    await self._persist_state()
-                
-                await asyncio.sleep(self.config.think_interval)
-                
+        finally:
+            keepalive_task.cancel()
+            try:
+                await keepalive_task
             except asyncio.CancelledError:
-                break
-            except Exception as e:
-                self._error_count += 1
-                self._add_event("ERROR", f"Agent loop error", str(e)[:200])
-                logger.error(f"Agent loop error: {e}", exc_info=True)
-                await asyncio.sleep(30)
-    
+                pass
+
+    async def _keepalive_ping(self):
+        """Self-ping to keep Cloud Run instance alive while agent is running.
+        Cloud Run freezes CPU when no requests are in-flight; this HTTP self-ping
+        every 4 minutes ensures the instance stays warm."""
+        port = os.environ.get("PORT", "8080")
+        url = f"http://localhost:{port}/api/health"
+        try:
+            while True:
+                await asyncio.sleep(240)  # every 4 min
+                try:
+                    async with httpx.AsyncClient(timeout=10) as client:
+                        await client.get(url)
+                except Exception:
+                    pass  # best-effort
+        except asyncio.CancelledError:
+            pass
     # ═════════════════════════════════════════════════════════════════════════
     # OBSERVE: Gather all market data
     # ═════════════════════════════════════════════════════════════════════════
@@ -774,7 +800,8 @@ class AutonomousAIAgent:
             return False
 
     async def _observe_via_yfinance(self, snap: MarketSnapshot) -> bool:
-        """Fallback: get data from yfinance with intraday bars when possible."""
+        """Fallback: get data from yfinance with intraday bars when possible.
+        All yfinance calls run in a thread to avoid blocking the async event loop."""
         try:
             import yfinance as yf
 
@@ -783,24 +810,27 @@ class AutonomousAIAgent:
                 "FINNIFTY": "^CNXFIN", "SENSEX": "^BSESN"
             }
             yf_symbol = sym_map.get(self.config.underlying, f"{self.config.underlying}.NS")
-            ticker = yf.Ticker(yf_symbol)
 
-            # Try to get intraday 5m bars for VWAP calculation
-            try:
-                intraday = ticker.history(period="1d", interval="5m")
-                if not intraday.empty and 'Volume' in intraday.columns:
-                    self._intraday_bars = intraday
-                else:
-                    self._intraday_bars = None
-            except Exception:
-                self._intraday_bars = None
+            def _sync_fetch():
+                """Run all blocking yfinance I/O in a worker thread."""
+                ticker = yf.Ticker(yf_symbol)
+                intraday = None
+                try:
+                    ib = ticker.history(period="1d", interval="5m")
+                    if not ib.empty and 'Volume' in ib.columns:
+                        intraday = ib
+                except Exception:
+                    pass
+                hist = ticker.history(period="30d")
+                return intraday, hist
 
-            # Daily history for EMAs, ATR, RV
-            hist = ticker.history(period="30d")
-            if hist.empty:
+            intraday, hist = await asyncio.to_thread(_sync_fetch)
+
+            if hist is None or hist.empty:
                 self._add_event("WARN", "No market data", f"yfinance returned empty for {yf_symbol}")
                 return False
 
+            self._intraday_bars = intraday
             self._daily_hist = hist
 
             # If we have intraday bars, use the last bar for current price
@@ -832,15 +862,18 @@ class AutonomousAIAgent:
             return False
 
     async def _fetch_real_vix(self, snap: MarketSnapshot):
-        """Fetch India VIX from yfinance — never randomize."""
+        """Fetch India VIX from yfinance — never randomize. Runs in thread."""
         try:
             import yfinance as yf
-            vix_ticker = yf.Ticker(INDIA_VIX_YF)
-            vix_hist = vix_ticker.history(period="5d")
-            if not vix_hist.empty:
+
+            def _sync_vix():
+                t = yf.Ticker(INDIA_VIX_YF)
+                return t.history(period="5d")
+
+            vix_hist = await asyncio.to_thread(_sync_vix)
+            if vix_hist is not None and not vix_hist.empty:
                 snap.vix = float(vix_hist['Close'].iloc[-1])
             else:
-                # Fallback: estimate from RV (not random)
                 snap.vix = snap.rv if snap.rv > 0 else 14.0
         except Exception as e:
             snap.vix = snap.rv if snap.rv > 0 else 14.0
@@ -943,6 +976,8 @@ class AutonomousAIAgent:
             
             if not llm_response:
                 # Fallback to rule-based thinking
+                self._add_event("THINK", "Using rule-based engine",
+                    "Claude API unavailable (no key or rate-limited) — using built-in rules")
                 return self._rule_based_decision(snapshot, decision_id)
             
             # Parse Claude's response into a decision
