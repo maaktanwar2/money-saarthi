@@ -232,7 +232,7 @@ export default function AdminPanel() {
               <Lock className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-foreground-muted mb-4">
+            <p className="text-muted-foreground mb-4">
               You don't have permission to access the admin panel.
               Only administrators can view this page.
             </p>
@@ -261,7 +261,7 @@ export default function AdminPanel() {
           </div>
           <div>
             <div className="font-semibold text-lg">Super Admin Access</div>
-            <div className="text-sm text-foreground-muted">Logged in as {user?.email}</div>
+            <div className="text-sm text-muted-foreground">Logged in as {user?.email}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ export default function AdminPanel() {
                     onClick={() => setSelectedPeriod(period)}
                     className={cn(
                       'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                      selectedPeriod === period ? 'bg-primary text-white' : 'text-foreground-muted hover:text-foreground'
+                      selectedPeriod === period ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
                     {period}
@@ -323,7 +323,7 @@ export default function AdminPanel() {
                   {stats.paidUsers > 0 && <Badge variant="success" className="text-xs">Live</Badge>}
                 </div>
                 <div className="text-2xl font-bold">{stats.paidUsers || 0}</div>
-                <div className="text-sm text-foreground-muted">Paid Users</div>
+                <div className="text-sm text-muted-foreground">Paid Users</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -334,7 +334,7 @@ export default function AdminPanel() {
                   <Badge variant="outline" className="text-xs">Free Access</Badge>
                 </div>
                 <div className="text-2xl font-bold">{stats.freeAccessUsers || 0}</div>
-                <div className="text-sm text-foreground-muted">Free Access Grants</div>
+                <div className="text-sm text-muted-foreground">Free Access Grants</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -345,7 +345,7 @@ export default function AdminPanel() {
                   <Badge variant="outline" className="text-xs">Pending</Badge>
                 </div>
                 <div className="text-2xl font-bold">{stats.pendingPayments || 0}</div>
-                <div className="text-sm text-foreground-muted">Pending Payments</div>
+                <div className="text-sm text-muted-foreground">Pending Payments</div>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
@@ -355,7 +355,7 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold">{(stats.totalUsers || 0).toLocaleString()}</div>
-                <div className="text-sm text-foreground-muted">Total Users</div>
+                <div className="text-sm text-muted-foreground">Total Users</div>
               </motion.div>
             </div>
 
@@ -374,7 +374,7 @@ export default function AdminPanel() {
                     </div>
                     <div>
                       <div className="text-lg font-bold">{stat.value}</div>
-                      <div className="text-xs text-foreground-muted">{stat.label}</div>
+                      <div className="text-xs text-muted-foreground">{stat.label}</div>
                     </div>
                   </div>
                 </Card>
@@ -391,7 +391,7 @@ export default function AdminPanel() {
                 </CardHeader>
                 <CardContent>
                   {transactions.length === 0 ? (
-                    <div className="text-center py-8 text-foreground-muted">
+                    <div className="text-center py-8 text-muted-foreground">
                       <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>No pending payments</p>
                     </div>
@@ -405,14 +405,14 @@ export default function AdminPanel() {
                             </div>
                             <div>
                               <div className="font-medium text-sm">{tx.email || tx.user}</div>
-                              <div className="text-xs text-foreground-muted">{tx.plan_name || tx.plan_id || tx.plan}</div>
+                              <div className="text-xs text-muted-foreground">{tx.plan_name || tx.plan_id || tx.plan}</div>
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium text-yellow-500">
                               {formatINR(tx.amount)}
                             </div>
-                            <div className="text-xs text-foreground-muted">{tx.utr_number ? `UTR: ${tx.utr_number}` : tx.date}</div>
+                            <div className="text-xs text-muted-foreground">{tx.utr_number ? `UTR: ${tx.utr_number}` : tx.date}</div>
                           </div>
                         </div>
                       ))}
@@ -437,7 +437,7 @@ export default function AdminPanel() {
                     ].map(item => (
                       <div key={item.label} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <item.icon className="w-4 h-4 text-foreground-muted" />
+                          <item.icon className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">{item.label}</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -448,11 +448,11 @@ export default function AdminPanel() {
                     
                     <div className="pt-4 border-t border-border space-y-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-foreground-muted">Pending Payments</span>
+                        <span className="text-muted-foreground">Pending Payments</span>
                         <span className="font-medium">{stats.pendingPayments || 0}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-foreground-muted">Blocked Users</span>
+                        <span className="text-muted-foreground">Blocked Users</span>
                         <span className="font-medium">{stats.blockedUsers || 0}</span>
                       </div>
                     </div>
@@ -501,19 +501,19 @@ export default function AdminPanel() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-blue-500">{stats.totalUsers || 0}</div>
-                <div className="text-sm text-foreground-muted">Total Users</div>
+                <div className="text-sm text-muted-foreground">Total Users</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-green-500">{stats.activeUsers || 0}</div>
-                <div className="text-sm text-foreground-muted">Active Users</div>
+                <div className="text-sm text-muted-foreground">Active Users</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-purple-500">{(stats.proMonthly || 0) + (stats.proYearly || 0)}</div>
-                <div className="text-sm text-foreground-muted">Pro Users</div>
+                <div className="text-sm text-muted-foreground">Pro Users</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-primary">+{stats.newUsersWeek || 0}</div>
-                <div className="text-sm text-foreground-muted">New This Week</div>
+                <div className="text-sm text-muted-foreground">New This Week</div>
               </Card>
             </div>
 
@@ -523,7 +523,7 @@ export default function AdminPanel() {
                 <CardTitle>User Management</CardTitle>
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-muted" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Search users..."
                       className="pl-9 w-64"
@@ -539,7 +539,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 {filteredUsers.length === 0 ? (
-                  <div className="text-center py-12 text-foreground-muted">
+                  <div className="text-center py-12 text-muted-foreground">
                     <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg">No users found</p>
                     <p className="text-sm">Users will appear here when they sign in</p>
@@ -549,12 +549,12 @@ export default function AdminPanel() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">User</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Plan</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Status</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Last Active</th>
-                          <th className="text-right p-3 text-sm font-medium text-foreground-muted">Revenue</th>
-                          <th className="text-right p-3 text-sm font-medium text-foreground-muted">Actions</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">User</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Plan</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Last Active</th>
+                          <th className="text-right p-3 text-sm font-medium text-muted-foreground">Revenue</th>
+                          <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -578,7 +578,7 @@ export default function AdminPanel() {
                                 )}
                                 <div>
                                   <div className="font-medium">{userName}</div>
-                                  <div className="text-sm text-foreground-muted">{u.email}</div>
+                                  <div className="text-sm text-muted-foreground">{u.email}</div>
                                 </div>
                               </div>
                             </td>
@@ -589,7 +589,7 @@ export default function AdminPanel() {
                                   {userPlan}
                                 </Badge>
                                 {u.billingCycle && (
-                                  <span className="text-xs text-foreground-muted">({u.billingCycle})</span>
+                                  <span className="text-xs text-muted-foreground">({u.billingCycle})</span>
                                 )}
                               </div>
                             </td>
@@ -602,7 +602,7 @@ export default function AdminPanel() {
                                 {userStatus}
                               </Badge>
                             </td>
-                            <td className="p-3 text-sm text-foreground-muted">
+                            <td className="p-3 text-sm text-muted-foreground">
                               {lastActive ? adminService.formatTimeAgo(lastActive) : 'Never'}
                             </td>
                             <td className="p-3 text-right font-medium">
@@ -653,7 +653,7 @@ export default function AdminPanel() {
                   </div>
                   <div>
                     <div className="text-3xl font-bold">{stats.freeUsers || 0}</div>
-                    <div className="text-foreground-muted">Free Users</div>
+                    <div className="text-muted-foreground">Free Users</div>
                   </div>
                 </div>
               </Card>
@@ -664,7 +664,7 @@ export default function AdminPanel() {
                   </div>
                   <div>
                     <div className="text-3xl font-bold">{stats.proMonthly || 0}</div>
-                    <div className="text-foreground-muted">Pro Monthly</div>
+                    <div className="text-muted-foreground">Pro Monthly</div>
                     <div className="text-sm text-primary">{formatINR((stats.proMonthly || 0) * 899)}/mo</div>
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export default function AdminPanel() {
                   </div>
                   <div>
                     <div className="text-3xl font-bold">{stats.proYearly || 0}</div>
-                    <div className="text-foreground-muted">Pro Yearly</div>
+                    <div className="text-muted-foreground">Pro Yearly</div>
                     <div className="text-sm text-yellow-500">{formatINR((stats.proYearly || 0) * 4999)}/yr</div>
                   </div>
                 </div>
@@ -694,7 +694,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <div className="text-center py-12 text-foreground-muted">
+                  <div className="text-center py-12 text-muted-foreground">
                     <CreditCard className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg">No transactions yet</p>
                     <p className="text-sm">Transactions will appear here when users subscribe</p>
@@ -704,12 +704,12 @@ export default function AdminPanel() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">User</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Plan</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Amount</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Status</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Payment ID</th>
-                          <th className="text-left p-3 text-sm font-medium text-foreground-muted">Date</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">User</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Plan</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Amount</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Payment ID</th>
+                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -717,7 +717,7 @@ export default function AdminPanel() {
                           <tr key={tx.id} className="border-b border-border/50">
                             <td className="p-3">
                               <div className="font-medium">{tx.user}</div>
-                              <div className="text-sm text-foreground-muted">{tx.email}</div>
+                              <div className="text-sm text-muted-foreground">{tx.email}</div>
                             </td>
                             <td className="p-3">{tx.plan}</td>
                             <td className="p-3 font-medium">{formatINR(tx.amount)}</td>
@@ -726,7 +726,7 @@ export default function AdminPanel() {
                                 {tx.status}
                               </Badge>
                             </td>
-                            <td className="p-3 text-sm text-foreground-muted font-mono">{tx.paymentId}</td>
+                            <td className="p-3 text-sm text-muted-foreground font-mono">{tx.paymentId}</td>
                             <td className="p-3 text-sm">{tx.date}</td>
                           </tr>
                         ))}
@@ -748,19 +748,19 @@ export default function AdminPanel() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold">{stats.totalSignals || 0}</div>
-                <div className="text-sm text-foreground-muted">Total Signals</div>
+                <div className="text-sm text-muted-foreground">Total Signals</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-green-500">{stats.avgConfidence || 0}%</div>
-                <div className="text-sm text-foreground-muted">Avg Confidence</div>
+                <div className="text-sm text-muted-foreground">Avg Confidence</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-blue-500">{stats.activeSignals || 0}</div>
-                <div className="text-sm text-foreground-muted">Active Signals</div>
+                <div className="text-sm text-muted-foreground">Active Signals</div>
               </Card>
               <Card className="glass-card p-4">
                 <div className="text-2xl font-bold text-purple-500">{stats.closedSignals || 0}</div>
-                <div className="text-sm text-foreground-muted">Closed Signals</div>
+                <div className="text-sm text-muted-foreground">Closed Signals</div>
               </Card>
             </div>
 
@@ -775,7 +775,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 {signals.length === 0 ? (
-                  <div className="text-center py-12 text-foreground-muted">
+                  <div className="text-center py-12 text-muted-foreground">
                     <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg">No signals generated yet</p>
                     <p className="text-sm">Use the form below to create your first signal</p>
@@ -790,7 +790,7 @@ export default function AdminPanel() {
                           </Badge>
                           <div>
                             <div className="font-medium">{signal.symbol}</div>
-                            <div className="text-sm text-foreground-muted">
+                            <div className="text-sm text-muted-foreground">
                               {signal.createdAt ? adminService.formatTimeAgo(signal.createdAt) : signal.generated}
                             </div>
                           </div>
@@ -798,12 +798,12 @@ export default function AdminPanel() {
                         <div className="flex items-center gap-6">
                           <div className="text-center">
                             <div className="font-medium">{signal.confidence}%</div>
-                            <div className="text-xs text-foreground-muted">Confidence</div>
+                            <div className="text-xs text-muted-foreground">Confidence</div>
                           </div>
                           {signal.targetPrice && (
                             <div className="text-center">
                               <div className="font-medium">₹{signal.targetPrice}</div>
-                              <div className="text-xs text-foreground-muted">Target</div>
+                              <div className="text-xs text-muted-foreground">Target</div>
                             </div>
                           )}
                           <Badge variant={signal.status === 'active' ? 'default' : 'secondary'}>
@@ -833,7 +833,7 @@ export default function AdminPanel() {
               <CardContent>
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Symbol *</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Symbol *</label>
                     <Input 
                       placeholder="e.g., NIFTY 22500 CE" 
                       value={signalForm.symbol}
@@ -841,7 +841,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Type</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Type</label>
                     <select 
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
                       value={signalForm.type}
@@ -852,7 +852,7 @@ export default function AdminPanel() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Confidence (%)</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Confidence (%)</label>
                     <Input 
                       type="number" 
                       placeholder="75"
@@ -861,7 +861,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Target Price</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Target Price</label>
                     <Input 
                       type="number" 
                       placeholder="0.00"
@@ -871,7 +871,7 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label className="text-sm text-foreground-muted block mb-2">Rationale</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Rationale</label>
                   <textarea 
                     className="input w-full h-20" 
                     placeholder="Enter signal rationale..."
@@ -922,7 +922,7 @@ export default function AdminPanel() {
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">{item.label}</div>
-                        <div className="text-sm text-foreground-muted">{item.desc}</div>
+                        <div className="text-sm text-muted-foreground">{item.desc}</div>
                       </div>
                       <Badge variant="outline">{item.count}</Badge>
                     </div>
@@ -939,7 +939,7 @@ export default function AdminPanel() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Title *</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Title *</label>
                     <Input 
                       placeholder="Announcement title..."
                       value={broadcastForm.title}
@@ -947,7 +947,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Message *</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Message *</label>
                     <textarea 
                       className="input w-full h-32" 
                       placeholder="Write your message..."
@@ -957,7 +957,7 @@ export default function AdminPanel() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Target Audience</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Target Audience</label>
                       <select 
                         className="input"
                         value={broadcastForm.audience}
@@ -969,7 +969,7 @@ export default function AdminPanel() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Priority</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Priority</label>
                       <select 
                         className="input"
                         value={broadcastForm.priority}
@@ -1008,8 +1008,8 @@ export default function AdminPanel() {
                             <Badge variant="outline">{ann.audience}</Badge>
                           </div>
                         </div>
-                        <p className="text-sm text-foreground-muted">{ann.message}</p>
-                        <div className="text-xs text-foreground-muted mt-2">
+                        <p className="text-sm text-muted-foreground">{ann.message}</p>
+                        <div className="text-xs text-muted-foreground mt-2">
                           {adminService.formatTimeAgo(ann.createdAt)}
                         </div>
                       </div>
@@ -1049,7 +1049,7 @@ export default function AdminPanel() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">UPI ID</label>
+                      <label className="text-sm text-muted-foreground block mb-2">UPI ID</label>
                       <Input 
                         placeholder="yourname@paytm or yourname@upi"
                         value={paymentConfig.upiId || ''}
@@ -1057,7 +1057,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Merchant Name</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Merchant Name</label>
                       <Input 
                         placeholder="Money Saarthi"
                         value={paymentConfig.merchantName || ''}
@@ -1077,7 +1077,7 @@ export default function AdminPanel() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">PhonePe Number</label>
+                      <label className="text-sm text-muted-foreground block mb-2">PhonePe Number</label>
                       <Input 
                         placeholder="9999999999"
                         value={paymentConfig.phonepeNumber || ''}
@@ -1085,7 +1085,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Google Pay Number</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Google Pay Number</label>
                       <Input 
                         placeholder="9999999999"
                         value={paymentConfig.gpayNumber || ''}
@@ -1093,7 +1093,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Paytm Number</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Paytm Number</label>
                       <Input 
                         placeholder="9999999999"
                         value={paymentConfig.paytmNumber || ''}
@@ -1101,7 +1101,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">WhatsApp Support Number</label>
+                      <label className="text-sm text-muted-foreground block mb-2">WhatsApp Support Number</label>
                       <Input 
                         placeholder="919999999999 (with country code)"
                         value={paymentConfig.whatsappNumber || ''}
@@ -1121,7 +1121,7 @@ export default function AdminPanel() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Account Holder Name</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Account Holder Name</label>
                       <Input 
                         placeholder="Account holder name"
                         value={paymentConfig.bankDetails?.accountName || ''}
@@ -1129,7 +1129,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Account Number</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Account Number</label>
                       <Input 
                         placeholder="XXXXXXXXXXXX"
                         value={paymentConfig.bankDetails?.accountNumber || ''}
@@ -1137,7 +1137,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">IFSC Code</label>
+                      <label className="text-sm text-muted-foreground block mb-2">IFSC Code</label>
                       <Input 
                         placeholder="SBIN0XXXXXX"
                         value={paymentConfig.bankDetails?.ifscCode || ''}
@@ -1145,7 +1145,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Bank Name</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Bank Name</label>
                       <Input 
                         placeholder="State Bank of India"
                         value={paymentConfig.bankDetails?.bankName || ''}
@@ -1165,7 +1165,7 @@ export default function AdminPanel() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Razorpay API Key</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Razorpay API Key</label>
                       <Input 
                         placeholder="rzp_live_XXXXXX"
                         value={paymentConfig.razorpayKey || ''}
@@ -1173,7 +1173,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-foreground-muted block mb-2">Enable Razorpay</label>
+                      <label className="text-sm text-muted-foreground block mb-2">Enable Razorpay</label>
                       <select 
                         className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
                         value={paymentConfig.razorpayEnabled ? 'yes' : 'no'}
@@ -1201,7 +1201,7 @@ export default function AdminPanel() {
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">API Rate Limit (per min)</label>
+                    <label className="text-sm text-muted-foreground block mb-2">API Rate Limit (per min)</label>
                     <Input 
                       type="number" 
                       value={systemConfig.apiRateLimit || 60}
@@ -1209,7 +1209,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Cache TTL (seconds)</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Cache TTL (seconds)</label>
                     <Input 
                       type="number" 
                       value={systemConfig.cacheTTL || 300}
@@ -1217,7 +1217,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Max Concurrent Users</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Max Concurrent Users</label>
                     <Input 
                       type="number" 
                       value={systemConfig.maxConcurrentUsers || 1000}
@@ -1225,7 +1225,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground-muted block mb-2">Maintenance Mode</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Maintenance Mode</label>
                     <select 
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
                       value={systemConfig.maintenanceMode ? 'on' : 'off'}
@@ -1281,7 +1281,7 @@ export default function AdminPanel() {
                   <div key={item.label} className="flex items-center justify-between p-4 rounded-lg border border-red-500/20 bg-red-500/5">
                     <div>
                       <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-foreground-muted">{item.desc}</div>
+                      <div className="text-sm text-muted-foreground">{item.desc}</div>
                     </div>
                     <Button variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={item.onClick}>
                       {item.action}

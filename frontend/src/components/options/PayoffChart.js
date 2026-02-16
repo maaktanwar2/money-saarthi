@@ -67,7 +67,7 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
           <h3 className="font-semibold">Strategy Legs</h3>
           <div className="flex gap-2">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-foreground-muted">Spot:</label>
+              <label className="text-xs text-muted-foreground">Spot:</label>
               <Input type="number" value={spotPrice} onChange={(e) => setSpotPrice(+e.target.value)} className="w-28" />
             </div>
             <Button variant="outline" size="sm" onClick={addLeg}>+ Add Leg</Button>
@@ -81,22 +81,22 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
                 <option value="put">Put</option>
               </Select>
               <div>
-                <label className="text-[10px] text-foreground-muted">Strike</label>
+                <label className="text-[10px] text-muted-foreground">Strike</label>
                 <Input type="number" value={leg.strike || spotPrice} onChange={(e) => updateLeg(i, 'strike', +e.target.value)} className="w-24" />
               </div>
               <div>
-                <label className="text-[10px] text-foreground-muted">Premium</label>
+                <label className="text-[10px] text-muted-foreground">Premium</label>
                 <Input type="number" value={leg.premium} onChange={(e) => updateLeg(i, 'premium', +e.target.value)} className="w-20" />
               </div>
               <div>
-                <label className="text-[10px] text-foreground-muted">Qty (±)</label>
+                <label className="text-[10px] text-muted-foreground">Qty (±)</label>
                 <Input type="number" value={leg.quantity} onChange={(e) => updateLeg(i, 'quantity', +e.target.value)} className="w-20" />
               </div>
               <Badge variant={leg.quantity > 0 ? 'success' : 'destructive'} className="text-xs">
                 {leg.quantity > 0 ? 'BUY' : 'SELL'}
               </Badge>
               {legs.length > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => removeLeg(i)} className="text-foreground-muted hover:text-bearish">×</Button>
+                <Button variant="ghost" size="sm" onClick={() => removeLeg(i)} className="text-muted-foreground hover:text-bearish">×</Button>
               )}
             </div>
           ))}
@@ -105,19 +105,19 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3">
-          <div className="text-xs text-foreground-muted">Max Profit</div>
+          <div className="text-xs text-muted-foreground">Max Profit</div>
           <p className="text-lg font-bold text-bullish">{maxProfit >= 999999 ? 'Unlimited' : formatINR(maxProfit)}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-foreground-muted">Max Loss</div>
+          <div className="text-xs text-muted-foreground">Max Loss</div>
           <p className="text-lg font-bold text-bearish">{maxLoss <= -999999 ? 'Unlimited' : formatINR(maxLoss)}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-foreground-muted">Breakeven(s)</div>
+          <div className="text-xs text-muted-foreground">Breakeven(s)</div>
           <p className="text-lg font-bold">{breakevens.length > 0 ? breakevens.map(b => formatNumber(b)).join(', ') : 'N/A'}</p>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-foreground-muted">Risk-Reward</div>
+          <div className="text-xs text-muted-foreground">Risk-Reward</div>
           <p className="text-lg font-bold">{maxLoss !== 0 ? Math.abs(maxProfit / maxLoss).toFixed(2) + 'x' : '∞'}</p>
         </Card>
       </div>

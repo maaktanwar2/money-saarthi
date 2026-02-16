@@ -122,34 +122,34 @@ export default function TradingJournal() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <Card className="glass-card p-4 text-center">
               <div className="text-2xl font-bold">{stats.totalTrades}</div>
-              <div className="text-xs text-foreground-muted">Total Trades</div>
+              <div className="text-xs text-muted-foreground">Total Trades</div>
             </Card>
             <Card className="glass-card p-4 text-center">
               <div className="text-2xl font-bold text-profit">{stats.winRate}%</div>
-              <div className="text-xs text-foreground-muted">Win Rate</div>
+              <div className="text-xs text-muted-foreground">Win Rate</div>
             </Card>
             <Card className="glass-card p-4 text-center">
               <div className="text-2xl font-bold text-profit">{formatINR(stats.avgWin)}</div>
-              <div className="text-xs text-foreground-muted">Avg Win</div>
+              <div className="text-xs text-muted-foreground">Avg Win</div>
             </Card>
             <Card className="glass-card p-4 text-center">
               <div className="text-2xl font-bold text-loss">{formatINR(stats.avgLoss)}</div>
-              <div className="text-xs text-foreground-muted">Avg Loss</div>
+              <div className="text-xs text-muted-foreground">Avg Loss</div>
             </Card>
             <Card className="glass-card p-4 text-center">
               <div className="text-2xl font-bold">{stats.profitFactor}</div>
-              <div className="text-xs text-foreground-muted">Profit Factor</div>
+              <div className="text-xs text-muted-foreground">Profit Factor</div>
             </Card>
             <Card className="glass-card p-4 text-center">
               <div className={`text-2xl font-bold ${stats.totalPnL >= 0 ? 'text-profit' : 'text-loss'}`}>
                 {formatINR(stats.totalPnL)}
               </div>
-              <div className="text-xs text-foreground-muted">Total P&L</div>
+              <div className="text-xs text-muted-foreground">Total P&L</div>
             </Card>
           </div>
         ) : (
           <Card className="glass-card p-8 text-center mb-8">
-            <p className="text-foreground-muted mb-2">No trades logged yet.</p>
+            <p className="text-muted-foreground mb-2">No trades logged yet.</p>
             <Button onClick={() => setActiveTab('add')}>Log Your First Trade</Button>
           </Card>
         )}
@@ -170,7 +170,7 @@ export default function TradingJournal() {
           <Card className="glass-card mt-6">
             <CardContent className="p-0">
               {trades.length === 0 ? (
-                <div className="p-8 text-center text-foreground-muted">
+                <div className="p-8 text-center text-muted-foreground">
                   No trades yet. Click "+ Add Trade" to log your first trade.
                 </div>
               ) : (
@@ -178,14 +178,14 @@ export default function TradingJournal() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left p-4 text-sm font-medium text-foreground-muted">Date</th>
-                        <th className="text-left p-4 text-sm font-medium text-foreground-muted">Symbol</th>
-                        <th className="text-left p-4 text-sm font-medium text-foreground-muted">Type</th>
-                        <th className="text-right p-4 text-sm font-medium text-foreground-muted">Entry</th>
-                        <th className="text-right p-4 text-sm font-medium text-foreground-muted">Exit</th>
-                        <th className="text-right p-4 text-sm font-medium text-foreground-muted">Qty</th>
-                        <th className="text-right p-4 text-sm font-medium text-foreground-muted">P&L</th>
-                        <th className="text-left p-4 text-sm font-medium text-foreground-muted">Notes</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Symbol</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Type</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Entry</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Exit</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Qty</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">P&L</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Notes</th>
                         <th className="p-4"></th>
                       </tr>
                     </thead>
@@ -205,11 +205,11 @@ export default function TradingJournal() {
                           <td className={`p-4 text-sm text-right font-medium ${trade.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
                             {trade.exit !== null ? formatINR(trade.pnl) : 'Open'}
                           </td>
-                          <td className="p-4 text-sm text-foreground-muted max-w-[200px] truncate">{trade.notes}</td>
+                          <td className="p-4 text-sm text-muted-foreground max-w-[200px] truncate">{trade.notes}</td>
                           <td className="p-4">
                             <button 
                               onClick={() => handleDelete(trade.id)}
-                              className="text-foreground-muted hover:text-red-500 transition-colors"
+                              className="text-muted-foreground hover:text-red-500 transition-colors"
                               title="Delete trade"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -239,7 +239,7 @@ export default function TradingJournal() {
               )}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Date *</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Date *</label>
                   <Input 
                     type="date" 
                     value={form.date} 
@@ -247,7 +247,7 @@ export default function TradingJournal() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Symbol *</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Symbol *</label>
                   <Input 
                     placeholder="e.g. NIFTY 22500 CE" 
                     value={form.symbol}
@@ -255,7 +255,7 @@ export default function TradingJournal() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Type</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Type</label>
                   <select 
                     className="input w-full"
                     value={form.type}
@@ -266,7 +266,7 @@ export default function TradingJournal() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Entry Price *</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Entry Price *</label>
                   <Input 
                     type="number" 
                     placeholder="0.00" 
@@ -275,7 +275,7 @@ export default function TradingJournal() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Exit Price (leave blank if open)</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Exit Price (leave blank if open)</label>
                   <Input 
                     type="number" 
                     placeholder="0.00" 
@@ -284,7 +284,7 @@ export default function TradingJournal() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground-muted block mb-2">Quantity *</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Quantity *</label>
                   <Input 
                     type="number" 
                     placeholder="0" 
@@ -293,7 +293,7 @@ export default function TradingJournal() {
                   />
                 </div>
                 <div className="md:col-span-2 lg:col-span-3">
-                  <label className="text-sm text-foreground-muted block mb-2">Notes</label>
+                  <label className="text-sm text-muted-foreground block mb-2">Notes</label>
                   <textarea 
                     className="input w-full h-24 resize-none"
                     placeholder="Trade rationale, observations, lessons learned..."
@@ -316,7 +316,7 @@ export default function TradingJournal() {
               </CardHeader>
               <CardContent>
                 {trades.length < 3 ? (
-                  <p className="text-foreground-muted text-sm">Log at least 3 trades to see day-wise analysis.</p>
+                  <p className="text-muted-foreground text-sm">Log at least 3 trades to see day-wise analysis.</p>
                 ) : (
                   <div className="space-y-3">
                     {dayAnalysis.map(({ day, winRate, trades: count }) => (
@@ -330,12 +330,12 @@ export default function TradingJournal() {
                                 style={{ width: `${winRate}%` }}
                               />
                             </div>
-                            <span className="text-sm text-foreground-muted w-16 text-right">
+                            <span className="text-sm text-muted-foreground w-16 text-right">
                               {winRate}% ({count})
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-foreground-muted">No trades</span>
+                          <span className="text-xs text-muted-foreground">No trades</span>
                         )}
                       </div>
                     ))}
@@ -350,7 +350,7 @@ export default function TradingJournal() {
               </CardHeader>
               <CardContent>
                 {trades.length < 3 ? (
-                  <p className="text-foreground-muted text-sm">Log more trades to see symbol-level analysis.</p>
+                  <p className="text-muted-foreground text-sm">Log more trades to see symbol-level analysis.</p>
                 ) : (
                   <div className="space-y-3">
                     {(() => {
@@ -368,7 +368,7 @@ export default function TradingJournal() {
                           <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-background">
                             <div>
                               <div className="font-medium">{symbol}</div>
-                              <div className="text-xs text-foreground-muted">
+                              <div className="text-xs text-muted-foreground">
                                 {data.count} trades — {Math.round((data.wins / data.count) * 100)}% win
                               </div>
                             </div>

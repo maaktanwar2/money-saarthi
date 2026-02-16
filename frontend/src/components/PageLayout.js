@@ -81,6 +81,7 @@ export const PageLayout = ({ children }) => {
 export const PageHeader = ({ 
   title, 
   description, 
+  icon: Icon,
   badge,
   accuracy,
   trades,
@@ -109,6 +110,11 @@ export const PageHeader = ({
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <div className="flex items-center gap-3">
+          {Icon && (
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Icon className="w-5 h-5 text-primary" />
+            </div>
+          )}
           <h1 className="text-3xl font-bold">{title}</h1>
           {badge && (
             <span className={cn(

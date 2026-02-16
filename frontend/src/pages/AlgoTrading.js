@@ -9,10 +9,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, Play, Square, Settings, TrendingUp, TrendingDown,
   Activity, Target, Shield, Zap, BarChart3, Brain,
-  AlertCircle, CheckCircle2, Clock, Percent,
-  RefreshCw, Eye, EyeOff, ChevronRight, ChevronDown, Power,
-  Rocket, LineChart, Gauge, Wallet, Link, Unlink, ArrowUpRight,
-  ArrowDownRight, Timer, Calendar, Sparkles, Crown, Info, Coins
+  AlertCircle, CheckCircle2, Clock,
+  RefreshCw, ChevronRight, ChevronDown,
+  Wallet, Link, Unlink, ArrowUpRight,
+  ArrowDownRight, Sparkles, Crown, Info, Coins
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
 import {
@@ -27,6 +27,10 @@ import { toast } from '../hooks/use-toast';
 import { useConfirm } from '../hooks/useConfirm';
 import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
 import { fetchAPI } from '../lib/utils';
+import PnLChart from '../components/algo/PnLChart';
+import RiskAnalytics from '../components/algo/RiskAnalytics';
+import StrategyShowcase from '../components/algo/StrategyShowcase';
+import ActivityFeed from '../components/algo/ActivityFeed';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & CONFIGURATIONS
@@ -44,8 +48,9 @@ const BOT_CONFIGS = {
     color: 'blue',
     features: ['Momentum Detection', 'Auto Position Sizing', 'Trailing Stop Loss'],
     riskLevel: 'Medium',
-    winRate: '68%',
-    avgReturn: '+2.1%',
+    winRate: '68%*',
+    avgReturn: '+2.1%*',
+    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
     tokenAction: 'bot_start',
     tokenCost: 15,
   },
@@ -58,8 +63,9 @@ const BOT_CONFIGS = {
     color: 'purple',
     features: ['Claude 4.5 AI', '15-Delta Entry', 'Auto Adjustments at 30δ'],
     riskLevel: 'Medium-High',
-    winRate: '72%',
-    avgReturn: '+1.8%',
+    winRate: '72%*',
+    avgReturn: '+1.8%*',
+    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
     isPremium: true,
     tokenAction: 'bot_start_ai_hedging',
     tokenCost: 60,
@@ -73,8 +79,9 @@ const BOT_CONFIGS = {
     color: 'emerald',
     features: ['4 Strategy Modes', 'Defined Risk Options', 'Daily & Weekly', 'Auto Adjustments', 'Trailing Profit'],
     riskLevel: 'Low-Medium',
-    winRate: '78%',
-    avgReturn: '+2-4%',
+    winRate: '78%*',
+    avgReturn: '+2-4%*',
+    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
     tokenAction: 'bot_start_hedging',
     tokenCost: 40,
   }
@@ -158,15 +165,31 @@ const AlgoTrading = () => {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [isAdminUser, setIsAdminUser] = useState(false);
   
+  // P&L Chart State
+  const [pnlHistory, setPnlHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ms_pnl_history') || '[]');
+    } catch { return []; }
+  });
+  
+  // Activity Feed State
+  const [activityEvents, setActivityEvents] = useState([]);
+  
   // ─────────────────────────────────────────────────────────────────────────────
   // CHECK BROKER CONNECTION ON MOUNT
   // ─────────────────────────────────────────────────────────────────────────────
   
   useEffect(() => {
-    const savedToken = localStorage.getItem('ms_broker_token');
+    const savedToken = sessionStorage.getItem('ms_broker_token') || localStorage.getItem('ms_broker_token');
     const savedBroker = localStorage.getItem('ms_connected_broker');
     const savedClientId = localStorage.getItem('ms_client_id');
     const savedSandbox = localStorage.getItem('ms_is_sandbox') === 'true';
+    
+    // Migrate from localStorage to sessionStorage if needed
+    if (localStorage.getItem('ms_broker_token')) {
+      sessionStorage.setItem('ms_broker_token', localStorage.getItem('ms_broker_token'));
+      localStorage.removeItem('ms_broker_token');
+    }
     
     if (savedToken && savedBroker) {
       setBrokerToken(savedToken);
@@ -178,16 +201,15 @@ const AlgoTrading = () => {
     }
     
     // Load token balance
-    loadTokenBalance();
+    const loadBalance = async () => {
+      try {
+        const res = await getTokenBalance();
+        setTokenBalance(res.balance || 0);
+        setIsAdminUser(res.is_admin || res.unlimited || false);
+      } catch (e) { /* ignore */ }
+    };
+    loadBalance();
   }, []);
-  
-  const loadTokenBalance = async () => {
-    try {
-      const res = await getTokenBalance();
-      setTokenBalance(res.balance || 0);
-      setIsAdminUser(res.is_admin || res.unlimited || false);
-    } catch (e) { /* ignore */ }
-  };
   
   const deductBotTokens = async (action = 'bot_start', cost = 15) => {
     try {
@@ -205,8 +227,13 @@ const AlgoTrading = () => {
         return false;
       }
     } catch (e) {
-      // If token check fails, allow starting (graceful degradation)
-      return true;
+      console.error('Token deduction failed:', e);
+      toast({
+        title: 'Token Check Failed',
+        description: 'Could not verify token balance. Please check your connection and try again.',
+        variant: 'destructive'
+      });
+      return false;
     }
   };
   
@@ -248,7 +275,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       
       if (data.valid) {
-        localStorage.setItem('ms_broker_token', brokerToken);
+        sessionStorage.setItem('ms_broker_token', brokerToken);
         localStorage.setItem('ms_connected_broker', selectedBroker);
         localStorage.setItem('ms_client_id', clientId || data.client_id || '');
         localStorage.setItem('ms_is_sandbox', (selectedBroker === 'dhan' && isSandbox) ? 'true' : 'false');
@@ -272,7 +299,7 @@ const AlgoTrading = () => {
   };
   
   const disconnectBroker = () => {
-    localStorage.removeItem('ms_broker_token');
+    sessionStorage.removeItem('ms_broker_token');
     localStorage.removeItem('ms_connected_broker');
     localStorage.removeItem('ms_client_id');
     localStorage.removeItem('ms_is_sandbox');
@@ -357,6 +384,22 @@ const AlgoTrading = () => {
                    (deltaData.today_pnl || 0);
       setTodayPnL(today);
       
+      // Track P&L history for chart
+      const now = new Date();
+      const timeLabel = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const newPoint = {
+        time: timeLabel,
+        pnl: total,
+        vwap: vwapData.total_pnl || 0,
+        strangle: strangleData.total_pnl || 0,
+        delta: deltaData.total_pnl || 0,
+      };
+      setPnlHistory(prev => {
+        const updated = [...prev, newPoint].slice(-100); // Keep last 100 points
+        try { localStorage.setItem('ms_pnl_history', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      
     } catch (error) {
       console.error('Failed to fetch bot statuses:', error);
     }
@@ -370,6 +413,17 @@ const AlgoTrading = () => {
       return () => clearInterval(interval);
     }
   }, [brokerConnected, fetchBotStatuses]);
+  
+  // Helper to add activity events
+  const addActivityEvent = useCallback((type, message, pnl) => {
+    setActivityEvents(prev => [...prev, {
+      id: Date.now(),
+      type,
+      message,
+      pnl,
+      timestamp: new Date().toISOString(),
+    }].slice(-50)); // Keep last 50 events
+  }, []);
   
   // ─────────────────────────────────────────────────────────────────────────────
   // BOT CONTROLS
@@ -400,7 +454,7 @@ const AlgoTrading = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          broker_token: localStorage.getItem('ms_broker_token'),
+          broker_token: sessionStorage.getItem('ms_broker_token'),
           broker: connectedBroker,
           user_id: localStorage.getItem('ms_client_id') || 'default',
           mock_mode: isSandboxMode,
@@ -419,6 +473,7 @@ const AlgoTrading = () => {
       if (data.status === 'success' || data.status === 'running') {
         setVwapBot(prev => ({ ...prev, running: true }));
         toast({ title: '🚀 Bot Started', description: `VWAP Momentum Bot is now active${isSandboxMode ? ' [SANDBOX]' : ''}` });
+        addActivityEvent('bot_start', `VWAP Momentum Bot started${isSandboxMode ? ' (Sandbox)' : ''}`);
       } else {
         toast({ title: 'Error', description: data.detail || data.message || 'Failed to start bot', variant: 'destructive' });
       }
@@ -440,6 +495,7 @@ const AlgoTrading = () => {
       if (data.status === 'success' || data.status === 'stopped') {
         setVwapBot(prev => ({ ...prev, running: false }));
         toast({ title: '⏹ Bot Stopped', description: 'VWAP Momentum Bot stopped' });
+        addActivityEvent('bot_stop', 'VWAP Momentum Bot stopped');
       }
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -474,7 +530,7 @@ const AlgoTrading = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          access_token: localStorage.getItem('ms_broker_token'),
+          access_token: sessionStorage.getItem('ms_broker_token'),
           broker: connectedBroker,
           underlying: strangleConfig.underlying,
           num_lots: strangleConfig.numLots,
@@ -492,6 +548,7 @@ const AlgoTrading = () => {
       if (data.status === 'success') {
         setStrangleBot(prev => ({ ...prev, running: true, status: data }));
         toast({ title: '🤖 QuantStrangle AI Started', description: data.message || 'Bot is now monitoring positions' });
+        addActivityEvent('bot_start', 'QuantStrangle AI Bot started');
       } else {
         toast({ title: 'Error', description: data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
       }
@@ -513,6 +570,7 @@ const AlgoTrading = () => {
       if (data.status === 'success') {
         setStrangleBot(prev => ({ ...prev, running: false, status: null }));
         toast({ title: '⏹ Bot Stopped', description: 'QuantStrangle AI stopped' });
+        addActivityEvent('bot_stop', 'QuantStrangle AI Bot stopped');
       }
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -597,7 +655,7 @@ const AlgoTrading = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          access_token: localStorage.getItem('ms_broker_token'),
+          access_token: sessionStorage.getItem('ms_broker_token'),
           broker: connectedBroker,
           underlying: deltaConfig.underlying,
           lot_size: deltaConfig.lotSize,
@@ -622,6 +680,7 @@ const AlgoTrading = () => {
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: true }));
         toast({ title: '🛡️ Bot Started', description: data.message || `${strategyLabel} bot is now active` });
+        addActivityEvent('bot_start', `Delta Neutral (${strategyLabel}) Bot started`);
       } else {
         toast({ title: 'Error', description: data.error || data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
       }
@@ -643,6 +702,7 @@ const AlgoTrading = () => {
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: false }));
         toast({ title: '⏹ Bot Stopped', description: 'Delta Neutral Bot stopped' });
+        addActivityEvent('bot_stop', 'Delta Neutral Bot stopped');
       }
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -671,7 +731,7 @@ const AlgoTrading = () => {
               <h3 className="text-lg font-semibold">
                 {brokerConnected ? 'Broker Connected' : 'Connect Broker'}
               </h3>
-              <p className="text-sm text-foreground-muted">
+              <p className="text-sm text-muted-foreground">
                 {brokerConnected 
                   ? `Connected to ${brokerInfo?.broker === 'upstox' ? 'Upstox' : 'Dhan'}${brokerInfo?.sandbox ? ' (Sandbox)' : ''} • ${brokerInfo?.sandbox ? 'Test' : 'Live'} trading enabled`
                   : 'Connect your broker account to start live trading'
@@ -787,7 +847,7 @@ const AlgoTrading = () => {
                   {connectingBroker ? <Spinner className="w-4 h-4" /> : 'Connect'}
                 </Button>
               </div>
-              <p className="text-xs text-foreground-muted mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 {selectedBroker === 'upstox' ? (
                   <>
                     Get your access token from{' '}
@@ -817,7 +877,7 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   
   const renderStats = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
@@ -825,7 +885,7 @@ const AlgoTrading = () => {
               <Bot className="w-5 h-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-xs text-foreground-muted">Active Bots</p>
+              <p className="text-xs text-muted-foreground">Active Bots</p>
               <p className="text-2xl font-bold">
                 {[vwapBot.running, strangleBot.running, deltaBot.running].filter(Boolean).length}/3
               </p>
@@ -841,7 +901,7 @@ const AlgoTrading = () => {
               <Activity className="w-5 h-5 text-purple-500" />
             </div>
             <div>
-              <p className="text-xs text-foreground-muted">Open Positions</p>
+              <p className="text-xs text-muted-foreground">Open Positions</p>
               <p className="text-2xl font-bold">{activePositions}</p>
             </div>
           </div>
@@ -866,7 +926,7 @@ const AlgoTrading = () => {
               }
             </div>
             <div>
-              <p className="text-xs text-foreground-muted">Today's P&L</p>
+              <p className="text-xs text-muted-foreground">Today's P&L</p>
               <p className={cn(
                 "text-2xl font-bold",
                 todayPnL >= 0 ? "text-green-500" : "text-red-500"
@@ -893,7 +953,7 @@ const AlgoTrading = () => {
               <Wallet className={cn("w-5 h-5", totalPnL >= 0 ? "text-emerald-500" : "text-rose-500")} />
             </div>
             <div>
-              <p className="text-xs text-foreground-muted">Total P&L</p>
+              <p className="text-xs text-muted-foreground">Total P&L</p>
               <p className={cn(
                 "text-2xl font-bold",
                 totalPnL >= 0 ? "text-emerald-500" : "text-rose-500"
@@ -912,7 +972,7 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   
   const renderBotCard = (config, botState, startBot, stopBot, renderConfig) => {
-    const { id, name, description, icon: Icon, gradient, features, riskLevel, winRate, avgReturn, tokenCost } = config;
+    const { id, name, description, icon: Icon, gradient, features, riskLevel, winRate, avgReturn, tokenCost, disclaimer } = config;
     const isExpanded = expandedBot === id;
     const isRunning = botState.running;
     const isLoading = botState.loading;
@@ -921,8 +981,8 @@ const AlgoTrading = () => {
       <Card 
         key={id}
         className={cn(
-          "relative overflow-hidden transition-all duration-300",
-          isRunning && "ring-2 ring-green-500/50",
+          "bot-card relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5",
+          isRunning && "ring-2 ring-green-500/50 shadow-lg shadow-green-500/10 animate-glow",
           !brokerConnected && "opacity-60"
         )}
       >
@@ -951,7 +1011,7 @@ const AlgoTrading = () => {
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-foreground-muted mt-1">{description}</p>
+                <p className="text-sm text-muted-foreground mt-1">{description}</p>
               </div>
             </div>
             
@@ -974,23 +1034,26 @@ const AlgoTrading = () => {
           </div>
           
           {/* Stats Row */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-2 text-sm">
             <div className="flex items-center gap-1.5">
               <Target className="w-4 h-4 text-blue-500" />
-              <span className="text-foreground-muted">Win Rate:</span>
+              <span className="text-muted-foreground">Win Rate:</span>
               <span className="font-medium">{winRate}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              <span className="text-foreground-muted">Avg Return:</span>
+              <span className="text-muted-foreground">Avg Return:</span>
               <span className="font-medium text-green-500">{avgReturn}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-orange-500" />
-              <span className="text-foreground-muted">Risk:</span>
+              <span className="text-muted-foreground">Risk:</span>
               <span className="font-medium">{riskLevel}</span>
             </div>
           </div>
+          {disclaimer && (
+            <p className="text-[10px] text-muted-foreground mb-4">{disclaimer}</p>
+          )}
           
           {/* Features */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -1005,7 +1068,7 @@ const AlgoTrading = () => {
           {/* Expand/Collapse Config */}
           <button
             onClick={() => setExpandedBot(isExpanded ? null : id)}
-            className="flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Settings className="w-4 h-4" />
             Configure Settings
@@ -1036,7 +1099,7 @@ const AlgoTrading = () => {
                 Bot is actively monitoring the market
               </div>
               {botState.status.positions?.length > 0 && (
-                <div className="mt-2 text-sm text-foreground-muted">
+                <div className="mt-2 text-sm text-muted-foreground">
                   {botState.status.positions.length} active position(s)
                 </div>
               )}
@@ -1052,9 +1115,9 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   
   const renderVwapConfig = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       <div>
-        <label className="text-xs text-foreground-muted">Capital (₹)</label>
+        <label className="text-xs text-muted-foreground">Capital (₹)</label>
         <Input
           type="number"
           value={vwapConfig.capital}
@@ -1063,7 +1126,7 @@ const AlgoTrading = () => {
         />
       </div>
       <div>
-        <label className="text-xs text-foreground-muted">Risk per Trade (%)</label>
+        <label className="text-xs text-muted-foreground">Risk per Trade (%)</label>
         <Input
           type="number"
           value={vwapConfig.riskPerTrade}
@@ -1072,7 +1135,7 @@ const AlgoTrading = () => {
         />
       </div>
       <div>
-        <label className="text-xs text-foreground-muted">Max Positions</label>
+        <label className="text-xs text-muted-foreground">Max Positions</label>
         <Input
           type="number"
           value={vwapConfig.maxPositions}
@@ -1081,7 +1144,7 @@ const AlgoTrading = () => {
         />
       </div>
       <div>
-        <label className="text-xs text-foreground-muted">Target (%)</label>
+        <label className="text-xs text-muted-foreground">Target (%)</label>
         <Input
           type="number"
           value={vwapConfig.targetPercent}
@@ -1090,7 +1153,7 @@ const AlgoTrading = () => {
         />
       </div>
       <div>
-        <label className="text-xs text-foreground-muted">Stop Loss (%)</label>
+        <label className="text-xs text-muted-foreground">Stop Loss (%)</label>
         <Input
           type="number"
           value={vwapConfig.stopLossPercent}
@@ -1099,7 +1162,7 @@ const AlgoTrading = () => {
         />
       </div>
       <div>
-        <label className="text-xs text-foreground-muted">Trailing SL (%)</label>
+        <label className="text-xs text-muted-foreground">Trailing SL (%)</label>
         <Input
           type="number"
           value={vwapConfig.trailingStopPercent}
@@ -1113,9 +1176,9 @@ const AlgoTrading = () => {
   const renderStrangleConfig = () => (
     <div className="space-y-4">
       {/* Row 1: Core Settings */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label className="text-xs text-foreground-muted">Underlying</label>
+          <label className="text-xs text-muted-foreground">Underlying</label>
           <select
             value={strangleConfig.underlying}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, underlying: e.target.value }))}
@@ -1127,7 +1190,7 @@ const AlgoTrading = () => {
           </select>
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Number of Lots</label>
+          <label className="text-xs text-muted-foreground">Number of Lots</label>
           <Input
             type="number"
             min="1"
@@ -1138,7 +1201,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted flex items-center gap-1">
+          <label className="text-xs text-muted-foreground flex items-center gap-1">
             Entry Delta <span className="text-purple-400">δ</span>
           </label>
           <Input
@@ -1151,7 +1214,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted flex items-center gap-1">
+          <label className="text-xs text-muted-foreground flex items-center gap-1">
             Adjustment Delta <span className="text-red-400">δ</span>
           </label>
           <Input
@@ -1166,9 +1229,9 @@ const AlgoTrading = () => {
       </div>
       
       {/* Row 2: P&L Settings */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label className="text-xs text-foreground-muted">Profit Target %</label>
+          <label className="text-xs text-muted-foreground">Profit Target %</label>
           <Input
             type="number"
             min="20"
@@ -1179,7 +1242,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Max Loss (x Credit)</label>
+          <label className="text-xs text-muted-foreground">Max Loss (x Credit)</label>
           <Input
             type="number"
             min="1"
@@ -1191,7 +1254,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Entry Time</label>
+          <label className="text-xs text-muted-foreground">Entry Time</label>
           <Input
             type="time"
             value={strangleConfig.entryTime}
@@ -1200,7 +1263,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Exit Time</label>
+          <label className="text-xs text-muted-foreground">Exit Time</label>
           <Input
             type="time"
             value={strangleConfig.exitTime}
@@ -1219,7 +1282,7 @@ const AlgoTrading = () => {
             <Sparkles className="w-3 h-3 mr-1" /> Premium
           </Badge>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -1228,10 +1291,10 @@ const AlgoTrading = () => {
               onChange={(e) => setStrangleConfig(prev => ({ ...prev, useAI: e.target.checked }))}
               className="rounded border-purple-500/50"
             />
-            <label htmlFor="useAI" className="text-xs text-foreground-muted">Enable AI Decisions</label>
+            <label htmlFor="useAI" className="text-xs text-muted-foreground">Enable AI Decisions</label>
           </div>
           <div>
-            <label className="text-xs text-foreground-muted">AI Confidence %</label>
+            <label className="text-xs text-muted-foreground">AI Confidence %</label>
             <Input
               type="number"
               min="50"
@@ -1243,7 +1306,7 @@ const AlgoTrading = () => {
             />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted">Max Adjustments/Day</label>
+            <label className="text-xs text-muted-foreground">Max Adjustments/Day</label>
             <Input
               type="number"
               min="0"
@@ -1268,21 +1331,21 @@ const AlgoTrading = () => {
           {strangleBot.status.position && strangleBot.status.position.status !== 'none' && (
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-foreground-muted">Call:</span>
+                <span className="text-muted-foreground">Call:</span>
                 <span className="ml-2">{strangleBot.status.position.call_leg?.strike} @ δ{strangleBot.status.position.call_leg?.delta?.toFixed(2)}</span>
               </div>
               <div>
-                <span className="text-foreground-muted">Put:</span>
+                <span className="text-muted-foreground">Put:</span>
                 <span className="ml-2">{strangleBot.status.position.put_leg?.strike} @ δ{strangleBot.status.position.put_leg?.delta?.toFixed(2)}</span>
               </div>
               <div>
-                <span className="text-foreground-muted">P&L:</span>
+                <span className="text-muted-foreground">P&L:</span>
                 <span className={cn("ml-2 font-medium", strangleBot.status.position.total_pnl >= 0 ? "text-green-500" : "text-red-500")}>
                   ₹{strangleBot.status.position.total_pnl?.toFixed(2)}
                 </span>
               </div>
               <div>
-                <span className="text-foreground-muted">Net Delta:</span>
+                <span className="text-muted-foreground">Net Delta:</span>
                 <span className="ml-2">{strangleBot.status.position.net_delta?.toFixed(4)}</span>
               </div>
             </div>
@@ -1291,7 +1354,7 @@ const AlgoTrading = () => {
             <div className="mt-2 pt-2 border-t text-xs">
               <span className="text-purple-400">AI: </span>
               <span>{strangleBot.status.ai_summary.action}</span>
-              <span className="text-foreground-muted ml-2">({strangleBot.status.ai_summary.confidence}% confidence)</span>
+              <span className="text-muted-foreground ml-2">({strangleBot.status.ai_summary.confidence}% confidence)</span>
             </div>
           )}
         </div>
@@ -1304,7 +1367,7 @@ const AlgoTrading = () => {
       {/* Strategy Mode & Timeframe */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs text-foreground-muted font-medium">Strategy Mode</label>
+          <label className="text-xs text-muted-foreground font-medium">Strategy Mode</label>
           <select
             value={deltaConfig.strategyMode}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, strategyMode: e.target.value }))}
@@ -1317,7 +1380,7 @@ const AlgoTrading = () => {
           </select>
         </div>
         <div>
-          <label className="text-xs text-foreground-muted font-medium">Timeframe</label>
+          <label className="text-xs text-muted-foreground font-medium">Timeframe</label>
           <select
             value={deltaConfig.timeframe}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, timeframe: e.target.value }))}
@@ -1331,7 +1394,7 @@ const AlgoTrading = () => {
       </div>
       
       {/* Strategy description */}
-      <div className="p-3 bg-muted/50 rounded-lg text-xs text-foreground-muted">
+      <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
         {deltaConfig.strategyMode === 'iron_condor' && (
           <p>Sells OTM options + buys protective wings. <span className="text-green-500 font-medium">Max loss is capped.</span> Ideal for hands-off weekly income. Target 2-4% on margin.</p>
         )}
@@ -1347,9 +1410,9 @@ const AlgoTrading = () => {
       </div>
       
       {/* Core Settings */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div>
-          <label className="text-xs text-foreground-muted">Underlying</label>
+          <label className="text-xs text-muted-foreground">Underlying</label>
           <select
             value={deltaConfig.underlying}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, underlying: e.target.value }))}
@@ -1361,7 +1424,7 @@ const AlgoTrading = () => {
           </select>
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Entry Delta (δ)</label>
+          <label className="text-xs text-muted-foreground">Entry Delta (δ)</label>
           <Input
             type="number"
             min={5} max={50} step={1}
@@ -1372,7 +1435,7 @@ const AlgoTrading = () => {
         </div>
         {['iron_condor', 'iron_butterfly', 'straddle_hedge'].includes(deltaConfig.strategyMode) && (
           <div>
-            <label className="text-xs text-foreground-muted">Wing Width (pts)</label>
+            <label className="text-xs text-muted-foreground">Wing Width (pts)</label>
             <Input
               type="number"
               min={50} max={500} step={50}
@@ -1385,9 +1448,9 @@ const AlgoTrading = () => {
       </div>
       
       {/* Profit & Risk Settings */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label className="text-xs text-foreground-muted">Profit Target (%)</label>
+          <label className="text-xs text-muted-foreground">Profit Target (%)</label>
           <Input
             type="number"
             min={10} max={90} step={5}
@@ -1397,7 +1460,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">IV Entry Min (%ile)</label>
+          <label className="text-xs text-muted-foreground">IV Entry Min (%ile)</label>
           <Input
             type="number"
             min={0} max={80} step={5}
@@ -1407,7 +1470,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Max Adj/Day</label>
+          <label className="text-xs text-muted-foreground">Max Adj/Day</label>
           <Input
             type="number"
             min={1} max={10} step={1}
@@ -1417,7 +1480,7 @@ const AlgoTrading = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-foreground-muted">Lot Size</label>
+          <label className="text-xs text-muted-foreground">Lot Size</label>
           <Input
             type="number"
             value={deltaConfig.lotSize}
@@ -1456,7 +1519,7 @@ const AlgoTrading = () => {
       </CardHeader>
       <CardContent>
         {tradeHistory.length === 0 ? (
-          <div className="text-center py-8 text-foreground-muted">
+          <div className="text-center py-8 text-muted-foreground">
             <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No trades yet. Start a bot to begin trading!</p>
           </div>
@@ -1478,7 +1541,7 @@ const AlgoTrading = () => {
                   </div>
                   <div>
                     <p className="font-medium text-sm">{trade.symbol || trade.stock}</p>
-                    <p className="text-xs text-foreground-muted">
+                    <p className="text-xs text-muted-foreground">
                       {trade.quantity || trade.qty} @ ₹{trade.price?.toFixed(2)}
                     </p>
                   </div>
@@ -1490,7 +1553,7 @@ const AlgoTrading = () => {
                   )}>
                     {(trade.pnl || 0) >= 0 ? '+' : ''}₹{(trade.pnl || 0).toFixed(2)}
                   </p>
-                  <p className="text-xs text-foreground-muted">
+                  <p className="text-xs text-muted-foreground">
                     {new Date(trade.timestamp || trade.time).toLocaleTimeString()}
                   </p>
                 </div>
@@ -1523,22 +1586,22 @@ const AlgoTrading = () => {
       
       <div className="space-y-6">
         {/* Token Balance Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/20">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
               <Coins className="w-5 h-5 text-violet-500" />
             </div>
             <div>
-              <p className="text-xs text-foreground-muted">AI Token Balance</p>
+              <p className="text-xs text-muted-foreground">AI Token Balance</p>
               <p className="text-xl font-bold">
                 {isAdminUser ? '∞' : tokenBalance}
-                <span className="text-sm text-foreground-muted ml-1">tokens</span>
+                <span className="text-sm text-muted-foreground ml-1">tokens</span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-xs text-foreground-muted">Cost per bot start</p>
+              <p className="text-xs text-muted-foreground">Cost per bot start</p>
               <p className="text-sm font-semibold text-violet-500">15 - 60 tokens</p>
             </div>
             {!isAdminUser && tokenBalance < 15 && (
@@ -1560,6 +1623,27 @@ const AlgoTrading = () => {
         {/* Stats Dashboard */}
         {brokerConnected && renderStats()}
         
+        {/* P&L Performance Chart */}
+        {brokerConnected && <PnLChart data={pnlHistory} />}
+        
+        {/* Risk Analytics Panel */}
+        {brokerConnected && (
+          <RiskAnalytics 
+            botStates={{ vwap: vwapBot, strangle: strangleBot, delta: deltaBot }}
+            tradeHistory={tradeHistory}
+          />
+        )}
+        
+        {/* Strategy Comparison (shown when no bots running) */}
+        {!vwapBot.running && !strangleBot.running && !deltaBot.running && (
+          <StrategyShowcase onSelectStrategy={(id) => {
+            // Find the corresponding bot section and scroll to it
+            const botMap = { iron_condor: 'delta', iron_butterfly: 'delta', short_strangle: 'delta', vwap_momentum: 'vwap' };
+            const botId = botMap[id];
+            if (botId) setExpandedBot(botId);
+          }} />
+        )}
+        
         {/* Not Connected Warning */}
         {!brokerConnected && (
           <Card className="border-orange-500/30 bg-orange-500/5">
@@ -1568,7 +1652,7 @@ const AlgoTrading = () => {
                 <AlertCircle className="w-10 h-10 text-orange-500 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold">Broker Not Connected</h3>
-                  <p className="text-sm text-foreground-muted">
+                  <p className="text-sm text-muted-foreground">
                     Connect your Dhan or Upstox broker account above to enable live trading with AI bots.
                   </p>
                 </div>
@@ -1613,12 +1697,17 @@ const AlgoTrading = () => {
         </div>
         
         {/* Trade History */}
-        {brokerConnected && renderTradeHistory()}
+        {brokerConnected && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderTradeHistory()}
+            <ActivityFeed events={activityEvents} />
+          </div>
+        )}
         
         {/* Risk Disclaimer */}
         <Card className="bg-muted/30">
           <CardContent className="p-4">
-            <div className="flex items-start gap-3 text-sm text-foreground-muted">
+            <div className="flex items-start gap-3 text-sm text-muted-foreground">
               <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-foreground">Risk Disclaimer</p>

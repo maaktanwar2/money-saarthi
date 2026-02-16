@@ -54,7 +54,7 @@ export const Card = forwardRef(({ className, variant = 'default', ...props }, re
   const variants = {
     default: 'glass',
     solid: 'bg-card border border-border',
-    gradient: 'bg-gradient-to-br from-card to-card/50 border border-white/[0.08]',
+    gradient: 'bg-gradient-to-br from-card to-card/50 border border-border',
   };
   
   return (

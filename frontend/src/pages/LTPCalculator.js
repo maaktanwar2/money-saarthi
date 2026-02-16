@@ -511,7 +511,7 @@ export default function LTPCalculator() {
       <div className="flex flex-wrap items-center gap-3 px-4 mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isMarketHours() ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
-          <span className="text-xs text-foreground-muted">{isMarketHours() ? 'Market Open' : 'Market Closed'}</span>
+          <span className="text-xs text-muted-foreground">{isMarketHours() ? 'Market Open' : 'Market Closed'}</span>
         </div>
         {spotPrice > 0 && (
           <div className="flex items-center gap-2">
@@ -523,7 +523,7 @@ export default function LTPCalculator() {
           </div>
         )}
         {lastUpdated && (
-          <span className="text-[10px] text-foreground-muted">Updated: {lastUpdated.toLocaleTimeString('en-IN')}</span>
+          <span className="text-[10px] text-muted-foreground">Updated: {lastUpdated.toLocaleTimeString('en-IN')}</span>
         )}
         {dataSource && (
           <Badge className={`text-[10px] ${dataSource === 'nse_live' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
@@ -533,7 +533,7 @@ export default function LTPCalculator() {
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setAutoRefresh(!autoRefresh)}
             className={`text-[10px] px-2 py-1 rounded-md border transition-colors ${
-              autoRefresh ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-card border-border text-foreground-muted'
+              autoRefresh ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-card border-border text-muted-foreground'
             }`}>
             {autoRefresh ? '🔄 Auto (30s)' : '⏸ Paused'}
           </button>
@@ -551,7 +551,7 @@ export default function LTPCalculator() {
             className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                : 'bg-card border border-border text-foreground-muted hover:border-primary/50 hover:text-foreground'
+                : 'bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
             }`}>
             <span>{tab.label}</span>
             <span className="text-xs opacity-70 hidden sm:inline">({tab.desc})</span>
@@ -571,44 +571,44 @@ export default function LTPCalculator() {
                     <CardHeader><CardTitle>Position Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Trade Type</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Trade Type</label>
                         <div className="flex gap-2">
                           {[{ id: 'long', label: '📈 Long (Buy)' }, { id: 'short', label: '📉 Short (Sell)' }].map(t => (
                             <button key={t.id} onClick={() => setCalcType(t.id)}
                               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                 calcType === t.id
                                   ? t.id === 'long' ? 'bg-green-500/20 border-2 border-green-500 text-green-400' : 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                  : 'bg-card border border-border text-foreground-muted hover:border-primary/50'
+                                  : 'bg-card border border-border text-muted-foreground hover:border-primary/50'
                               }`}>{t.label}</button>
                           ))}
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Segment</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Segment</label>
                         <div className="flex gap-2">
                           {[{ id: 'equity', label: 'Equity' }, { id: 'futures', label: 'Futures' }, { id: 'options', label: 'Options' }].map(s => (
                             <button key={s.id} onClick={() => setSegment(s.id)}
                               className={`flex-1 py-2 rounded-lg text-sm transition-all ${
-                                segment === s.id ? 'bg-primary text-white' : 'bg-card border border-border text-foreground-muted'
+                                segment === s.id ? 'bg-primary text-white' : 'bg-card border border-border text-muted-foreground'
                               }`}>{s.label}</button>
                           ))}
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">{calcType === 'long' ? 'Buy Price (Entry)' : 'Sell Price (Entry)'}</label>
+                        <label className="text-sm text-muted-foreground block mb-2">{calcType === 'long' ? 'Buy Price (Entry)' : 'Sell Price (Entry)'}</label>
                         <Input type="number" placeholder="e.g., 21500" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} />
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Current LTP (Market Price)</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Current LTP (Market Price)</label>
                         <Input type="number" placeholder="e.g., 21750" value={currentLTP} onChange={e => setCurrentLTP(e.target.value)} />
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">{segment === 'equity' ? 'Quantity (Shares)' : 'Number of Lots'}</label>
+                        <label className="text-sm text-muted-foreground block mb-2">{segment === 'equity' ? 'Quantity (Shares)' : 'Number of Lots'}</label>
                         <Input type="number" placeholder={segment === 'equity' ? 'e.g., 100' : 'e.g., 1'} value={quantity} onChange={e => setQuantity(e.target.value)} />
                       </div>
                       {segment !== 'equity' && (
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-2">Lot Size</label>
+                          <label className="text-sm text-muted-foreground block mb-2">Lot Size</label>
                           <select className="w-full rounded-lg bg-background border border-border px-3 py-2.5 text-sm" value={lotSize} onChange={e => setLotSize(e.target.value)}>
                             <option value="65">NIFTY (65)</option>
                             <option value="30">BANKNIFTY (30)</option>
@@ -626,7 +626,7 @@ export default function LTPCalculator() {
                 <div className="lg:col-span-3 space-y-4">
                   {!pnlResults ? (
                     <Card className="glass-card flex items-center justify-center min-h-[400px]">
-                      <div className="text-center text-foreground-muted">
+                      <div className="text-center text-muted-foreground">
                         <div className="text-5xl mb-4">🧮</div>
                         <p className="text-lg font-medium">Enter your position details</p>
                         <p className="text-sm mt-1">Fill in entry price, LTP, and quantity to see P&L</p>
@@ -640,15 +640,15 @@ export default function LTPCalculator() {
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div className="text-center p-3 rounded-lg bg-card border border-border">
                               <div className={`text-2xl font-bold ${pnlResults.isProfit ? 'text-green-400' : 'text-red-400'}`}>{formatINR(parseFloat(pnlResults.pnl))}</div>
-                              <div className="text-xs text-foreground-muted">Gross P&L</div>
+                              <div className="text-xs text-muted-foreground">Gross P&L</div>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-card border border-border">
                               <div className={`text-2xl font-bold ${pnlResults.isProfit ? 'text-green-400' : 'text-red-400'}`}>{pnlResults.pnlPct}%</div>
-                              <div className="text-xs text-foreground-muted">P&L %</div>
+                              <div className="text-xs text-muted-foreground">P&L %</div>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-card border border-border">
                               <div className={`text-2xl font-bold ${parseFloat(pnlResults.netPnl) >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatINR(parseFloat(pnlResults.netPnl))}</div>
-                              <div className="text-xs text-foreground-muted">Net P&L (after charges)</div>
+                              <div className="text-xs text-muted-foreground">Net P&L (after charges)</div>
                             </div>
                           </div>
                         </CardContent>
@@ -666,7 +666,7 @@ export default function LTPCalculator() {
                               { label: 'Breakeven', value: `₹${pnlResults.breakeven}` },
                             ].map(r => (
                               <div key={r.label} className="flex justify-between">
-                                <span className="text-foreground-muted">{r.label}</span>
+                                <span className="text-muted-foreground">{r.label}</span>
                                 <span className={`font-medium ${r.color || ''}`}>{r.value}</span>
                               </div>
                             ))}
@@ -684,7 +684,7 @@ export default function LTPCalculator() {
                               { label: 'Stamp Duty', value: `₹${pnlResults.stampDuty}` },
                             ].map(r => (
                               <div key={r.label} className="flex justify-between">
-                                <span className="text-foreground-muted">{r.label}</span>
+                                <span className="text-muted-foreground">{r.label}</span>
                                 <span className="font-medium text-yellow-400">{r.value}</span>
                               </div>
                             ))}
@@ -711,7 +711,7 @@ export default function LTPCalculator() {
                   {['NIFTY', 'BANKNIFTY', 'FINNIFTY'].map(idx => (
                     <button key={idx} onClick={() => setSelectedIndex(idx)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        selectedIndex === idx ? 'bg-primary text-white' : 'bg-card border border-border text-foreground-muted'
+                        selectedIndex === idx ? 'bg-primary text-white' : 'bg-card border border-border text-muted-foreground'
                       }`}>{idx}</button>
                   ))}
                 </div>
@@ -721,9 +721,9 @@ export default function LTPCalculator() {
                   </select>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-foreground-muted">Spot:</span>
+                  <span className="text-sm text-muted-foreground">Spot:</span>
                   {loading && !spotPrice ? (
-                    <span className="text-sm text-foreground-muted animate-pulse">Loading...</span>
+                    <span className="text-sm text-muted-foreground animate-pulse">Loading...</span>
                   ) : (
                     <span className="font-bold text-primary text-lg">{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}</span>
                   )}
@@ -741,27 +741,27 @@ export default function LTPCalculator() {
               {/* PCR & Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 <Card className="glass-card p-3 text-center">
-                  <div className="text-xs text-foreground-muted">PCR (OI)</div>
+                  <div className="text-xs text-muted-foreground">PCR (OI)</div>
                   <div className={`text-lg font-bold ${pcrOI > 1 ? 'text-green-400' : pcrOI < 0.7 ? 'text-red-400' : 'text-yellow-400'}`}>{pcrOI || '—'}</div>
                 </Card>
                 <Card className="glass-card p-3 text-center">
-                  <div className="text-xs text-foreground-muted">PCR (Vol)</div>
+                  <div className="text-xs text-muted-foreground">PCR (Vol)</div>
                   <div className={`text-lg font-bold ${pcrVolume > 1 ? 'text-green-400' : pcrVolume < 0.7 ? 'text-red-400' : 'text-yellow-400'}`}>{pcrVolume || '—'}</div>
                 </Card>
                 <Card className="glass-card p-3 text-center">
-                  <div className="text-xs text-foreground-muted">Total Call OI</div>
+                  <div className="text-xs text-muted-foreground">Total Call OI</div>
                   <div className="text-sm font-bold text-red-400">{totalCallOI ? (totalCallOI / 100000).toFixed(1) + 'L' : '—'}</div>
                 </Card>
                 <Card className="glass-card p-3 text-center">
-                  <div className="text-xs text-foreground-muted">Total Put OI</div>
+                  <div className="text-xs text-muted-foreground">Total Put OI</div>
                   <div className="text-sm font-bold text-green-400">{totalPutOI ? (totalPutOI / 100000).toFixed(1) + 'L' : '—'}</div>
                 </Card>
                 <Card className="glass-card p-3 text-center border-green-500/30">
-                  <div className="text-xs text-foreground-muted">Support</div>
+                  <div className="text-xs text-muted-foreground">Support</div>
                   <div className="text-sm font-bold text-green-400">{maxOI.putStrike || '—'}</div>
                 </Card>
                 <Card className="glass-card p-3 text-center border-red-500/30">
-                  <div className="text-xs text-foreground-muted">Resistance</div>
+                  <div className="text-xs text-muted-foreground">Resistance</div>
                   <div className="text-sm font-bold text-red-400">{maxOI.callStrike || '—'}</div>
                 </Card>
               </div>
@@ -778,7 +778,7 @@ export default function LTPCalculator() {
               {loading && optionChainData.length === 0 && (
                 <Card className="glass-card p-12 text-center">
                   <div className="text-4xl mb-3 animate-spin">⏳</div>
-                  <p className="text-foreground-muted">Fetching live option chain from NSE...</p>
+                  <p className="text-muted-foreground">Fetching live option chain from NSE...</p>
                 </Card>
               )}
 
@@ -879,7 +879,7 @@ export default function LTPCalculator() {
                           <th className="bg-primary/20 border-b border-border"></th>
                           <th colSpan="6" className="text-center py-2 text-red-400 border-b border-border font-semibold">📞 PUTS</th>
                         </tr>
-                        <tr className="border-b border-border text-foreground-muted">
+                        <tr className="border-b border-border text-muted-foreground">
                           <th className="py-2 px-2">OI Chg</th>
                           <th className="py-2 px-2">OI</th>
                           <th className="py-2 px-2">Vol</th>
@@ -906,15 +906,15 @@ export default function LTPCalculator() {
                               } hover:bg-card/50`}>
                               <td className={`py-1.5 px-2 text-right ${row.call.oiChange > 0 ? 'text-green-400' : 'text-red-400'}`}>{(row.call.oiChange / 1000).toFixed(0)}K</td>
                               <td className={`py-1.5 px-2 text-right font-medium ${isMaxCallOI ? 'text-red-400 font-bold bg-red-500/10' : ''}`}>{(row.call.oi / 1000).toFixed(0)}K</td>
-                              <td className="py-1.5 px-2 text-right text-foreground-muted">{(row.call.volume / 1000).toFixed(0)}K</td>
-                              <td className="py-1.5 px-2 text-right text-foreground-muted">{row.call.iv}%</td>
+                              <td className="py-1.5 px-2 text-right text-muted-foreground">{(row.call.volume / 1000).toFixed(0)}K</td>
+                              <td className="py-1.5 px-2 text-right text-muted-foreground">{row.call.iv}%</td>
                               <td className={`py-1.5 px-2 text-right ${parseFloat(row.call.change) >= 0 ? 'text-green-400' : 'text-red-400'}`}>{row.call.change}</td>
                               <td className="py-1.5 px-2 text-right font-medium">{row.call.ltp}</td>
                               <td className={`py-1.5 px-3 text-center font-bold bg-primary/10 ${row.isATM ? 'bg-orange-500/30 text-orange-300' : ''}`}>{row.strike}</td>
                               <td className="py-1.5 px-2 text-left font-medium">{row.put.ltp}</td>
                               <td className={`py-1.5 px-2 text-left ${parseFloat(row.put.change) >= 0 ? 'text-green-400' : 'text-red-400'}`}>{row.put.change}</td>
-                              <td className="py-1.5 px-2 text-left text-foreground-muted">{row.put.iv}%</td>
-                              <td className="py-1.5 px-2 text-left text-foreground-muted">{(row.put.volume / 1000).toFixed(0)}K</td>
+                              <td className="py-1.5 px-2 text-left text-muted-foreground">{row.put.iv}%</td>
+                              <td className="py-1.5 px-2 text-left text-muted-foreground">{(row.put.volume / 1000).toFixed(0)}K</td>
                               <td className={`py-1.5 px-2 text-left font-medium ${isMaxPutOI ? 'text-green-400 font-bold bg-green-500/10' : ''}`}>{(row.put.oi / 1000).toFixed(0)}K</td>
                               <td className={`py-1.5 px-2 text-left ${row.put.oiChange > 0 ? 'text-green-400' : 'text-red-400'}`}>{(row.put.oiChange / 1000).toFixed(0)}K</td>
                             </tr>
@@ -931,25 +931,25 @@ export default function LTPCalculator() {
                 <Card className="glass-card p-4 text-center border-green-500/30">
                   <div className="text-2xl mb-1">🟢</div>
                   <div className="text-lg font-bold text-green-400">{maxOI.putStrike || '—'}</div>
-                  <div className="text-xs text-foreground-muted">Max Put OI (Support)</div>
+                  <div className="text-xs text-muted-foreground">Max Put OI (Support)</div>
                   <div className="text-xs text-green-400/70">{maxOI.maxPutOI ? (maxOI.maxPutOI / 100000).toFixed(1) + 'L OI' : '—'}</div>
                 </Card>
                 <Card className="glass-card p-4 text-center border-orange-500/30">
                   <div className="text-2xl mb-1">🟠</div>
                   <div className="text-lg font-bold text-orange-400">{spotPrice ? Math.round(spotPrice / 50) * 50 : '—'}</div>
-                  <div className="text-xs text-foreground-muted">ATM Strike</div>
+                  <div className="text-xs text-muted-foreground">ATM Strike</div>
                   <div className="text-xs text-orange-400/70">Spot: {spotPrice ? spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}</div>
                 </Card>
                 <Card className="glass-card p-4 text-center border-red-500/30">
                   <div className="text-2xl mb-1">🔴</div>
                   <div className="text-lg font-bold text-red-400">{maxOI.callStrike || '—'}</div>
-                  <div className="text-xs text-foreground-muted">Max Call OI (Resistance)</div>
+                  <div className="text-xs text-muted-foreground">Max Call OI (Resistance)</div>
                   <div className="text-xs text-red-400/70">{maxOI.maxCallOI ? (maxOI.maxCallOI / 100000).toFixed(1) + 'L OI' : '—'}</div>
                 </Card>
                 <Card className="glass-card p-4 text-center border-blue-500/30">
                   <div className="text-2xl mb-1">📏</div>
                   <div className="text-lg font-bold text-blue-400">{maxOI.callStrike && maxOI.putStrike ? (maxOI.callStrike - maxOI.putStrike) + ' pts' : '—'}</div>
-                  <div className="text-xs text-foreground-muted">Range Width</div>
+                  <div className="text-xs text-muted-foreground">Range Width</div>
                   <div className="text-xs text-blue-400/70">Support to Resistance</div>
                 </Card>
               </div>
@@ -1021,10 +1021,10 @@ export default function LTPCalculator() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <p className="text-sm text-foreground-muted">Select the strength of Support and Resistance to identify the current market scenario and get trading direction.</p>
+                      <p className="text-sm text-muted-foreground">Select the strength of Support and Resistance to identify the current market scenario and get trading direction.</p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-2">Support Strength</label>
+                          <label className="text-sm text-muted-foreground block mb-2">Support Strength</label>
                           <div className="space-y-2">
                             {['Strong', 'WTB', 'WTT'].map(s => (
                               <button key={s} onClick={() => setSupportStrength(s)}
@@ -1033,13 +1033,13 @@ export default function LTPCalculator() {
                                     ? s === 'Strong' ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
                                       : s === 'WTB' ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
                                       : 'bg-blue-500/20 border-2 border-blue-500 text-blue-400'
-                                    : 'bg-card border border-border text-foreground-muted'
+                                    : 'bg-card border border-border text-muted-foreground'
                                 }`}>{s === 'Strong' ? '💪 Strong' : s === 'WTB' ? '📉 Weak → Bottom' : '📈 Weak → Top'}</button>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-2">Resistance Strength</label>
+                          <label className="text-sm text-muted-foreground block mb-2">Resistance Strength</label>
                           <div className="space-y-2">
                             {['Strong', 'WTB', 'WTT'].map(r => (
                               <button key={r} onClick={() => setResistanceStrength(r)}
@@ -1048,7 +1048,7 @@ export default function LTPCalculator() {
                                     ? r === 'Strong' ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
                                       : r === 'WTB' ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
                                       : 'bg-blue-500/20 border-2 border-blue-500 text-blue-400'
-                                    : 'bg-card border border-border text-foreground-muted'
+                                    : 'bg-card border border-border text-muted-foreground'
                                 }`}>{r === 'Strong' ? '💪 Strong' : r === 'WTB' ? '📉 Weak → Bottom' : '📈 Weak → Top'}</button>
                             ))}
                           </div>
@@ -1056,11 +1056,11 @@ export default function LTPCalculator() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-1">Support Level</label>
+                          <label className="text-sm text-muted-foreground block mb-1">Support Level</label>
                           <Input placeholder="e.g., 23000" value={supportLevel} onChange={e => setSupportLevel(e.target.value)} />
                         </div>
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-1">Resistance Level</label>
+                          <label className="text-sm text-muted-foreground block mb-1">Resistance Level</label>
                           <Input placeholder="e.g., 23500" value={resistanceLevel} onChange={e => setResistanceLevel(e.target.value)} />
                         </div>
                       </div>
@@ -1087,23 +1087,23 @@ export default function LTPCalculator() {
                               </Badge>
                             </div>
                           </div>
-                          <p className="text-sm text-foreground-muted mb-4">{matchedScenario.description}</p>
+                          <p className="text-sm text-muted-foreground mb-4">{matchedScenario.description}</p>
                           <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                             <div className="p-3 rounded-lg bg-card border border-border">
-                              <div className="text-xs text-foreground-muted">Market Bias</div>
+                              <div className="text-xs text-muted-foreground">Market Bias</div>
                               <div className={`font-bold ${matchedScenario.bias.includes('Bullish') ? 'text-green-400' : matchedScenario.bias.includes('Bearish') ? 'text-red-400' : 'text-blue-400'}`}>{matchedScenario.bias}</div>
                             </div>
                             <div className="p-3 rounded-lg bg-card border border-border">
-                              <div className="text-xs text-foreground-muted">Risk Level</div>
+                              <div className="text-xs text-muted-foreground">Risk Level</div>
                               <div className={`font-bold ${matchedScenario.riskLevel === 'Low' ? 'text-green-400' : matchedScenario.riskLevel === 'Medium' ? 'text-yellow-400' : 'text-red-400'}`}>{matchedScenario.riskLevel}</div>
                             </div>
                             <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                              <div className="text-xs text-foreground-muted">Day's Bottom at</div>
+                              <div className="text-xs text-muted-foreground">Day's Bottom at</div>
                               <div className="font-bold text-green-400">{matchedScenario.bottom}</div>
                               {supportLevel && <div className="text-xs text-green-300/70">{supportLevel}</div>}
                             </div>
                             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                              <div className="text-xs text-foreground-muted">Day's Top at</div>
+                              <div className="text-xs text-muted-foreground">Day's Top at</div>
                               <div className="font-bold text-red-400">{matchedScenario.top}</div>
                               {resistanceLevel && <div className="text-xs text-red-300/70">{resistanceLevel}</div>}
                             </div>
@@ -1127,10 +1127,10 @@ export default function LTPCalculator() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <p className="text-sm text-foreground-muted">Analyze Open Interest trends to predict breakout/rejection at specific strike prices. Use at diversion levels only, never at extensions.</p>
+                      <p className="text-sm text-muted-foreground">Analyze Open Interest trends to predict breakout/rejection at specific strike prices. Use at diversion levels only, never at extensions.</p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-2">Call Side OI Trend</label>
+                          <label className="text-sm text-muted-foreground block mb-2">Call Side OI Trend</label>
                           <div className="space-y-2">
                             {['Stable', 'Decreasing', 'Increasing'].map(t => (
                               <button key={t} onClick={() => setCallOITrend(t)}
@@ -1139,13 +1139,13 @@ export default function LTPCalculator() {
                                     ? t === 'Stable' ? 'bg-yellow-500/20 border-2 border-yellow-500 text-yellow-400'
                                       : t === 'Decreasing' ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
                                       : 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                    : 'bg-card border border-border text-foreground-muted'
+                                    : 'bg-card border border-border text-muted-foreground'
                                 }`}>{t === 'Stable' ? '⚖️ Stable' : t === 'Decreasing' ? '📉 Decreasing' : '📈 Increasing'}</button>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm text-foreground-muted block mb-2">Put Side OI Trend</label>
+                          <label className="text-sm text-muted-foreground block mb-2">Put Side OI Trend</label>
                           <div className="space-y-2">
                             {['Stable', 'Decreasing', 'Increasing'].map(t => (
                               <button key={t} onClick={() => setPutOITrend(t)}
@@ -1154,7 +1154,7 @@ export default function LTPCalculator() {
                                     ? t === 'Stable' ? 'bg-yellow-500/20 border-2 border-yellow-500 text-yellow-400'
                                       : t === 'Decreasing' ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
                                       : 'bg-green-500/20 border-2 border-green-500 text-green-400'
-                                    : 'bg-card border border-border text-foreground-muted'
+                                    : 'bg-card border border-border text-muted-foreground'
                                 }`}>{t === 'Stable' ? '⚖️ Stable' : t === 'Decreasing' ? '📉 Decreasing' : '📈 Increasing'}</button>
                             ))}
                           </div>
@@ -1174,7 +1174,7 @@ export default function LTPCalculator() {
                             <span className="text-3xl">{matchedCOA2.icon}</span>
                             <div>
                               <h3 className="font-bold text-lg">{matchedCOA2.signal}</h3>
-                              <div className="text-xs text-foreground-muted">Call OI: {matchedCOA2.callOI} | Put OI: {matchedCOA2.putOI}</div>
+                              <div className="text-xs text-muted-foreground">Call OI: {matchedCOA2.callOI} | Put OI: {matchedCOA2.putOI}</div>
                             </div>
                           </div>
                           <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
@@ -1198,7 +1198,7 @@ export default function LTPCalculator() {
                             }`}>
                             <div className="text-lg mb-0.5">{s.icon}</div>
                             <div className="font-medium text-[10px] leading-tight">{s.signal}</div>
-                            <div className="text-foreground-muted text-[9px] mt-0.5">C:{s.callOI.charAt(0)} P:{s.putOI.charAt(0)}</div>
+                            <div className="text-muted-foreground text-[9px] mt-0.5">C:{s.callOI.charAt(0)} P:{s.putOI.charAt(0)}</div>
                           </button>
                         ))}
                       </div>
@@ -1359,7 +1359,7 @@ export default function LTPCalculator() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-border text-foreground-muted">
+                        <tr className="border-b border-border text-muted-foreground">
                           <th className="py-2 px-2 text-left">#</th>
                           <th className="py-2 px-2 text-left">Scenario</th>
                           <th className="py-2 px-2 text-center">Support</th>
@@ -1400,7 +1400,7 @@ export default function LTPCalculator() {
               <div className="grid md:grid-cols-3 gap-4">
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">Market Outlook</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Market Outlook</label>
                     <div className="flex gap-2">
                       {[
                         { id: 'bullish', label: '🟢 Bullish', color: 'green' },
@@ -1411,7 +1411,7 @@ export default function LTPCalculator() {
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
                             marketOutlook === o.id
                               ? `${tw(o.color, 'bg20')} border-2 ${tw(o.color, 'borderSolid')} ${tw(o.color, 'text400')}`
-                              : 'bg-card border border-border text-foreground-muted'
+                              : 'bg-card border border-border text-muted-foreground'
                           }`}>{o.label}</button>
                       ))}
                     </div>
@@ -1419,7 +1419,7 @@ export default function LTPCalculator() {
                 </Card>
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">Risk Appetite</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Risk Appetite</label>
                     <div className="flex gap-2">
                       {[
                         { id: 'conservative', label: '🛡️ Safe' },
@@ -1428,7 +1428,7 @@ export default function LTPCalculator() {
                       ].map(r => (
                         <button key={r.id} onClick={() => setRiskAppetite(r.id)}
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                            riskAppetite === r.id ? 'bg-primary text-white' : 'bg-card border border-border text-foreground-muted'
+                            riskAppetite === r.id ? 'bg-primary text-white' : 'bg-card border border-border text-muted-foreground'
                           }`}>{r.label}</button>
                       ))}
                     </div>
@@ -1436,7 +1436,7 @@ export default function LTPCalculator() {
                 </Card>
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">{selectedIndex} Spot Price</label>
+                    <label className="text-sm text-muted-foreground block mb-2">{selectedIndex} Spot Price</label>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 rounded-lg bg-background border border-border px-3 py-2.5 text-sm font-bold text-primary">
                         {spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : 'Loading...'}
@@ -1445,7 +1445,7 @@ export default function LTPCalculator() {
                         {spotChange >= 0 ? '▲' : '▼'} {Math.abs(spotChange).toFixed(2)}%
                       </Badge>
                     </div>
-                    <div className="text-xs text-foreground-muted mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Support: {maxOI.putStrike || '—'} | Resistance: {maxOI.callStrike || '—'} | PCR: {pcrOI || '—'}
                     </div>
                   </CardContent>
@@ -1456,7 +1456,7 @@ export default function LTPCalculator() {
                 {tradeSuggestions.length === 0 && (
                   <Card className="glass-card p-8 text-center">
                     <div className="text-4xl mb-3">🔍</div>
-                    <p className="text-foreground-muted">{spotPrice === 0 ? 'Loading market data...' : 'Adjust your outlook and risk settings to see strategy suggestions'}</p>
+                    <p className="text-muted-foreground">{spotPrice === 0 ? 'Loading market data...' : 'Adjust your outlook and risk settings to see strategy suggestions'}</p>
                   </Card>
                 )}
 
@@ -1469,7 +1469,7 @@ export default function LTPCalculator() {
                             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-lg font-bold text-primary">{idx + 1}</div>
                             <div>
                               <h3 className="font-bold text-lg">{trade.name}</h3>
-                              <div className="text-xs text-foreground-muted">{trade.timeframe} • {trade.risk} risk</div>
+                              <div className="text-xs text-muted-foreground">{trade.timeframe} • {trade.risk} risk</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -1479,7 +1479,7 @@ export default function LTPCalculator() {
                               </div>
                               <span className="text-xs font-bold">{trade.confidence}%</span>
                             </div>
-                            <div className="text-xs text-foreground-muted">Confidence</div>
+                            <div className="text-xs text-muted-foreground">Confidence</div>
                           </div>
                         </div>
                         <div className="mb-4 space-y-2">
@@ -1487,29 +1487,29 @@ export default function LTPCalculator() {
                             <div key={li} className={`flex items-center gap-3 p-2.5 rounded-lg ${leg.type === 'Buy' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
                               <Badge className={leg.type === 'Buy' ? 'bg-green-500/30 text-green-400' : 'bg-red-500/30 text-red-400'}>{leg.type}</Badge>
                               <span className={`font-bold ${leg.option === 'CE' ? 'text-green-400' : 'text-red-400'}`}>{leg.strike} {leg.option}</span>
-                              <span className="text-xs text-foreground-muted ml-auto">{leg.action}</span>
+                              <span className="text-xs text-muted-foreground ml-auto">{leg.action}</span>
                             </div>
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-xs">
                           <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
-                            <div className="text-foreground-muted">Max Profit</div>
+                            <div className="text-muted-foreground">Max Profit</div>
                             <div className="font-bold text-green-400">{trade.maxProfit}</div>
                           </div>
                           <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
-                            <div className="text-foreground-muted">Max Loss</div>
+                            <div className="text-muted-foreground">Max Loss</div>
                             <div className="font-bold text-red-400">{trade.maxLoss}</div>
                           </div>
                           <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20">
-                            <div className="text-foreground-muted">Win Rate</div>
+                            <div className="text-muted-foreground">Win Rate</div>
                             <div className="font-bold text-blue-400">{trade.winRate}</div>
                           </div>
                           <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
-                            <div className="text-foreground-muted">Risk Level</div>
+                            <div className="text-muted-foreground">Risk Level</div>
                             <div className="font-bold text-purple-400">{trade.risk}</div>
                           </div>
                         </div>
-                        <div className="p-2.5 rounded-lg bg-card border border-border text-xs text-foreground-muted">
+                        <div className="p-2.5 rounded-lg bg-card border border-border text-xs text-muted-foreground">
                           <span className="text-primary font-semibold">📊 Reasoning:</span> {trade.reasoning}
                         </div>
                       </CardContent>

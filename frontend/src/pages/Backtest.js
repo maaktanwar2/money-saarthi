@@ -200,7 +200,7 @@ export default function Backtest() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-primary text-white'
-                : 'bg-card border border-border text-foreground-muted hover:border-primary/50'
+                : 'bg-card border border-border text-muted-foreground hover:border-primary/50'
             }`}
           >
             {tab.label}
@@ -233,7 +233,7 @@ export default function Backtest() {
                           <span className="text-2xl">{s.icon}</span>
                           <div>
                             <div className="font-semibold text-sm">{s.name}</div>
-                            <div className="text-xs text-foreground-muted">{s.legs} legs</div>
+                            <div className="text-xs text-muted-foreground">{s.legs} legs</div>
                           </div>
                         </div>
                         <div className="text-lg">{getRankBadge(idx)}</div>
@@ -242,23 +242,23 @@ export default function Backtest() {
                       <div className={`text-2xl font-bold mb-1 ${getScoreColor(s.total_pnl)}`}>
                         {formatINR(s.total_pnl)}
                       </div>
-                      <div className="text-xs text-foreground-muted mb-3">Total P&L (55 trades)</div>
+                      <div className="text-xs text-muted-foreground mb-3">Total P&L (55 trades)</div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className={`p-2 rounded ${getBgColor(s.total_pnl)}`}>
-                          <div className="text-foreground-muted">Win Rate</div>
+                          <div className="text-muted-foreground">Win Rate</div>
                           <div className="font-bold">{s.win_rate}%</div>
                         </div>
                         <div className={`p-2 rounded ${getBgColor(s.total_pnl)}`}>
-                          <div className="text-foreground-muted">ROI</div>
+                          <div className="text-muted-foreground">ROI</div>
                           <div className="font-bold">{s.roi_pct}%</div>
                         </div>
                         <div className={`p-2 rounded ${getBgColor(s.sharpe_ratio)}`}>
-                          <div className="text-foreground-muted">Sharpe</div>
+                          <div className="text-muted-foreground">Sharpe</div>
                           <div className="font-bold">{s.sharpe_ratio}</div>
                         </div>
                         <div className="p-2 rounded bg-red-500/10 border border-red-500/30">
-                          <div className="text-foreground-muted">Max DD</div>
+                          <div className="text-muted-foreground">Max DD</div>
                           <div className="font-bold text-red-400">{formatINR(-Math.abs(s.max_drawdown))}</div>
                         </div>
                       </div>
@@ -284,7 +284,7 @@ export default function Backtest() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 text-foreground-muted">Metric</th>
+                        <th className="text-left py-3 px-2 text-muted-foreground">Metric</th>
                         {sortedStrategies.map(s => (
                           <th key={s.key} className="text-center py-3 px-2" style={{ color: s.color }}>
                             {s.icon} {s.name}
@@ -313,7 +313,7 @@ export default function Backtest() {
                         const best = row.isDD ? Math.min(...vals) : Math.max(...vals);
                         return (
                           <tr key={row.label} className="border-b border-border/50 hover:bg-card/50">
-                            <td className="py-2 px-2 text-foreground-muted">{row.label}</td>
+                            <td className="py-2 px-2 text-muted-foreground">{row.label}</td>
                             {sortedStrategies.map(s => {
                               const v = s[row.key];
                               const isBest = v === best && row.colorize;
@@ -377,7 +377,7 @@ export default function Backtest() {
                       <span><strong>Not Recommended:</strong> 🦋 Iron Butterfly & 🛡️ Straddle+Hedge — negative returns</span>
                     </div>
                   </div>
-                  <div className="space-y-2 text-foreground-muted">
+                  <div className="space-y-2 text-muted-foreground">
                     <p>• Short Strangle works best in range-bound markets but carries unlimited risk</p>
                     <p>• Iron Condor is safest for beginners with defined max loss</p>
                     <p>• ATM strategies (Butterfly, Straddle) need very precise timing to profit</p>
@@ -402,7 +402,7 @@ export default function Backtest() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 text-foreground-muted">Month</th>
+                        <th className="text-left py-3 px-2 text-muted-foreground">Month</th>
                         {sortedStrategies.map(s => (
                           <th key={s.key} className="text-center py-3 px-2" style={{ color: s.color }}>
                             {s.icon} {s.name}
@@ -488,19 +488,19 @@ export default function Backtest() {
                         </div>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-foreground-muted">Profitable Months</span>
+                            <span className="text-muted-foreground">Profitable Months</span>
                             <span className="text-green-400 font-bold">{profitMonths}/12</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-foreground-muted">Loss Months</span>
+                            <span className="text-muted-foreground">Loss Months</span>
                             <span className="text-red-400 font-bold">{lossMonths}/12</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-foreground-muted">Best Month</span>
+                            <span className="text-muted-foreground">Best Month</span>
                             <span className="text-green-400">{formatINR(bestMonth)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-foreground-muted">Worst Month</span>
+                            <span className="text-muted-foreground">Worst Month</span>
                             <span className="text-red-400">{formatINR(worstMonth)}</span>
                           </div>
                           <div className="w-full bg-red-500/20 rounded-full h-2 mt-2">
@@ -531,7 +531,7 @@ export default function Backtest() {
                   className={`${
                     selectedStrategy === s.key
                       ? 'bg-primary text-white'
-                      : 'bg-card border border-border text-foreground-muted'
+                      : 'bg-card border border-border text-muted-foreground'
                   }`}
                 >
                   {s.icon} {s.name}
@@ -550,7 +550,7 @@ export default function Backtest() {
                         <span className="text-4xl">{s.icon}</span>
                         <div>
                           <h2 className="text-2xl font-bold">{s.name}</h2>
-                          <p className="text-foreground-muted">{s.description}</p>
+                          <p className="text-muted-foreground">{s.description}</p>
                         </div>
                         <Badge className={`ml-auto ${
                           s.risk_level === 'Medium' ? 'bg-blue-500/20 text-blue-400' :
@@ -563,23 +563,23 @@ export default function Backtest() {
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="p-3 rounded-lg bg-card border border-border text-center">
                           <div className={`text-xl font-bold ${getScoreColor(s.total_pnl)}`}>{formatINR(s.total_pnl)}</div>
-                          <div className="text-xs text-foreground-muted">Total P&L</div>
+                          <div className="text-xs text-muted-foreground">Total P&L</div>
                         </div>
                         <div className="p-3 rounded-lg bg-card border border-border text-center">
                           <div className="text-xl font-bold text-primary">{s.win_rate}%</div>
-                          <div className="text-xs text-foreground-muted">Win Rate</div>
+                          <div className="text-xs text-muted-foreground">Win Rate</div>
                         </div>
                         <div className="p-3 rounded-lg bg-card border border-border text-center">
                           <div className={`text-xl font-bold ${getScoreColor(s.roi_pct)}`}>{s.roi_pct}%</div>
-                          <div className="text-xs text-foreground-muted">ROI</div>
+                          <div className="text-xs text-muted-foreground">ROI</div>
                         </div>
                         <div className="p-3 rounded-lg bg-card border border-border text-center">
                           <div className={`text-xl font-bold ${getScoreColor(s.sharpe_ratio)}`}>{s.sharpe_ratio}</div>
-                          <div className="text-xs text-foreground-muted">Sharpe Ratio</div>
+                          <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
                         </div>
                         <div className="p-3 rounded-lg bg-card border border-border text-center">
                           <div className="text-xl font-bold text-red-400">{formatINR(-Math.abs(s.max_drawdown))}</div>
-                          <div className="text-xs text-foreground-muted">Max Drawdown</div>
+                          <div className="text-xs text-muted-foreground">Max Drawdown</div>
                         </div>
                       </div>
                     </CardContent>
@@ -621,7 +621,7 @@ export default function Backtest() {
                           { label: 'Legs per Trade', value: s.legs },
                         ].map(stat => (
                           <div key={stat.label} className="flex justify-between">
-                            <span className="text-foreground-muted">{stat.label}</span>
+                            <span className="text-muted-foreground">{stat.label}</span>
                             <span className={`font-medium ${stat.color || ''}`}>{stat.value}</span>
                           </div>
                         ))}
@@ -644,7 +644,7 @@ export default function Backtest() {
                           { label: 'Recovery Factor', value: s.total_pnl > 0 ? (s.total_pnl / Math.abs(s.max_drawdown)).toFixed(2) : 'N/A' },
                         ].map(stat => (
                           <div key={stat.label} className="flex justify-between">
-                            <span className="text-foreground-muted">{stat.label}</span>
+                            <span className="text-muted-foreground">{stat.label}</span>
                             <span className={`font-medium ${stat.color || ''}`}>{stat.value}</span>
                           </div>
                         ))}
@@ -657,7 +657,7 @@ export default function Backtest() {
 
             {!selectedStrategy && (
               <Card className="glass-card flex items-center justify-center min-h-[300px]">
-                <div className="text-center text-foreground-muted">
+                <div className="text-center text-muted-foreground">
                   <div className="text-4xl mb-4">👆</div>
                   <p>Select a strategy above to see detailed analysis</p>
                 </div>

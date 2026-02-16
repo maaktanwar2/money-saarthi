@@ -34,8 +34,8 @@ const IVSkewAnalysis = ({ symbol }) => {
   if (!data) {
     return (
       <Card className="p-8 text-center">
-        <TrendingUp className="w-12 h-12 text-foreground-muted mx-auto mb-3" />
-        <p className="text-foreground-muted">Failed to load IV skew data</p>
+        <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground">Failed to load IV skew data</p>
         <Button onClick={() => fetchIVSkew(false)} variant="outline" size="sm" className="mt-3">
           <RefreshCw className="w-4 h-4 mr-2" /> Retry
         </Button>
@@ -57,7 +57,7 @@ const IVSkewAnalysis = ({ symbol }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">IV Skew Analysis - {symbol}</h3>
-          <p className="text-xs text-foreground-muted">Spot: {formatINR(data.spot_price)} | ATM IV: {data.atm_iv?.toFixed(1)}%</p>
+          <p className="text-xs text-muted-foreground">Spot: {formatINR(data.spot_price)} | ATM IV: {data.atm_iv?.toFixed(1)}%</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchIVSkew(true)} disabled={refreshing}>
           <RefreshCw className={cn('w-4 h-4 mr-1', refreshing && 'animate-spin')} /> Refresh
@@ -66,23 +66,23 @@ const IVSkewAnalysis = ({ symbol }) => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4">
-          <div className="text-xs text-foreground-muted mb-1">ATM IV</div>
+          <div className="text-xs text-muted-foreground mb-1">ATM IV</div>
           <p className="text-2xl font-bold text-primary">{data.atm_iv?.toFixed(1)}%</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-foreground-muted mb-1">Put Skew</div>
+          <div className="text-xs text-muted-foreground mb-1">Put Skew</div>
           <p className="text-2xl font-bold text-bearish">{metrics?.put_skew?.toFixed(2)}</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-foreground-muted mb-1">Call Skew</div>
+          <div className="text-xs text-muted-foreground mb-1">Call Skew</div>
           <p className="text-2xl font-bold text-bullish">{metrics?.call_skew?.toFixed(2)}</p>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-foreground-muted mb-1">Direction</div>
+          <div className="text-xs text-muted-foreground mb-1">Direction</div>
           <p className={cn('text-lg font-bold',
             metrics?.skew_direction === 'Put Skew' ? 'text-bearish' : 'text-bullish'
           )}>{metrics?.skew_direction}</p>
-          <p className="text-xs text-foreground-muted">{metrics?.interpretation}</p>
+          <p className="text-xs text-muted-foreground">{metrics?.interpretation}</p>
         </Card>
       </div>
 
@@ -104,7 +104,7 @@ const IVSkewAnalysis = ({ symbol }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-foreground-muted border-b border-border">
+                <tr className="text-xs text-muted-foreground border-b border-border">
                   <th className="px-4 py-2 text-left">Strike</th>
                   <th className="px-4 py-2 text-right">Moneyness</th>
                   <th className="px-4 py-2 text-right">Call IV</th>
@@ -135,7 +135,7 @@ const IVSkewAnalysis = ({ symbol }) => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">Understanding IV Skew</h4>
-            <ul className="text-sm text-foreground-muted space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>Put Skew (OTM Put IV {'>'} OTM Call IV):</strong> Fear of downside, hedging demand</li>
               <li>• <strong>Call Skew (OTM Call IV {'>'} OTM Put IV):</strong> FOMO on upside, very bullish</li>
               <li>• <strong>Vol Smile:</strong> Both OTM puts & calls have higher IV than ATM</li>

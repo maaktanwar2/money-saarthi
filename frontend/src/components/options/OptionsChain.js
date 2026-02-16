@@ -57,8 +57,8 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
     return (
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center gap-3">
-          <WifiOff className="w-12 h-12 text-foreground-muted" />
-          <p className="text-foreground-muted">{error}</p>
+          <WifiOff className="w-12 h-12 text-muted-foreground" />
+          <p className="text-muted-foreground">{error}</p>
           <Button onClick={() => fetchChain(false)} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" /> Retry
           </Button>
@@ -73,29 +73,29 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">Spot Price</div>
+            <div className="text-xs text-muted-foreground">Spot Price</div>
             <p className="text-lg font-bold text-primary">{formatINR(spotPrice)}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">PCR (OI)</div>
+            <div className="text-xs text-muted-foreground">PCR (OI)</div>
             <p className={cn('text-lg font-bold', summary.pcrOI > 1 ? 'text-bullish' : summary.pcrOI < 0.7 ? 'text-bearish' : 'text-amber-500')}>
               {summary.pcrOI?.toFixed(2)}
             </p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">Total Call OI</div>
+            <div className="text-xs text-muted-foreground">Total Call OI</div>
             <p className="text-lg font-bold">{formatNumber(summary.totalCallOI, { compact: true })}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">Total Put OI</div>
+            <div className="text-xs text-muted-foreground">Total Put OI</div>
             <p className="text-lg font-bold">{formatNumber(summary.totalPutOI, { compact: true })}</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">ATM IV</div>
+            <div className="text-xs text-muted-foreground">ATM IV</div>
             <p className="text-lg font-bold">{summary.atmIV?.toFixed(1)}%</p>
           </Card>
           <Card className="p-3">
-            <div className="text-xs text-foreground-muted">PCR (Vol)</div>
+            <div className="text-xs text-muted-foreground">PCR (Vol)</div>
             <p className="text-lg font-bold">{summary.pcrVolume?.toFixed(2)}</p>
           </Card>
         </div>
@@ -136,7 +136,7 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
                   <th className="px-4 py-2 text-center border-x border-border bg-surface-1">Strike</th>
                   <th colSpan={6} className="px-4 py-2 text-center text-bearish border-b border-border">PUTS</th>
                 </tr>
-                <tr className="text-xs text-foreground-muted">
+                <tr className="text-xs text-muted-foreground">
                   <th className="px-2 py-2 text-right">OI</th>
                   <th className="px-2 py-2 text-right">Chng OI</th>
                   <th className="px-2 py-2 text-right">Volume</th>

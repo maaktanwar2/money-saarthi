@@ -76,15 +76,7 @@ const NAV_ITEMS = [
     isPro: true,
     description: 'Options chain & analytics',
   },
-  {
-    id: 'signals',
-    label: 'Signals',
-    icon: TrendingUp,
-    path: '/signals',
-    badge: 'Pro',
-    isPro: true,
-    description: 'AI-powered trade signals',
-  },
+
   {
     id: 'market',
     label: 'Market Pulse',
@@ -333,12 +325,12 @@ export const Sidebar = () => {
       className={cn(
         'fixed left-0 top-0 h-screen z-40',
         'flex flex-col',
-        'border-r border-white/[0.08]',
+        'border-r border-border',
         'bg-background/80 backdrop-blur-xl'
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-white/[0.08]">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         <div className="flex items-center gap-3">
           <img 
             src="/logo.png" 
@@ -413,7 +405,7 @@ export const Sidebar = () => {
       </nav>
 
       {/* Bottom Section */}
-      <div className="border-t border-white/[0.08] py-4 px-3 space-y-1">
+      <div className="border-t border-border py-4 px-3 space-y-1">
         {BOTTOM_ITEMS.map((item) => (
           <NavItem key={item.id} item={item} collapsed={collapsed} />
         ))}

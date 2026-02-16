@@ -135,7 +135,7 @@ export const Header = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="h-16 border-b border-white/[0.08] bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+    <header className="h-16 border-b border-border bg-background/95 backdrop-blur-xl sticky top-0 z-30">
       <div className="h-full flex items-center justify-between px-4 gap-2">
         {/* Left: Mobile Menu + Market Status */}
         <div className="flex items-center gap-3 shrink-0">

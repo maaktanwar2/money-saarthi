@@ -64,7 +64,7 @@ const OptionsHub = () => {
         <Card className="p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="w-full md:w-48">
-              <label className="text-xs text-foreground-muted mb-1 block">Index</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Index</label>
               <Select value={symbol} onChange={(e) => { setSymbol(e.target.value); setExpiry(''); setExpiries([]); }}>
                 {INDICES.map((idx) => (
                   <option key={idx.value} value={idx.value}>{idx.label}</option>
@@ -72,7 +72,7 @@ const OptionsHub = () => {
               </Select>
             </div>
             <div className="w-full md:w-48">
-              <label className="text-xs text-foreground-muted mb-1 block">Expiry</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
               <Select value={expiry} onChange={(e) => setExpiry(e.target.value)}>
                 {expiries.length === 0 && <option value="">Loading...</option>}
                 {expiries.map((exp) => (
@@ -92,7 +92,7 @@ const OptionsHub = () => {
               )}
             </div>
             <div className="flex-1 w-full">
-              <label className="text-xs text-foreground-muted mb-1 block">Tool</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Tool</label>
               <div className="flex gap-1 flex-wrap">
                 {TOOLS.map((tool) => (
                   <button
@@ -102,7 +102,7 @@ const OptionsHub = () => {
                       'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                       activeTool === tool.id
                         ? 'bg-primary text-white'
-                        : 'text-foreground-muted hover:text-foreground hover:bg-surface-1'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-surface-1'
                     )}
                   >
                     <tool.icon className="w-4 h-4" />

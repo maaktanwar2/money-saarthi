@@ -61,7 +61,7 @@ class ErrorBoundary extends React.Component {
             </h1>
 
             {/* Description */}
-            <p className="text-foreground-muted mb-6">
+            <p className="text-muted-foreground mb-6">
               An unexpected error occurred. This has been logged and we'll look into it.
             </p>
 

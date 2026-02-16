@@ -32,7 +32,7 @@ const ChartTooltipStyle = {
 // ─── Small reusable cards ───────────────────────────────────────────────────
 const StatCard = ({ label, value, color = 'primary', icon }) => (
   <div className={`p-3 rounded-lg ${tw(color, 'bg10')} border ${tw(color, 'border20')}`}>
-    <div className="text-xs text-foreground-muted">{icon} {label}</div>
+    <div className="text-xs text-muted-foreground">{icon} {label}</div>
     <div className={`font-bold text-sm ${tw(color, 'text400')} mt-0.5`}>{value}</div>
   </div>
 );
@@ -155,7 +155,7 @@ export default function TradeFinder() {
       <div className="flex flex-wrap items-center gap-3 px-4 mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isMarketHours() ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
-          <span className="text-xs text-foreground-muted">{isMarketHours() ? 'Market Open' : 'Market Closed'}</span>
+          <span className="text-xs text-muted-foreground">{isMarketHours() ? 'Market Open' : 'Market Closed'}</span>
         </div>
         {spotPrice > 0 && (
           <div className="flex items-center gap-2">
@@ -166,11 +166,11 @@ export default function TradeFinder() {
             </span>
           </div>
         )}
-        {lastUpdated && <span className="text-xs text-foreground-muted">Updated: {lastUpdated.toLocaleTimeString()}</span>}
+        {lastUpdated && <span className="text-xs text-muted-foreground">Updated: {lastUpdated.toLocaleTimeString()}</span>}
         <div className="flex items-center gap-2 ml-auto">
           {['NIFTY', 'BANKNIFTY', 'FINNIFTY'].map(idx => (
             <button key={idx} onClick={() => setSelectedIndex(idx)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${selectedIndex === idx ? 'bg-primary text-white' : 'bg-card border border-border text-foreground-muted hover:border-primary/50'}`}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${selectedIndex === idx ? 'bg-primary text-white' : 'bg-card border border-border text-muted-foreground hover:border-primary/50'}`}
             >{idx}</button>
           ))}
           <button onClick={() => fetchData()} disabled={loading}
@@ -178,7 +178,7 @@ export default function TradeFinder() {
             {loading ? '⏳' : '🔄'} Refresh
           </button>
           <button onClick={() => setAutoRefresh(p => !p)}
-            className={`px-3 py-1 rounded-lg text-xs ${autoRefresh ? 'bg-green-500/20 text-green-400' : 'bg-card border border-border text-foreground-muted'}`}>
+            className={`px-3 py-1 rounded-lg text-xs ${autoRefresh ? 'bg-green-500/20 text-green-400' : 'bg-card border border-border text-muted-foreground'}`}>
             {autoRefresh ? '🟢 Auto' : '⚪ Manual'}
           </button>
         </div>
@@ -195,7 +195,7 @@ export default function TradeFinder() {
             className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                : 'bg-card border border-border text-foreground-muted hover:border-primary/50'
+                : 'bg-card border border-border text-muted-foreground hover:border-primary/50'
             }`}>
             {tab.label}
           </button>
@@ -212,7 +212,7 @@ export default function TradeFinder() {
               <div className="grid md:grid-cols-3 gap-4">
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">Market Outlook</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Market Outlook</label>
                     <div className="flex gap-2">
                       {[
                         { id: 'bullish', label: '🟢 Bullish', color: 'green' },
@@ -223,7 +223,7 @@ export default function TradeFinder() {
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
                             marketOutlook === o.id
                               ? `${tw(o.color, 'bg20')} border-2 ${tw(o.color, 'borderSolid')} ${tw(o.color, 'text400')}`
-                              : 'bg-card border border-border text-foreground-muted'
+                              : 'bg-card border border-border text-muted-foreground'
                           }`}>{o.label}</button>
                       ))}
                     </div>
@@ -231,7 +231,7 @@ export default function TradeFinder() {
                 </Card>
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">Risk Appetite</label>
+                    <label className="text-sm text-muted-foreground block mb-2">Risk Appetite</label>
                     <div className="flex gap-2">
                       {[
                         { id: 'conservative', label: '🛡️ Safe' },
@@ -240,7 +240,7 @@ export default function TradeFinder() {
                       ].map(r => (
                         <button key={r.id} onClick={() => setRiskAppetite(r.id)}
                           className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                            riskAppetite === r.id ? 'bg-primary text-white' : 'bg-card border border-border text-foreground-muted'
+                            riskAppetite === r.id ? 'bg-primary text-white' : 'bg-card border border-border text-muted-foreground'
                           }`}>{r.label}</button>
                       ))}
                     </div>
@@ -248,7 +248,7 @@ export default function TradeFinder() {
                 </Card>
                 <Card className="glass-card">
                   <CardContent className="p-4">
-                    <label className="text-sm text-foreground-muted block mb-2">{selectedIndex} Spot</label>
+                    <label className="text-sm text-muted-foreground block mb-2">{selectedIndex} Spot</label>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 rounded-lg bg-background border border-border px-3 py-2.5 text-sm font-bold text-primary">
                         {spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : 'Loading...'}
@@ -257,7 +257,7 @@ export default function TradeFinder() {
                         {spotChange >= 0 ? '▲' : '▼'} {Math.abs(spotChange).toFixed(2)}%
                       </Badge>
                     </div>
-                    <div className="text-xs text-foreground-muted mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Support: {sr.support || '—'} | Resistance: {sr.resistance || '—'} | PCR: {pcr.pcr_oi || '—'}
                     </div>
                   </CardContent>
@@ -284,7 +284,7 @@ export default function TradeFinder() {
                 {strategies.length === 0 && !loading && (
                   <Card className="glass-card p-8 text-center">
                     <div className="text-4xl mb-3">🔍</div>
-                    <p className="text-foreground-muted">{spotPrice === 0 ? 'Loading market data...' : 'Adjust outlook & risk to see strategies'}</p>
+                    <p className="text-muted-foreground">{spotPrice === 0 ? 'Loading market data...' : 'Adjust outlook & risk to see strategies'}</p>
                   </Card>
                 )}
                 {strategies.map((trade, idx) => (
@@ -296,7 +296,7 @@ export default function TradeFinder() {
                             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-lg font-bold text-primary">{idx + 1}</div>
                             <div>
                               <h3 className="font-bold text-lg">{trade.name}</h3>
-                              <div className="text-xs text-foreground-muted">{trade.timeframe} • {trade.risk} risk</div>
+                              <div className="text-xs text-muted-foreground">{trade.timeframe} • {trade.risk} risk</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -307,7 +307,7 @@ export default function TradeFinder() {
                               </div>
                               <span className="text-xs font-bold">{trade.confidence}%</span>
                             </div>
-                            <div className="text-xs text-foreground-muted">Confidence</div>
+                            <div className="text-xs text-muted-foreground">Confidence</div>
                           </div>
                         </div>
                         <div className="mb-4 space-y-2">
@@ -315,25 +315,25 @@ export default function TradeFinder() {
                             <div key={li} className={`flex items-center gap-3 p-2.5 rounded-lg ${leg.type === 'Buy' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
                               <Badge className={leg.type === 'Buy' ? 'bg-green-500/30 text-green-400' : 'bg-red-500/30 text-red-400'}>{leg.type}</Badge>
                               <span className={`font-bold ${leg.option === 'CE' ? 'text-green-400' : 'text-red-400'}`}>{leg.strike} {leg.option}</span>
-                              <span className="text-xs text-foreground-muted ml-auto">{leg.action}</span>
+                              <span className="text-xs text-muted-foreground ml-auto">{leg.action}</span>
                             </div>
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-xs">
                           <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
-                            <div className="text-foreground-muted">Max Profit</div>
+                            <div className="text-muted-foreground">Max Profit</div>
                             <div className="font-bold text-green-400">{trade.maxProfit}</div>
                           </div>
                           <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
-                            <div className="text-foreground-muted">Max Loss</div>
+                            <div className="text-muted-foreground">Max Loss</div>
                             <div className="font-bold text-red-400">{trade.maxLoss}</div>
                           </div>
                           <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20">
-                            <div className="text-foreground-muted">Win Rate</div>
+                            <div className="text-muted-foreground">Win Rate</div>
                             <div className="font-bold text-blue-400">{trade.winRate}</div>
                           </div>
                           <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
-                            <div className="text-foreground-muted">Risk</div>
+                            <div className="text-muted-foreground">Risk</div>
                             <div className="font-bold text-purple-400">{trade.risk}</div>
                           </div>
                         </div>
@@ -342,7 +342,7 @@ export default function TradeFinder() {
                             {trade.tags.map(t => <Badge key={t} className="bg-primary/10 text-primary text-[10px]">{t}</Badge>)}
                           </div>
                         )}
-                        <div className="p-2.5 rounded-lg bg-card border border-border text-xs text-foreground-muted">
+                        <div className="p-2.5 rounded-lg bg-card border border-border text-xs text-muted-foreground">
                           <span className="text-primary font-semibold">📊 Reasoning:</span> {trade.reasoning}
                         </div>
                       </CardContent>
@@ -377,11 +377,11 @@ export default function TradeFinder() {
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="text-xs text-foreground-muted mb-2">🟢 Top 3 Support (Max Put OI)</h4>
+                      <h4 className="text-xs text-muted-foreground mb-2">🟢 Top 3 Support (Max Put OI)</h4>
                       {sentiment?.support_resistance?.top3_support?.map((s, i) => (
                         <div key={i} className="flex justify-between items-center p-2 mb-1 rounded bg-green-500/10 border border-green-500/20 text-sm">
                           <span className="font-bold text-green-400">{s.strike}</span>
-                          <span className="text-xs text-foreground-muted">OI: {(s.put_oi / 100000).toFixed(1)}L</span>
+                          <span className="text-xs text-muted-foreground">OI: {(s.put_oi / 100000).toFixed(1)}L</span>
                           <span className={`text-xs ${s.put_oi_chg >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             Δ {(s.put_oi_chg / 1000).toFixed(0)}K
                           </span>
@@ -389,11 +389,11 @@ export default function TradeFinder() {
                       ))}
                     </div>
                     <div>
-                      <h4 className="text-xs text-foreground-muted mb-2">🔴 Top 3 Resistance (Max Call OI)</h4>
+                      <h4 className="text-xs text-muted-foreground mb-2">🔴 Top 3 Resistance (Max Call OI)</h4>
                       {sentiment?.support_resistance?.top3_resistance?.map((s, i) => (
                         <div key={i} className="flex justify-between items-center p-2 mb-1 rounded bg-red-500/10 border border-red-500/20 text-sm">
                           <span className="font-bold text-red-400">{s.strike}</span>
-                          <span className="text-xs text-foreground-muted">OI: {(s.call_oi / 100000).toFixed(1)}L</span>
+                          <span className="text-xs text-muted-foreground">OI: {(s.call_oi / 100000).toFixed(1)}L</span>
                           <span className={`text-xs ${s.call_oi_chg >= 0 ? 'text-red-400' : 'text-green-400'}`}>
                             Δ {(s.call_oi_chg / 1000).toFixed(0)}K
                           </span>
@@ -439,7 +439,7 @@ export default function TradeFinder() {
                       { label: 'PCR > 1.3', signal: '🟢 Put Heavy (Bullish)', color: 'green' },
                     ].map((item, i) => (
                       <div key={i} className={`p-2.5 rounded-lg ${tw(item.color, 'bg10')} border ${tw(item.color, 'border20')}`}>
-                        <div className="text-foreground-muted">{item.label}</div>
+                        <div className="text-muted-foreground">{item.label}</div>
                         <div className={`font-bold ${tw(item.color, 'text400')} mt-0.5`}>{item.signal}</div>
                       </div>
                     ))}
@@ -481,7 +481,7 @@ export default function TradeFinder() {
                         return (
                           <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-card border border-border text-sm">
                             <span className="font-mono font-bold text-primary w-14">{snap.time}</span>
-                            <span className="text-foreground-muted">Spot: {snap.spot?.toLocaleString('en-IN')}</span>
+                            <span className="text-muted-foreground">Spot: {snap.spot?.toLocaleString('en-IN')}</span>
                             <span className="text-green-400 text-xs">🛡️ {maxPe?.strike || '—'}</span>
                             <span className="text-red-400 text-xs">🧱 {maxCe?.strike || '—'}</span>
                           </div>
@@ -489,7 +489,7 @@ export default function TradeFinder() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-center p-8 text-foreground-muted text-sm">
+                    <div className="text-center p-8 text-muted-foreground text-sm">
                       <div className="text-3xl mb-2">🕐</div>
                       No snapshots yet. Data builds as you refresh during market hours.
                     </div>
@@ -499,7 +499,7 @@ export default function TradeFinder() {
 
               <Card className="glass-card">
                 <CardHeader><CardTitle className="text-sm">📘 How Option Clock Works</CardTitle></CardHeader>
-                <CardContent className="text-xs text-foreground-muted space-y-2">
+                <CardContent className="text-xs text-muted-foreground space-y-2">
                   <p>• Every refresh stores a time-slice snapshot of strike-wise CE & PE OI</p>
                   <p>• <strong className="text-primary">Intraday Support</strong> = strike with maximum Put OI at that time</p>
                   <p>• <strong className="text-primary">Intraday Resistance</strong> = strike with maximum Call OI at that time</p>
@@ -526,7 +526,7 @@ export default function TradeFinder() {
                   }</span>
                   <div>
                     <div className="font-bold">{blocksData.momentum.signal}</div>
-                    <div className="text-xs text-foreground-muted mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Bullish: {blocksData.momentum.total_bullish} | Bearish: {blocksData.momentum.total_bearish} | Neutral: {blocksData.momentum.total_neutral}
                     </div>
                   </div>
@@ -569,9 +569,9 @@ export default function TradeFinder() {
                         <span className={`font-bold w-20 ${b.type === 'bullish' ? 'text-green-400' : b.type === 'bearish' ? 'text-red-400' : 'text-gray-400'}`}>
                           {b.type === 'bullish' ? '🟢' : b.type === 'bearish' ? '🔴' : '⚪'} {b.type}
                         </span>
-                        <span className="text-foreground-muted">Δ Price: {b.price_change > 0 ? '+' : ''}{b.price_change}</span>
-                        <span className="text-foreground-muted ml-auto">CE: {b.ce_oi_change > 0 ? '+' : ''}{b.ce_oi_change}</span>
-                        <span className="text-foreground-muted">PE: {b.pe_oi_change > 0 ? '+' : ''}{b.pe_oi_change}</span>
+                        <span className="text-muted-foreground">Δ Price: {b.price_change > 0 ? '+' : ''}{b.price_change}</span>
+                        <span className="text-muted-foreground ml-auto">CE: {b.ce_oi_change > 0 ? '+' : ''}{b.ce_oi_change}</span>
+                        <span className="text-muted-foreground">PE: {b.pe_oi_change > 0 ? '+' : ''}{b.pe_oi_change}</span>
                       </div>
                     ))}
                   </div>
@@ -580,7 +580,7 @@ export default function TradeFinder() {
 
               <Card className="glass-card">
                 <CardHeader><CardTitle className="text-sm">📘 OI Block Logic (Apex-style)</CardTitle></CardHeader>
-                <CardContent className="text-xs text-foreground-muted space-y-2">
+                <CardContent className="text-xs text-muted-foreground space-y-2">
                   <p>• <strong className="text-green-400">Bullish Block</strong>: Price ↑ AND (Call OI ↑ OR Put OI ↓)</p>
                   <p>• <strong className="text-red-400">Bearish Block</strong>: Price ↓ AND (Put OI ↑ OR Call OI ↓)</p>
                   <p>• 3+ consecutive same-direction blocks → <strong className="text-primary">Momentum Signal</strong></p>
@@ -619,65 +619,65 @@ export default function TradeFinder() {
                           {isActive ? (scan.signal || 'Active') : 'Inactive'}
                         </Badge>
                       </div>
-                      <p className="text-xs text-foreground-muted mb-3">{scan.description || 'No signal detected'}</p>
+                      <p className="text-xs text-muted-foreground mb-3">{scan.description || 'No signal detected'}</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                         {scan.close != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Close</div>
+                            <div className="text-muted-foreground">Close</div>
                             <div className="font-bold">{typeof scan.close === 'number' ? scan.close.toLocaleString('en-IN') : scan.close}</div>
                           </div>
                         )}
                         {scan.prev_high != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">{scan.n}D High</div>
+                            <div className="text-muted-foreground">{scan.n}D High</div>
                             <div className="font-bold">{scan.prev_high?.toLocaleString('en-IN')}</div>
                           </div>
                         )}
                         {scan.prev_low != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">{scan.n}D Low</div>
+                            <div className="text-muted-foreground">{scan.n}D Low</div>
                             <div className="font-bold">{scan.prev_low?.toLocaleString('en-IN')}</div>
                           </div>
                         )}
                         {scan.channel_high != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Ch. High</div>
+                            <div className="text-muted-foreground">Ch. High</div>
                             <div className="font-bold">{scan.channel_high?.toLocaleString('en-IN')}</div>
                           </div>
                         )}
                         {scan.channel_low != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Ch. Low</div>
+                            <div className="text-muted-foreground">Ch. Low</div>
                             <div className="font-bold">{scan.channel_low?.toLocaleString('en-IN')}</div>
                           </div>
                         )}
                         {scan.today_range != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Today Range</div>
+                            <div className="text-muted-foreground">Today Range</div>
                             <div className="font-bold">₹{scan.today_range}</div>
                           </div>
                         )}
                         {scan.avg_range_7d != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">7D Avg Range</div>
+                            <div className="text-muted-foreground">7D Avg Range</div>
                             <div className="font-bold">₹{scan.avg_range_7d}</div>
                           </div>
                         )}
                         {scan.range_contraction_pct != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Contraction</div>
+                            <div className="text-muted-foreground">Contraction</div>
                             <div className="font-bold">{scan.range_contraction_pct}%</div>
                           </div>
                         )}
                         {scan.volume != null && scan.avg_volume != null && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Vol Ratio</div>
+                            <div className="text-muted-foreground">Vol Ratio</div>
                             <div className="font-bold">{(scan.volume / Math.max(scan.avg_volume, 1)).toFixed(1)}x</div>
                           </div>
                         )}
                         {scan.pattern && (
                           <div className="p-2 rounded bg-card border border-border">
-                            <div className="text-foreground-muted">Pattern</div>
+                            <div className="text-muted-foreground">Pattern</div>
                             <div className="font-bold">{scan.pattern}</div>
                           </div>
                         )}
@@ -690,13 +690,13 @@ export default function TradeFinder() {
               {!swingData?.scanners && !loading && (
                 <Card className="glass-card p-8 text-center">
                   <div className="text-4xl mb-3">📈</div>
-                  <p className="text-foreground-muted">Loading swing scanner data...</p>
+                  <p className="text-muted-foreground">Loading swing scanner data...</p>
                 </Card>
               )}
 
               <Card className="glass-card">
                 <CardHeader><CardTitle className="text-sm">📘 Scanner Formulas</CardTitle></CardHeader>
-                <CardContent className="text-xs text-foreground-muted space-y-2">
+                <CardContent className="text-xs text-muted-foreground space-y-2">
                   <p>• <strong className="text-primary">10/50D Breakout</strong>: Close &gt; highest high of N previous days + volume surge (1.2x avg)</p>
                   <p>• <strong className="text-primary">Channel Breakout</strong>: Close breaks above/below N-day high-low channel with 1% buffer</p>
                   <p>• <strong className="text-primary">NR7</strong>: Today's range (H-L) is smallest in 7 days → volatility expansion expected</p>

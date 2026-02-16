@@ -72,7 +72,7 @@ export const Modal = ({
           >
             {/* Header */}
             {(title || showClose) && (
-              <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between p-6 border-b border-border">
                 <div>
                   {title && <h2 className="text-xl font-semibold">{title}</h2>}
                   {description && (

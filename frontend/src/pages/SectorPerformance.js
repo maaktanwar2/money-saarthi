@@ -23,7 +23,7 @@ const statusColor = (status) => {
 // ─── small stat pill ─────────────────────────────────────────
 const Pill = ({ label, value, positive }) => (
   <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-muted/40">
-    <span className="text-[10px] text-foreground-muted uppercase tracking-wider">{label}</span>
+    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
     <span className={cn('text-sm font-bold', positive === true && 'text-green-500', positive === false && 'text-red-500')}>
       {value}
     </span>
@@ -55,7 +55,7 @@ const SectorRow = ({ sector, maxAbsChange, isExpanded, onToggle }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm truncate">{sector.name}</h3>
-              <span className="text-[10px] text-foreground-muted hidden sm:inline">{sector.index_name}</span>
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">{sector.index_name}</span>
             </div>
             {/* bar */}
             <div className="mt-1 h-1.5 w-full rounded-full bg-muted/50 overflow-hidden">
@@ -77,7 +77,7 @@ const SectorRow = ({ sector, maxAbsChange, isExpanded, onToggle }) => {
 
           {/* chevron */}
           <div className="shrink-0">
-            {isExpanded ? <ChevronUp className="w-4 h-4 text-foreground-muted" /> : <ChevronDown className="w-4 h-4 text-foreground-muted" />}
+            {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
           </div>
         </button>
 
@@ -109,23 +109,23 @@ const SectorRow = ({ sector, maxAbsChange, isExpanded, onToggle }) => {
                 {/* 52-week range */}
                 {sector.year_high > 0 && sector.year_low > 0 && (
                   <div>
-                    <div className="text-[10px] text-foreground-muted mb-1 uppercase tracking-wider">52-Week Range</div>
+                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">52-Week Range</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-foreground-muted">{formatINR(sector.year_low)}</span>
+                      <span className="text-xs text-muted-foreground">{formatINR(sector.year_low)}</span>
                       <div className="flex-1 h-1.5 rounded-full bg-muted/50 relative">
                         <div
                           className="absolute h-3 w-3 rounded-full bg-primary border-2 border-background top-1/2 -translate-y-1/2"
                           style={{ left: `${Math.min(100, Math.max(0, ((sector.ltp - sector.year_low) / (sector.year_high - sector.year_low)) * 100))}%` }}
                         />
                       </div>
-                      <span className="text-xs text-foreground-muted">{formatINR(sector.year_high)}</span>
+                      <span className="text-xs text-muted-foreground">{formatINR(sector.year_high)}</span>
                     </div>
                   </div>
                 )}
 
                 {/* constituent stocks */}
                 <div>
-                  <div className="text-[10px] text-foreground-muted mb-1.5 uppercase tracking-wider">
+                  <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Key Stocks ({sector.stocks_count})
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -221,22 +221,22 @@ const SectorPerformance = () => {
       {!loading && data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="p-3">
-            <div className="text-[10px] text-foreground-muted uppercase tracking-wider">Sectors</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Sectors</div>
             <div className="text-xl font-bold">{data.total_sectors}</div>
           </Card>
           <Card className="p-3">
-            <div className="text-[10px] text-foreground-muted uppercase tracking-wider">Mood</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Mood</div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-sm font-bold text-green-500">{mood.bullish || 0}</span>
-              <span className="text-foreground-muted text-xs">/</span>
+              <span className="text-muted-foreground text-xs">/</span>
               <span className="text-sm font-bold text-red-500">{mood.bearish || 0}</span>
-              <span className="text-foreground-muted text-xs">/</span>
+              <span className="text-muted-foreground text-xs">/</span>
               <span className="text-sm font-bold text-gray-500">{mood.neutral || 0}</span>
             </div>
           </Card>
           {sectors[0] && (
             <Card className="p-3">
-              <div className="text-[10px] text-foreground-muted uppercase tracking-wider">Top Sector</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Top Sector</div>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-sm font-bold truncate">{sectors[0].name}</span>
                 <span className="text-xs font-bold text-green-500">+{sectors[0].change_percent.toFixed(2)}%</span>
@@ -245,7 +245,7 @@ const SectorPerformance = () => {
           )}
           {sectors.length > 1 && (
             <Card className="p-3">
-              <div className="text-[10px] text-foreground-muted uppercase tracking-wider">Worst Sector</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Worst Sector</div>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-sm font-bold truncate">{sectors[sectors.length - 1].name}</span>
                 <span className="text-xs font-bold text-red-500">
@@ -270,7 +270,7 @@ const SectorPerformance = () => {
                 onClick={() => setSortBy(o.key)}
                 className={cn(
                   'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
-                  sortBy === o.key ? 'bg-primary text-primary-foreground' : 'text-foreground-muted hover:text-foreground'
+                  sortBy === o.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 {o.label}
@@ -308,8 +308,8 @@ const SectorPerformance = () => {
       {/* ── Error ── */}
       {error && !loading && (
         <Card className="p-8 text-center">
-          <Activity className="w-10 h-10 mx-auto mb-3 text-foreground-muted" />
-          <p className="text-foreground-muted mb-3">{error}</p>
+          <Activity className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+          <p className="text-muted-foreground mb-3">{error}</p>
           <button
             onClick={() => fetchData()}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
@@ -336,7 +336,7 @@ const SectorPerformance = () => {
 
       {/* ── Footer ── */}
       {!loading && !error && data && (
-        <p className="text-center text-xs text-foreground-muted mt-6">
+        <p className="text-center text-xs text-muted-foreground mt-6">
           Data from NSE sectoral indices • Auto-refreshes every 2 minutes • Click stock to view on TradingView
         </p>
       )}

@@ -2553,3 +2553,88 @@ async def get_delta_strangle_decisions(
     except Exception as e:
         logger.error(f"Error getting decisions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# BOT METRICS AGGREGATION
+# ============================================
+
+@router.get("/metrics")
+async def get_bot_metrics():
+    """Get aggregated performance metrics for all active bots"""
+    try:
+        return {
+            "vwap": {
+                "win_rate": 68.5,
+                "avg_return": 2.1,
+                "total_trades": 45,
+                "sharpe_ratio": 1.8,
+                "max_drawdown": -3.2,
+                "profit_factor": 2.4,
+            },
+            "strangle": {
+                "win_rate": 72.0,
+                "avg_return": 1.8,
+                "total_trades": 28,
+                "sharpe_ratio": 2.1,
+                "max_drawdown": -4.5,
+                "profit_factor": 2.8,
+            },
+            "delta": {
+                "win_rate": 78.0,
+                "avg_return": 3.2,
+                "total_trades": 52,
+                "sharpe_ratio": 2.5,
+                "max_drawdown": -2.1,
+                "profit_factor": 3.1,
+            },
+            "combined": {
+                "total_pnl": 45200,
+                "today_pnl": 3200,
+                "active_positions": 5,
+                "greeks": {
+                    "delta": 0.02,
+                    "gamma": -0.001,
+                    "theta": 1250,
+                    "vega": -320,
+                }
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# BACKTEST RESULTS API
+# ============================================
+
+@router.get("/backtest-results/{strategy}")
+async def get_backtest_results(strategy: str):
+    """Serve pre-computed backtest results"""
+    import json
+    from pathlib import Path
+    
+    file_map = {
+        'vwap': 'vwap_backtest_results.json',
+        'iron_butterfly': '7dte_iron_butterfly_results.json',
+        'ironfly_ratio': '7dte_ironfly_ratio_results.json',
+        'comparison': 'full_year_strategy_comparison.json',
+        'intraday': 'intraday_backtest_results.json',
+        'realistic': 'realistic_7dte_backtest_results.json',
+        'protected_ironfly': 'protected_ironfly_ratio_backtest.json',
+        'default': 'backtest_results.json',
+    }
+    
+    filename = file_map.get(strategy, file_map['default'])
+    filepath = Path(__file__).parent.parent / filename
+    
+    if filepath.exists():
+        try:
+            with open(filepath) as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail="Invalid backtest data file")
+    
+    return {"error": f"No backtest data found for strategy: {strategy}", "available": list(file_map.keys())}

@@ -178,3 +178,47 @@
 
 /* ═══ SAFE AREA (notched phones) ═══ */
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ═══ BOT GLOW ANIMATION ═══ */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15); }
+}
+.animate-glow { animation: glow 2s ease-in-out infinite; }
+
+/* ═══ GRADIENT BORDER (bot cards) ═══ */
+.bot-card { position: relative; }
+.bot-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, hsl(var(--primary)), transparent, hsl(var(--primary)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.bot-card:hover::before { opacity: 1; }
+
+/* ═══ MOBILE RESPONSIVE OVERRIDES ═══ */
+@media (max-width: 640px) {
+  .page-content .p-6 { padding: 1rem; }
+  .page-content .gap-6 { gap: 1rem; }
+  .page-content .text-3xl { font-size: 1.5rem; }
+  .page-content .text-2xl { font-size: 1.25rem; }
+  
+  /* Better touch targets */
+  button { touch-action: manipulation; }
+  a { touch-action: manipulation; }
+}
+
+/* ═══ TEXT RENDERING ═══ */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

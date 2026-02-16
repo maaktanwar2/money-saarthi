@@ -120,7 +120,7 @@ export const DataTable = ({
     <div className={cn('rounded-xl overflow-hidden', className)}>
       {/* Search and Actions */}
       {searchable && (
-        <div className="p-4 border-b border-white/[0.08] flex items-center gap-4">
+        <div className="p-4 border-b border-border flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -225,7 +225,7 @@ export const DataTable = ({
 
       {/* Pagination */}
       {pagination && totalPages > 1 && (
-        <div className="p-4 border-t border-white/[0.08] flex items-center justify-between">
+        <div className="p-4 border-t border-border flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * pageSize + 1} to{' '}
             {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results

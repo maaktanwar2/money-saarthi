@@ -57,27 +57,27 @@ const GreeksCalculator = () => {
         <h3 className="font-semibold mb-4">Option Parameters</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">Spot Price</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Spot Price</label>
             <Input type="number" value={inputs.spotPrice} onChange={(e) => setInputs({ ...inputs, spotPrice: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">Strike Price</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Strike Price</label>
             <Input type="number" value={inputs.strikePrice} onChange={(e) => setInputs({ ...inputs, strikePrice: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">Days to Expiry</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Days to Expiry</label>
             <Input type="number" value={inputs.daysToExpiry} onChange={(e) => setInputs({ ...inputs, daysToExpiry: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">IV (%)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">IV (%)</label>
             <Input type="number" value={inputs.volatility} onChange={(e) => setInputs({ ...inputs, volatility: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">Risk-Free Rate (%)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Risk-Free Rate (%)</label>
             <Input type="number" value={inputs.riskFreeRate} onChange={(e) => setInputs({ ...inputs, riskFreeRate: +e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-foreground-muted mb-1 block">Option Type</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Option Type</label>
             <Select value={inputs.optionType} onChange={(e) => setInputs({ ...inputs, optionType: e.target.value })}>
               <option value="CE">Call (CE)</option>
               <option value="PE">Put (PE)</option>
@@ -89,29 +89,29 @@ const GreeksCalculator = () => {
       {greeks && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="p-4">
-            <div className="text-xs text-foreground-muted mb-1">Delta (Δ)</div>
+            <div className="text-xs text-muted-foreground mb-1">Delta (Δ)</div>
             <p className="text-2xl font-bold">{greeks.delta}</p>
-            <p className="text-xs text-foreground-muted">Price sensitivity</p>
+            <p className="text-xs text-muted-foreground">Price sensitivity</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-foreground-muted mb-1">Gamma (Γ)</div>
+            <div className="text-xs text-muted-foreground mb-1">Gamma (Γ)</div>
             <p className="text-2xl font-bold">{greeks.gamma}</p>
-            <p className="text-xs text-foreground-muted">Delta change rate</p>
+            <p className="text-xs text-muted-foreground">Delta change rate</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-foreground-muted mb-1">Theta (Θ)</div>
+            <div className="text-xs text-muted-foreground mb-1">Theta (Θ)</div>
             <p className="text-2xl font-bold text-bearish">{greeks.theta}</p>
-            <p className="text-xs text-foreground-muted">Time decay/day</p>
+            <p className="text-xs text-muted-foreground">Time decay/day</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-foreground-muted mb-1">Vega (ν)</div>
+            <div className="text-xs text-muted-foreground mb-1">Vega (ν)</div>
             <p className="text-2xl font-bold">{greeks.vega}</p>
-            <p className="text-xs text-foreground-muted">IV sensitivity</p>
+            <p className="text-xs text-muted-foreground">IV sensitivity</p>
           </Card>
           <Card className="p-4">
-            <div className="text-xs text-foreground-muted mb-1">Premium</div>
+            <div className="text-xs text-muted-foreground mb-1">Premium</div>
             <p className="text-2xl font-bold text-primary">₹{greeks.premium}</p>
-            <p className="text-xs text-foreground-muted">Theoretical value</p>
+            <p className="text-xs text-muted-foreground">Theoretical value</p>
           </Card>
         </div>
       )}
@@ -121,7 +121,7 @@ const GreeksCalculator = () => {
           <Info className="w-5 h-5 text-primary mt-0.5" />
           <div>
             <h4 className="font-semibold mb-1">Understanding Greeks</h4>
-            <ul className="text-sm text-foreground-muted space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>Delta:</strong> How much option price changes for ₹1 spot move</li>
               <li>• <strong>Gamma:</strong> Rate of change of Delta (acceleration)</li>
               <li>• <strong>Theta:</strong> Time decay - value lost per day</li>

@@ -137,7 +137,7 @@ export function formatVolume(value) {
 export function getChangeColor(value) {
   if (value > 0) return 'text-bullish';
   if (value < 0) return 'text-bearish';
-  return 'text-foreground-muted';
+  return 'text-muted-foreground';
 }
 
 /**
@@ -191,38 +191,37 @@ export function formatDateTime(date, options = {}) {
 }
 
 /**
- * Check if market is open (NSE timings)
+ * Check if market is open (NSE timings) - uses IST conversion
  */
 export function isMarketOpen() {
   const now = new Date();
-  const day = now.getDay();
+  const istOffset = 5.5 * 60;
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + istOffset * 60000);
+  const day = ist.getDay();
   
   // Weekend check
   if (day === 0 || day === 6) return false;
   
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const totalMinutes = hours * 60 + minutes;
+  const totalMinutes = ist.getHours() * 60 + ist.getMinutes();
   
   // Market: 9:15 AM - 3:30 PM IST
-  const marketOpen = 9 * 60 + 15;  // 9:15 AM
-  const marketClose = 15 * 60 + 30; // 3:30 PM
-  
-  return totalMinutes >= marketOpen && totalMinutes <= marketClose;
+  return totalMinutes >= 555 && totalMinutes <= 930;
 }
 
 /**
- * Get market session info
+ * Get market session info - uses IST conversion
  */
 export function getMarketSession() {
   const now = new Date();
-  const day = now.getDay();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const totalMinutes = hours * 60 + minutes;
+  const istOffset = 5.5 * 60;
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + istOffset * 60000);
+  const day = ist.getDay();
+  const totalMinutes = ist.getHours() * 60 + ist.getMinutes();
   
   if (day === 0 || day === 6) {
-    return { status: 'closed', label: 'Weekend', color: 'text-foreground-muted' };
+    return { status: 'closed', label: 'Weekend', color: 'text-muted-foreground' };
   }
   
   const preOpen = 9 * 60;         // 9:00 AM
@@ -344,19 +343,16 @@ export const storage = {
 
 /**
  * API helper with error handling
+ * Uses centralized API config from config/api.js
  */
 export async function fetchAPI(endpoint, options = {}) {
-  // Use Cloud Run for production, localhost for development
-  const isProduction = window.location.hostname !== 'localhost';
-  const API_BASE = process.env.REACT_APP_API_URL || 
-    (isProduction 
-      ? 'https://moneysaarthi-backend-517321998192.asia-south1.run.app/api' 
-      : 'http://localhost:8000/api');
+  // Import dynamically to avoid circular deps, but use the same central config
+  const { API, getAuthHeaders } = await import('../config/api');
   
   try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${API}${endpoint}`, {
       headers: {
-        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...options.headers,
       },
       ...options,

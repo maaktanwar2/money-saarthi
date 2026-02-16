@@ -67,7 +67,7 @@ export default function Settings() {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all ${
                   activeTab === item.id
                     ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'hover:bg-card text-foreground-muted hover:text-foreground'
+                    : 'hover:bg-card text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <span>{item.icon}</span>
@@ -86,7 +86,7 @@ export default function Settings() {
                     
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Default Index</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Default Index</label>
                         <select 
                           className="input w-full max-w-xs"
                           value={settings.defaultIndex || 'NIFTY'}
@@ -99,7 +99,7 @@ export default function Settings() {
                       </div>
                       
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Default Expiry</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Default Expiry</label>
                         <select 
                           className="input w-full max-w-xs"
                           value={settings.defaultExpiry || 'Weekly'}
@@ -111,7 +111,7 @@ export default function Settings() {
                       </div>
                       
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Timezone</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Timezone</label>
                         <select className="input w-full max-w-xs" disabled>
                           <option>Asia/Kolkata (IST)</option>
                         </select>
@@ -134,7 +134,7 @@ export default function Settings() {
                         <div key={item.key} className="flex items-center justify-between p-4 rounded-lg bg-background">
                           <div>
                             <div className="font-medium">{item.label}</div>
-                            <div className="text-sm text-foreground-muted">{item.desc}</div>
+                            <div className="text-sm text-muted-foreground">{item.desc}</div>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input 
@@ -167,13 +167,13 @@ export default function Settings() {
                           <div className="font-medium text-bullish">
                             ✅ {localStorage.getItem('ms_connected_broker')?.toUpperCase()} Connected
                           </div>
-                          <div className="text-sm text-foreground-muted mt-1">
+                          <div className="text-sm text-muted-foreground mt-1">
                             {localStorage.getItem('ms_is_sandbox') === 'true' ? 'Sandbox Mode' : 'Live Mode'}
                           </div>
                         </div>
                       ) : (
                         <div className="p-4 rounded-lg bg-background border border-border">
-                          <div className="text-foreground-muted">No broker connected</div>
+                          <div className="text-muted-foreground">No broker connected</div>
                         </div>
                       )}
                       
@@ -190,7 +190,7 @@ export default function Settings() {
                     
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm text-foreground-muted block mb-2">Theme</label>
+                        <label className="text-sm text-muted-foreground block mb-2">Theme</label>
                         <div className="flex gap-4">
                           <button 
                             className={`p-4 rounded-lg border w-24 text-center ${settings.theme !== 'light' ? 'border-primary bg-black text-white' : 'border-border bg-black/50 text-white/50'}`}
@@ -205,13 +205,13 @@ export default function Settings() {
                             Light
                           </button>
                         </div>
-                        <p className="text-xs text-foreground-muted mt-2">Dark theme is recommended for trading</p>
+                        <p className="text-xs text-muted-foreground mt-2">Dark theme is recommended for trading</p>
                       </div>
                       
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="text-sm font-medium block">Compact Mode</label>
-                          <p className="text-xs text-foreground-muted">Reduce spacing for more data on screen</p>
+                          <p className="text-xs text-muted-foreground">Reduce spacing for more data on screen</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input 
@@ -234,7 +234,7 @@ export default function Settings() {
                     <div className="space-y-4">
                       <div className="p-4 rounded-lg bg-background border border-border">
                         <div className="font-medium mb-1">Your Data</div>
-                        <p className="text-sm text-foreground-muted">
+                        <p className="text-sm text-muted-foreground">
                           All data is stored locally in your browser. Nothing is sent to external servers except broker API calls you initiate.
                         </p>
                       </div>
