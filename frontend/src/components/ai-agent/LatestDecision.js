@@ -10,11 +10,11 @@ import { STRATEGY_INFO, REGIME_COLORS } from './constants';
 const LatestDecision = ({ decision, snapshot }) => {
   if (!decision) {
     return (
-      <Card className="bg-slate-800/60 border-slate-700/50">
+      <Card className="bg-card/60 border-border/50">
         <CardContent className="p-6 text-center">
-          <Brain className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-slate-500 text-sm">Waiting for first decision...</p>
-          <p className="text-slate-600 text-xs mt-1">The agent is analyzing market conditions</p>
+          <Brain className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-muted-foreground/60 text-sm">Waiting for first decision...</p>
+          <p className="text-muted-foreground/40 text-xs mt-1">The agent is analyzing market conditions</p>
         </CardContent>
       </Card>
     );
@@ -24,7 +24,7 @@ const LatestDecision = ({ decision, snapshot }) => {
   const regimeColor = REGIME_COLORS[decision.market_regime] || 'text-slate-400';
 
   return (
-    <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
+    <Card className="bg-card/60 border-border/50 overflow-hidden">
       <div className={cn(
         "h-1",
         decision.action === 'ENTER' ? 'bg-gradient-to-r from-emerald-500 to-green-500' :
@@ -39,7 +39,7 @@ const LatestDecision = ({ decision, snapshot }) => {
               <Brain className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Latest Decision
                 <span className={cn(
                   "text-xs px-2 py-0.5 rounded-full font-medium",
@@ -52,7 +52,7 @@ const LatestDecision = ({ decision, snapshot }) => {
                   {decision.action}
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground/60">
                 {decision.timestamp ? new Date(decision.timestamp).toLocaleTimeString('en-IN') : '--'} · {decision.id}
               </p>
             </div>
@@ -68,7 +68,7 @@ const LatestDecision = ({ decision, snapshot }) => {
             )}>
               {decision.confidence_score?.toFixed(0)}%
             </div>
-            <div className="text-[10px] text-slate-500">confidence</div>
+            <div className="text-[10px] text-muted-foreground/60">confidence</div>
           </div>
         </div>
 
@@ -80,14 +80,14 @@ const LatestDecision = ({ decision, snapshot }) => {
           )}>
             <span>{stratInfo.icon}</span> {stratInfo.name}
           </span>
-          <span className={cn("text-xs px-2 py-1 rounded-lg bg-slate-700/50 border border-slate-600/20", regimeColor)}>
+          <span className={cn("text-xs px-2 py-1 rounded-lg bg-muted border border-border/30", regimeColor)}>
             {decision.market_regime?.replace(/_/g, ' ')}
           </span>
         </div>
 
         {/* Reasoning */}
-        <div className="bg-slate-900/50 rounded-lg p-3 mb-3">
-          <p className="text-sm text-slate-300 leading-relaxed">{decision.reasoning || 'No reasoning logged'}</p>
+        <div className="bg-background/50 rounded-lg p-3 mb-3">
+          <p className="text-sm text-foreground/80 leading-relaxed">{decision.reasoning || 'No reasoning logged'}</p>
         </div>
 
         {/* Risk Assessment */}
@@ -101,10 +101,10 @@ const LatestDecision = ({ decision, snapshot }) => {
         {/* Scenarios */}
         {decision.scenarios_considered?.length > 0 && (
           <div className="mt-3 space-y-1">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Scenarios Considered</p>
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Scenarios Considered</p>
             {decision.scenarios_considered.map((s, i) => (
-              <div key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
-                <ChevronRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-slate-600" />
+              <div key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <ChevronRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-muted-foreground/40" />
                 {s}
               </div>
             ))}
@@ -125,7 +125,7 @@ const LatestDecision = ({ decision, snapshot }) => {
               </span>
             </div>
             {decision.hedge_plan.reason && (
-              <p className="text-xs text-slate-400 mb-2">{decision.hedge_plan.reason}</p>
+              <p className="text-xs text-muted-foreground mb-2">{decision.hedge_plan.reason}</p>
             )}
             {decision.hedge_plan.legs?.length > 0 && (
               <div className="space-y-1">
@@ -137,11 +137,11 @@ const LatestDecision = ({ decision, snapshot }) => {
                     <span className={cn("font-bold", leg.direction === 'BUY' ? 'text-green-400' : 'text-red-400')}>
                       {leg.action} {leg.direction}
                     </span>
-                    <span className="text-slate-300">
+                    <span className="text-foreground/80">
                       {leg.instrument}{leg.strike ? ` @ ${leg.strike}` : ''}
                     </span>
-                    {leg.quantity_lots && <span className="text-slate-500">x{leg.quantity_lots}L</span>}
-                    {leg.notes && <span className="text-slate-500 ml-auto">{leg.notes}</span>}
+                    {leg.quantity_lots && <span className="text-muted-foreground/60">x{leg.quantity_lots}L</span>}
+                    {leg.notes && <span className="text-muted-foreground/60 ml-auto">{leg.notes}</span>}
                   </div>
                 ))}
               </div>
@@ -157,7 +157,7 @@ const LatestDecision = ({ decision, snapshot }) => {
                 <div className="text-[10px] text-emerald-400 mb-1 font-semibold flex items-center gap-1">
                   <Target className="w-3 h-3" /> Targets / SL
                 </div>
-                <p className="text-[11px] text-slate-400">{decision.position_plan.targets}</p>
+                <p className="text-[11px] text-muted-foreground">{decision.position_plan.targets}</p>
               </div>
             )}
             {decision.position_plan.exits && (
@@ -165,7 +165,7 @@ const LatestDecision = ({ decision, snapshot }) => {
                 <div className="text-[10px] text-red-400 mb-1 font-semibold flex items-center gap-1">
                   <XCircle className="w-3 h-3" /> Exit Triggers
                 </div>
-                <p className="text-[11px] text-slate-400">{decision.position_plan.exits}</p>
+                <p className="text-[11px] text-muted-foreground">{decision.position_plan.exits}</p>
               </div>
             )}
           </div>

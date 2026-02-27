@@ -17,6 +17,14 @@ import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { fetchWithAuth } from '../config/api';
 
+// Get current user ID from localStorage
+const getUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('ms_user') || '{}');
+    return user.id || user.email || 'default';
+  } catch { return 'default'; }
+};
+
 // Sub-components
 import { STATE_CONFIG } from '../components/ai-agent/constants';
 import StatCard from '../components/ai-agent/StatCard';
@@ -66,7 +74,8 @@ const AIAgent = () => {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(`/ai-agent/status?user_id=default`);
+      const res = await fetchWithAuth(`/ai-agent/status?user_id=${getUserId()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) setAgentStatus(data.data);
     } catch (err) {
@@ -82,7 +91,7 @@ const AIAgent = () => {
       const res = await fetchWithAuth(`/ai-agent/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'default', ...config }),
+        body: JSON.stringify({ user_id: getUserId(), ...config }),
       });
       const data = await res.json();
       if (data.success) {
@@ -103,7 +112,7 @@ const AIAgent = () => {
   const stopAgent = async () => {
     setStopping(true);
     try {
-      const res = await fetchWithAuth(`/ai-agent/stop?user_id=default`, { method: 'POST' });
+      const res = await fetchWithAuth(`/ai-agent/stop?user_id=${getUserId()}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         setAgentStatus(prev => ({ ...prev, ...data.data, state: 'stopped', active: false }));
@@ -121,7 +130,7 @@ const AIAgent = () => {
 
   const pauseAgent = async () => {
     try {
-      const res = await fetchWithAuth(`/ai-agent/pause?user_id=default`, { method: 'POST' });
+      const res = await fetchWithAuth(`/ai-agent/pause?user_id=${getUserId()}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         fetchStatus();
@@ -137,7 +146,7 @@ const AIAgent = () => {
 
   const resumeAgent = async () => {
     try {
-      const res = await fetchWithAuth(`/ai-agent/resume?user_id=default`, { method: 'POST' });
+      const res = await fetchWithAuth(`/ai-agent/resume?user_id=${getUserId()}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         fetchStatus();
@@ -154,12 +163,18 @@ const AIAgent = () => {
   // Smart polling: fast when active, slow when idle
   useEffect(() => {
     fetchStatus();
-    const setupPoll = () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = setInterval(() => { if (!document.hidden) fetchStatus(); }, getInterval());
+
+    const interval = getInterval();
+    pollRef.current = setInterval(() => {
+      if (!document.hidden) fetchStatus();
+    }, interval);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     };
-    setupPoll();
-    return () => clearInterval(pollRef.current);
   }, [fetchStatus, getInterval]);
 
   const isActive = agentStatus?.active || false;
@@ -172,7 +187,7 @@ const AIAgent = () => {
         <div className="flex items-center justify-center h-[60vh]">
           <div className="text-center">
             <Brain className="w-12 h-12 text-purple-500 mx-auto mb-4 animate-pulse" />
-            <p className="text-slate-400">Initializing AI Agent...</p>
+            <p className="text-muted-foreground">Initializing AI Agent...</p>
           </div>
         </div>
       </PageLayout>
@@ -189,14 +204,14 @@ const AIAgent = () => {
               <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30")}>
                 <Brain className="w-6 h-6 text-purple-400" />
               </div>
-              {isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-900 animate-pulse" />}
+              {isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse" />}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
                 AI Trading Agent
                 <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-[10px]">AUTONOMOUS</Badge>
               </h1>
-              <p className="text-xs text-slate-400">Self-thinking · Self-adjusting · Multi-strategy</p>
+              <p className="text-xs text-muted-foreground">Self-thinking · Self-adjusting · Multi-strategy</p>
             </div>
           </div>
 
@@ -232,7 +247,7 @@ const AIAgent = () => {
       </div>
 
       <AnimatePresence>
-        {showConfig && <ConfigPanel config={config} setConfig={setConfig} onStart={startAgent} onClose={() => setShowConfig(false)} starting={starting} />}
+        {showConfig && <ConfigPanel key="config-panel" config={config} setConfig={setConfig} onStart={startAgent} onClose={() => setShowConfig(false)} starting={starting} />}
       </AnimatePresence>
 
       {isActive || agentStatus?.cycle_count > 0 ? (
@@ -256,7 +271,7 @@ const AIAgent = () => {
             </div>
           </div>
 
-          <AnimatePresence>{showThoughts && <ThoughtLogPanel agentStatus={agentStatus} />}</AnimatePresence>
+          <AnimatePresence>{showThoughts && <ThoughtLogPanel key="thought-log" agentStatus={agentStatus} />}</AnimatePresence>
           <EvolvedParamsCard params={agentStatus?.evolved_params} performance={agentStatus?.performance} />
         </div>
       ) : (

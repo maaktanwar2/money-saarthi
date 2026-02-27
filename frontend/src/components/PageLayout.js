@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import MobileNav from './MobileNav';
 import { cn, storage } from '../lib/utils';
 
 export const PageLayout = ({ children }) => {
@@ -66,13 +65,10 @@ export const PageLayout = ({ children }) => {
       >
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
         
-        <div className="p-6 pb-24 lg:pb-6">
+        <div className="p-4">
           {children}
         </div>
       </main>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNav onMoreClick={() => setMobileMenuOpen(true)} />
     </div>
   );
 };
@@ -88,10 +84,10 @@ export const PageHeader = ({
   actions,
   breadcrumbs = []
 }) => (
-  <div className="mb-8">
+  <div className="mb-5">
     {/* Breadcrumbs */}
     {breadcrumbs.length > 0 && (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
         {breadcrumbs.map((crumb, i) => (
           <span key={i} className="flex items-center gap-2">
             {i > 0 && <span>/</span>}
@@ -107,15 +103,15 @@ export const PageHeader = ({
       </div>
     )}
 
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {Icon && (
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Icon className="w-5 h-5 text-primary" />
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Icon className="w-4.5 h-4.5 text-primary" />
             </div>
           )}
-          <h1 className="text-3xl font-bold">{title}</h1>
+          <h1 className="text-xl font-bold">{title}</h1>
           {badge && (
             <span className={cn(
               'px-2 py-0.5 text-xs font-semibold rounded',
@@ -129,12 +125,12 @@ export const PageHeader = ({
           )}
         </div>
         {description && (
-          <p className="text-muted-foreground mt-1">{description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
         
         {/* Accuracy Stats */}
         {(accuracy !== undefined || trades !== undefined) && (
-          <div className="flex items-center gap-4 mt-3">
+          <div className="flex items-center gap-3 mt-2">
             {accuracy !== undefined && (
               <div className="flex items-center gap-2">
                 <div className={cn(
@@ -167,13 +163,13 @@ export const PageHeader = ({
 
 // Section Component
 export const Section = ({ title, description, children, className, action }) => (
-  <section className={cn('mb-8', className)}>
+  <section className={cn('mb-5', className)}>
     {(title || action) && (
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          {title && <h2 className="text-base font-semibold">{title}</h2>}
           {description && (
-            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
         {action}

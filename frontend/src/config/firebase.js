@@ -43,6 +43,7 @@ appleProvider.addScope('name');
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
     const user = result.user;
     return {
       success: true,
@@ -53,7 +54,9 @@ export const signInWithGoogle = async () => {
         avatar: user.photoURL,
         provider: 'google',
         emailVerified: user.emailVerified
-      }
+      },
+      accessToken: credential?.accessToken || null,
+      idToken: credential?.idToken || null
     };
   } catch (error) {
     console.error('Google Sign-In Error:', error);

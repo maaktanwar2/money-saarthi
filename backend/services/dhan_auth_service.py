@@ -93,7 +93,7 @@ class DhanAuthService:
         try:
             totp = pyotp.TOTP(self.totp_secret)
             code = totp.now()
-            logger.info(f"Generated TOTP code: {code}")
+            logger.debug("TOTP code generated successfully")
             return code
         except Exception as e:
             logger.error(f"TOTP generation error: {e}")
@@ -158,7 +158,7 @@ class DhanAuthService:
                 "Accept": "application/json"
             }
             
-            logger.info(f"Auto-generating token for client {self.client_id} with TOTP: {totp_code}...")
+            logger.info(f"Auto-generating token for client {self.client_id}...")
             
             async with self._session.post(url, json=payload, headers=headers) as response:
                 response_text = await response.text()
@@ -176,12 +176,16 @@ class DhanAuthService:
                         if expiry_str:
                             try:
                                 self.token_expiry = datetime.fromisoformat(expiry_str.replace("Z", "+00:00"))
-                            except:
+                            except (ValueError, TypeError):
                                 self.token_expiry = datetime.now() + timedelta(hours=24)
                         else:
                             self.token_expiry = datetime.now() + timedelta(hours=24)
-                        
+
                         logger.info(f"✅ Token auto-generated successfully! Expires: {self.token_expiry}")
+                        
+                        # Propagate new token to all consumers
+                        self._propagate_token()
+                        
                         return {
                             "success": True,
                             "dhanClientId": data.get("dhanClientId"),
@@ -199,13 +203,34 @@ class DhanAuthService:
         
         return None
     
+    def _propagate_token(self):
+        """Propagate new token to DhanMarketDataService and os.environ"""
+        try:
+            # Update environment variable so new service instances pick it up
+            os.environ['DHAN_ACCESS_TOKEN'] = self.access_token
+            if self.client_id:
+                os.environ['DHAN_CLIENT_ID'] = self.client_id
+            
+            # Update the singleton DhanMarketDataService if it exists
+            try:
+                from services.dhan_market_data import get_dhan_service
+                dhan = get_dhan_service()
+                dhan.access_token = self.access_token
+                if self.client_id:
+                    dhan.client_id = self.client_id
+                logger.info("✅ Token propagated to DhanMarketDataService")
+            except Exception as e:
+                logger.warning(f"Could not propagate to DhanMarketDataService: {e}")
+        except Exception as e:
+            logger.error(f"Token propagation error: {e}")
+
     async def get_valid_token(self) -> str:
         """
         Get a valid access token
         
         - Returns current token if valid
         - Attempts renewal if near expiry
-        - Auto-generates via TOTP if expired
+        - Auto-generates via TOTP if expired/missing
         - Returns empty string if no valid token
         """
         # If token is valid and not near expiry, return it
@@ -221,8 +246,44 @@ class DhanAuthService:
             
             return self.access_token
         
+        # No token or expired — try auto-generate via TOTP
+        if self.pin and self.totp_secret:
+            logger.info("No valid token, attempting TOTP auto-generation...")
+            result = await self.auto_generate_token()
+            if result and result.get("success"):
+                return self.access_token
+        
         return ""
     
+    async def ensure_fresh_token(self) -> bool:
+        """
+        Ensure we have a fresh valid token.
+        Called on startup and periodically.
+        Returns True if we have a valid token.
+        """
+        # First check if current token works
+        if self.access_token:
+            validity = await self.check_token_validity()
+            if validity.get("valid"):
+                logger.info(f"✅ Current Dhan token is valid (client: {validity.get('client_id')})")
+                return True
+            else:
+                logger.warning(f"Current token invalid: {validity.get('reason')}")
+        
+        # Try TOTP auto-generation
+        if self.pin and self.totp_secret:
+            logger.info("Attempting TOTP auto-generation of fresh token...")
+            result = await self.auto_generate_token()
+            if result and result.get("success"):
+                logger.info("✅ Fresh token auto-generated via TOTP!")
+                return True
+            else:
+                logger.error("❌ TOTP auto-generation failed")
+        else:
+            logger.warning("TOTP not configured (missing DHAN_PIN or DHAN_TOTP_SECRET)")
+        
+        return bool(self.access_token)
+
     async def renew_token(self) -> bool:
         """
         Renew access token for another 24 hours
@@ -248,6 +309,7 @@ class DhanAuthService:
                     if data.get("accessToken"):
                         self.access_token = data["accessToken"]
                         self.token_expiry = datetime.now() + timedelta(hours=24)
+                        self._propagate_token()
                         logger.info("✅ Token renewed successfully")
                         return True
                 else:
@@ -340,7 +402,7 @@ class DhanAuthService:
                         if expiry_str:
                             try:
                                 self.token_expiry = datetime.fromisoformat(expiry_str.replace("Z", "+00:00"))
-                            except:
+                            except (ValueError, TypeError):
                                 self.token_expiry = datetime.now() + timedelta(hours=24)
                         
                         logger.info(f"✅ Access token obtained, expires: {self.token_expiry}")
@@ -386,7 +448,7 @@ class DhanAuthService:
         return {
             "client_id": self.client_id,
             "has_token": bool(self.access_token),
-            "token_preview": f"{self.access_token[:20]}..." if self.access_token else None,
+            "token_configured": bool(self.access_token),
             "has_app_credentials": bool(self.app_id and self.app_secret),
             "has_totp_credentials": bool(self.pin and self.totp_secret),
             "totp_ready": bool(self.client_id and self.pin and self.totp_secret and pyotp),

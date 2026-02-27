@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from './components/ThemeProvider';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Crown, Lock, ArrowRight, Sparkles, X } from 'lucide-react';
+import { Crown, Lock, ArrowRight } from 'lucide-react';
 import { API } from './config/api';
+import { checkRedirectResult } from './config/firebase';
 import './App.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -190,7 +191,6 @@ const ProtectedRoute = ({ children }) => {
 // Subscription Paywall Overlay - Shows blurred content with upgrade prompt
 const SubscriptionPaywall = ({ children }) => {
   const navigate = useNavigate();
-  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div className="relative min-h-screen">
@@ -200,78 +200,51 @@ const SubscriptionPaywall = ({ children }) => {
       </div>
       
       {/* Subscription Required Overlay */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div className="max-w-lg w-full mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="max-w-sm w-full mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary/20 to-yellow-500/20 p-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-yellow-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Lock className="w-10 h-10 text-white" />
+          <div className="bg-gradient-to-r from-primary/15 to-amber-500/15 p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary/20">
+              <Lock className="w-7 h-7 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Subscription Required</h2>
-            <p className="text-muted-foreground">
-              Subscribe to Money Saarthi Pro to access all features
+            <h2 className="text-xl font-bold mb-1">Pro Feature</h2>
+            <p className="text-sm text-muted-foreground">
+              Subscribe to unlock this and all other features
             </p>
           </div>
 
-          {/* Content */}
-          <div className="p-6">
-            {/* Features */}
-            <div className="bg-primary/5 rounded-xl p-4 mb-6">
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                What you'll get with Pro:
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> Full Dashboard & Market Overview
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> AI Trade Signals & Recommendations
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> Options Chain & Greek Analysis
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> All Scanners (15+ screeners)
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> Trading Journal & Backtesting
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary">✓</span> Algo Trading Bots
-                </li>
-              </ul>
-            </div>
-
-            {/* Pricing */}
-            <div className="flex items-center justify-center gap-6 mb-6 p-4 rounded-xl border border-border">
+          {/* Pricing quick glance */}
+          <div className="p-5">
+            <div className="flex items-center justify-center gap-4 mb-5 p-3 rounded-xl border border-white/[0.08] bg-white/[0.02]">
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">₹899</p>
-                <p className="text-xs text-muted-foreground">/month</p>
+                <p className="text-2xl font-bold text-primary">₹899</p>
+                <p className="text-[10px] text-muted-foreground">/month</p>
               </div>
-              <div className="text-2xl text-muted-foreground font-light">or</div>
+              <span className="text-lg text-muted-foreground/50">or</span>
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">₹4,999</p>
-                <p className="text-xs text-muted-foreground">/year</p>
-                <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/20 text-green-500 text-xs font-semibold rounded-full">
+                <p className="text-2xl font-bold text-primary">₹4,999</p>
+                <p className="text-[10px] text-muted-foreground">/year</p>
+                <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[9px] font-bold rounded-full">
                   Save 53%
                 </span>
               </div>
             </div>
 
-            {/* CTA Buttons */}
             <button
               onClick={() => navigate('/pricing')}
-              className="w-full py-4 px-6 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+              className="w-full py-3 px-5 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
             >
-              <Crown className="w-5 h-5" />
-              Subscribe Now
-              <ArrowRight className="w-5 h-5" />
+              <Crown className="w-4 h-4" />
+              View Plans & Subscribe
+              <ArrowRight className="w-4 h-4" />
             </button>
             
-            <p className="text-center text-xs text-muted-foreground mt-4">
-              Secure payment • Cancel anytime • Instant access
-            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full mt-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
           </div>
         </div>
       </div>
@@ -356,7 +329,6 @@ const LTPCalculator = lazy(() => import('./pages/LTPCalculator'));
 const TradeFinder = lazy(() => import('./pages/TradeFinder'));
 const AIAgent = lazy(() => import('./pages/AIAgent'));
 const Sectors = lazy(() => import('./pages/Sectors'));
-const SectorPerformance = lazy(() => import('./pages/SectorPerformance'));
 const Watchlist = lazy(() => import('./pages/Watchlist'));
 
 function AppRouter() {
@@ -373,9 +345,9 @@ function AppRouter() {
         <Route path="/subscribe" element={<Navigate to="/pricing" replace />} />
         <Route path="/plans" element={<Navigate to="/pricing" replace />} />
         
-        {/* Subscription Required Pages - Login + Active Subscription required */}
-        <Route path="/" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
-        <Route path="/dashboard" element={<SubscriptionRoute><Dashboard /></SubscriptionRoute>} />
+        {/* Dashboard - accessible to logged-in users (premium sections blurred for free users) */}
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         
         {/* Scanner Hub - redirects to Signals */}
         <Route path="/scanners" element={<Navigate to="/signals" replace />} />
@@ -394,11 +366,9 @@ function AppRouter() {
         {/* Market Hub - FII/DII, Sectors, Breadth */}
         <Route path="/market" element={<SubscriptionRoute><MarketHub /></SubscriptionRoute>} />
         
-        {/* Sectors - All stocks by sector */}
+        {/* Sectors - Index performance + stocks by sector (merged) */}
         <Route path="/sectors" element={<SubscriptionRoute><Sectors /></SubscriptionRoute>} />
-        
-        {/* Sector Performance - F&O sectoral index performance */}
-        <Route path="/sector-performance" element={<SubscriptionRoute><SectorPerformance /></SubscriptionRoute>} />
+        <Route path="/sector-performance" element={<Navigate to="/sectors" replace />} />
         <Route path="/fii-dii" element={<Navigate to="/market" replace />} />
         
         {/* Redirect old AI Advisor routes to Algo Trading */}
@@ -436,11 +406,11 @@ function AppRouter() {
         {/* Watchlist */}
         <Route path="/watchlist" element={<SubscriptionRoute><Watchlist /></SubscriptionRoute>} />
         
-        {/* Settings */}
-        <Route path="/settings" element={<SubscriptionRoute><Settings /></SubscriptionRoute>} />
+        {/* Settings - accessible to all logged-in users */}
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         
         {/* User Profile & Admin */}
-        <Route path="/profile" element={<SubscriptionRoute><UserProfile /></SubscriptionRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="/user" element={<Navigate to="/profile" replace />} />
         <Route path="/admin" element={<SubscriptionRoute><AdminPanel /></SubscriptionRoute>} />
         
@@ -456,6 +426,11 @@ function App() {
   // Sync subscription with backend on app load
   useEffect(() => {
     syncSubscriptionFromBackend();
+    
+    // Check Firebase redirect result to prevent warnings
+    checkRedirectResult().catch(err => {
+      console.debug('Firebase redirect check completed');
+    });
   }, []);
 
   return (

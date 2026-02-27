@@ -308,11 +308,11 @@ class PerformanceTracker:
         if pnl > 0:
             self.winning_trades += 1
             self.max_win = max(self.max_win, pnl)
-            self.current_streak = max(1, self.current_streak + 1)
+            self.current_streak = (self.current_streak + 1) if self.current_streak > 0 else 1
         else:
             self.losing_trades += 1
             self.max_loss = min(self.max_loss, pnl)
-            self.current_streak = min(-1, self.current_streak - 1)
+            self.current_streak = (self.current_streak - 1) if self.current_streak < 0 else -1
         
         self.peak_daily_pnl = max(self.peak_daily_pnl, self.daily_pnl)
         self.drawdown = self.peak_daily_pnl - self.daily_pnl
@@ -385,11 +385,11 @@ class AutonomousAIAgent:
         self._error_count = 0
         self._consecutive_errors = 0
         
-        # Claude API caching / rate-limiting
-        self._claude_cache: Dict[str, Tuple[str, float]] = {}  # hash -> (response, timestamp)
-        self._claude_cache_ttl = 120  # seconds - skip re-calling if data hasn't changed
-        self._claude_call_count = 0
-        self._claude_daily_limit = 500  # max calls per session
+        # LLM API caching / rate-limiting (works for Gemini or Claude)
+        self._llm_cache: Dict[str, Dict] = {}  # hash -> {response, ts}
+        self._llm_cache_ttl = 120  # seconds - skip re-calling if data hasn't changed
+        self._llm_call_count = 0
+        self._llm_daily_limit = 1000  # Gemini free tier is generous
         
         # Dhan market data service (lazy-initialized)
         self._dhan_market: Any = None
@@ -764,10 +764,24 @@ class AutonomousAIAgent:
     # ── Data source helpers ──────────────────────────────────────────────────
 
     async def _observe_via_dhan(self, snap: MarketSnapshot) -> bool:
-        """Try to get real-time data from Dhan API. Returns True on success."""
+        """Get complete market data from Dhan API: LTP + intraday bars + daily history.
+        Populates spot, OHLC, EMAs, VWAP, ATR, RV — no yfinance needed."""
         try:
             from services.dhan_market_data import get_dhan_service
             dhan = get_dhan_service()
+            
+            # Ensure we have a fresh token via auto-refresh
+            if not dhan.access_token:
+                try:
+                    from services.dhan_auth_service import get_dhan_auth_service
+                    auth = get_dhan_auth_service()
+                    token = await auth.get_valid_token()
+                    if token:
+                        dhan.access_token = token
+                        dhan.client_id = auth.client_id
+                except Exception as e:
+                    logger.warning(f"Dhan auth refresh failed: {e}")
+            
             if not dhan.access_token:
                 return False
 
@@ -776,6 +790,7 @@ class AutonomousAIAgent:
             if not sec_id:
                 return False
 
+            # ── 1. Real-time LTP quote ──
             result = await dhan.get_market_quote({"NSE_EQ": [sec_id]})
             if result.get("status") != "success":
                 return False
@@ -793,7 +808,58 @@ class AutonomousAIAgent:
                 snap.day_change_pct = ((snap.spot_price - snap.prev_close) / snap.prev_close) * 100
             snap.intraday_range = snap.day_high - snap.day_low
 
-            self._add_event("OBSERVE", "Dhan real-time", f"LTP {snap.spot_price:.0f}")
+            # ── 2. Intraday 5-min bars (today) for VWAP ──
+            import pandas as pd
+            from datetime import date
+            today_str = date.today().strftime("%Y-%m-%d")
+            instrument = "INDEX" if self.config.underlying in ["NIFTY", "BANKNIFTY", "FINNIFTY", "SENSEX"] else "EQUITY"
+            try:
+                intra = await dhan.get_historical_data(
+                    security_id=sec_id, exchange="NSE_EQ",
+                    from_date=today_str, to_date=today_str,
+                    interval="5", instrument=instrument
+                )
+                if intra.get("status") == "success" and intra.get("candles"):
+                    bars = pd.DataFrame(intra["candles"])
+                    bars.rename(columns={"open": "Open", "high": "High",
+                                         "low": "Low", "close": "Close",
+                                         "volume": "Volume"}, inplace=True)
+                    self._intraday_bars = bars
+                else:
+                    self._intraday_bars = None
+            except Exception:
+                self._intraday_bars = None
+
+            # ── 3. Daily history (30 days) for EMAs / ATR / RV ──
+            from datetime import timedelta as _td
+            hist_from = (date.today() - _td(days=45)).strftime("%Y-%m-%d")
+            try:
+                daily = await dhan.get_historical_data(
+                    security_id=sec_id, exchange="NSE_EQ",
+                    from_date=hist_from, to_date=today_str,
+                    interval="D", instrument=instrument
+                )
+                if daily.get("status") == "success" and daily.get("candles"):
+                    dhist = pd.DataFrame(daily["candles"])
+                    dhist.rename(columns={"open": "Open", "high": "High",
+                                          "low": "Low", "close": "Close",
+                                          "volume": "Volume"}, inplace=True)
+                    self._daily_hist = dhist
+                    # Compute EMAs / SMA from daily closes
+                    closes = dhist["Close"].astype(float)
+                    snap.ema_9 = float(closes.ewm(span=9).mean().iloc[-1])
+                    snap.ema_21 = float(closes.ewm(span=21).mean().iloc[-1])
+                    snap.sma_20 = float(closes.tail(20).mean())
+                else:
+                    self._daily_hist = None
+            except Exception:
+                self._daily_hist = None
+
+            # Note: India VIX is NOT available via Dhan quotes.
+            # _fetch_real_vix() will get VIX from yfinance as last-resort.
+
+            self._add_event("OBSERVE", "Dhan real-time",
+                f"LTP {snap.spot_price:.0f} | EMA9 {snap.ema_9:.0f} | EMA21 {snap.ema_21:.0f}")
             return True
         except Exception as e:
             logger.debug(f"Dhan data unavailable: {e}")
@@ -862,7 +928,12 @@ class AutonomousAIAgent:
             return False
 
     async def _fetch_real_vix(self, snap: MarketSnapshot):
-        """Fetch India VIX from yfinance — never randomize. Runs in thread."""
+        """Fetch India VIX via yfinance (Dhan doesn't provide VIX). Never randomize."""
+        # Skip if already populated
+        if snap.vix > 0:
+            return
+
+        # yfinance in thread to avoid blocking event loop
         try:
             import yfinance as yf
 
@@ -888,6 +959,16 @@ class AutonomousAIAgent:
         try:
             from services.dhan_market_data import get_dhan_service
             dhan = get_dhan_service()
+            if not dhan.access_token:
+                try:
+                    from services.dhan_auth_service import get_dhan_auth_service
+                    auth = get_dhan_auth_service()
+                    token = await auth.get_valid_token()
+                    if token:
+                        dhan.access_token = token
+                        dhan.client_id = auth.client_id
+                except Exception:
+                    pass
             if not dhan.access_token:
                 raise ValueError("No Dhan token")
 
@@ -972,12 +1053,12 @@ class AutonomousAIAgent:
             context = self._build_thinking_context(snapshot)
             
             # Get Claude's reasoning
-            llm_response = await self._call_claude(context)
+            llm_response = await self._call_llm(context)
             
             if not llm_response:
                 # Fallback to rule-based thinking
                 self._add_event("THINK", "Using rule-based engine",
-                    "Claude API unavailable (no key or rate-limited) — using built-in rules")
+                    "LLM API unavailable (no key or rate-limited) — using built-in rules")
                 return self._rule_based_decision(snapshot, decision_id)
             
             # Parse Claude's response into a decision
@@ -1234,27 +1315,108 @@ STYLE
 - Always be explicit about what could go wrong and how hedges address that.
 - Never output anything except the JSON object described above."""
     
-    async def _call_claude(self, prompt: str) -> Optional[str]:
-        """Call Claude API with caching, rate-limiting, and retry."""
-        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        if not api_key:
-            return None
+    async def _call_llm(self, prompt: str) -> Optional[str]:
+        """Call LLM API (Gemini primary, Claude fallback) with caching and rate-limiting."""
 
         # --- rate-limit guard ---
-        if self._claude_call_count >= self._claude_daily_limit:
-            logger.warning("Claude daily call limit reached (%s)", self._claude_daily_limit)
-            self._add_event("WARNING", "Claude daily API limit reached – falling back to rule-based decisions")
+        if self._llm_call_count >= self._llm_daily_limit:
+            logger.warning("LLM daily call limit reached (%s)", self._llm_daily_limit)
+            self._add_event("WARNING", "LLM daily limit reached – falling back to rule-based")
             return None
 
         # --- cache check ---
         cache_key = hashlib.md5(prompt.encode()).hexdigest()
         now = _time.time()
-        cached = self._claude_cache.get(cache_key)
-        if cached and (now - cached["ts"]) < self._claude_cache_ttl:
-            logger.info("Claude cache HIT (age %.0fs)", now - cached["ts"])
+        cached = self._llm_cache.get(cache_key)
+        if cached and (now - cached["ts"]) < self._llm_cache_ttl:
+            logger.info("LLM cache HIT (age %.0fs)", now - cached["ts"])
             return cached["response"]
 
-        # --- API call with retry ---
+        # --- Try Gemini first ---
+        gemini_key = os.environ.get('GEMINI_API_KEY', '')
+        if gemini_key:
+            result = await self._call_gemini(prompt, gemini_key)
+            if result:
+                self._llm_cache[cache_key] = {"response": result, "ts": now}
+                self._llm_call_count += 1
+                self._evict_stale_cache(now)
+                return result
+
+        # --- Fallback: Claude (if key available) ---
+        anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        if anthropic_key:
+            result = await self._call_claude_api(prompt, anthropic_key)
+            if result:
+                self._llm_cache[cache_key] = {"response": result, "ts": now}
+                self._llm_call_count += 1
+                self._evict_stale_cache(now)
+                return result
+
+        return None
+
+    def _evict_stale_cache(self, now: float):
+        """Remove old cache entries to keep memory bounded."""
+        stale = [k for k, v in self._llm_cache.items() if (now - v["ts"]) > self._llm_cache_ttl * 5]
+        for k in stale:
+            del self._llm_cache[k]
+
+    async def _call_gemini(self, prompt: str, api_key: str) -> Optional[str]:
+        """Call Google Gemini API via REST. Tries multiple models for quota resilience."""
+        # Try models in order — each has its own quota pool
+        models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+
+        payload = {
+            "systemInstruction": {
+                "parts": [{"text": self._get_system_prompt()}]
+            },
+            "contents": [
+                {"role": "user", "parts": [{"text": prompt}]}
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 2000,
+                "responseMimeType": "application/json",
+            },
+        }
+
+        for model in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            last_err = None
+            for attempt in range(2):
+                try:
+                    async with httpx.AsyncClient(timeout=60) as client:
+                        response = await client.post(url, json=payload)
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            text = parts[0].get("text", "") if parts else ""
+                            if text:
+                                self._add_event("THINK", "Gemini responded",
+                                    f"Model: {model} | Length: {len(text)} chars")
+                                return text
+
+                    if response.status_code == 429:
+                        logger.info("Gemini %s quota exhausted, trying next model", model)
+                        break  # try next model
+
+                    logger.warning("Gemini %s returned %s: %s",
+                        model, response.status_code, response.text[:200])
+                    break  # non-retryable error, try next model
+
+                except Exception as e:
+                    last_err = e
+                    logger.error("Gemini %s error (attempt %d): %s", model, attempt + 1, e)
+                    if attempt < 1:
+                        await asyncio.sleep(3)
+
+        logger.error("All Gemini models failed. Last error: %s", last_err)
+        return None
+
+    async def _call_claude_api(self, prompt: str, api_key: str) -> Optional[str]:
+        """Call Claude API (fallback if Gemini unavailable)."""
         last_err = None
         for attempt in range(3):
             try:
@@ -1277,19 +1439,10 @@ STYLE
 
                 if response.status_code == 200:
                     data = response.json()
-                    text = data.get("content", [{}])[0].get("text", "")
-                    # update cache & counter
-                    self._claude_cache[cache_key] = {"response": text, "ts": now}
-                    self._claude_call_count += 1
-                    # evict stale entries (keep cache small)
-                    stale = [k for k, v in self._claude_cache.items() if (now - v["ts"]) > self._claude_cache_ttl * 5]
-                    for k in stale:
-                        del self._claude_cache[k]
-                    return text
+                    return data.get("content", [{}])[0].get("text", "")
 
                 if response.status_code == 429:
                     wait = min(2 ** attempt * 5, 30)
-                    logger.warning("Claude 429 rate-limited, retrying in %ds", wait)
                     await asyncio.sleep(wait)
                     continue
 
@@ -1298,10 +1451,8 @@ STYLE
 
             except Exception as e:
                 last_err = e
-                wait = 2 ** attempt * 2
-                logger.error("Claude API error (attempt %d): %s", attempt + 1, e)
                 if attempt < 2:
-                    await asyncio.sleep(wait)
+                    await asyncio.sleep(2 ** attempt * 2)
 
         logger.error("Claude API failed after 3 attempts: %s", last_err)
         return None

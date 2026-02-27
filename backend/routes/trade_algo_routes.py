@@ -64,6 +64,51 @@ class TradeAlgoResponse(BaseModel):
 
 
 # ============================================
+# BOT START/STOP REQUEST MODELS
+# ============================================
+
+class VWAPBotStartRequest(BaseModel):
+    """Request to start VWAP bot"""
+    broker_token: str
+    broker: str = Field(default="dhan", description="dhan or upstox")
+    user_id: str = Field(default="default")
+    mock_mode: bool = Field(default=False)
+    scenario: str = Field(default="random", description="bullish, bearish, range, volatile, random")
+    config: Optional[Dict[str, Any]] = None
+
+
+class StrangleBotStartRequest(BaseModel):
+    """Request to start AI Delta Strangle bot"""
+    access_token: str
+    broker: str = Field(default="dhan", description="dhan or upstox")
+    underlying: str = Field(default="NIFTY")
+    num_lots: int = Field(default=1, ge=1, le=5)
+    entry_delta: float = Field(default=15, ge=5, le=30)
+    adjustment_trigger_delta: float = Field(default=30, ge=20, le=50)
+    roll_target_delta: float = Field(default=15, ge=5, le=25)
+    profit_target_pct: float = Field(default=50, ge=20, le=100)
+    max_loss_multiplier: float = Field(default=2.0, ge=1.0, le=5.0)
+    use_ai_decisions: bool = Field(default=True)
+    ai_confidence_threshold: int = Field(default=70, ge=40, le=95)
+    max_adjustments_per_day: int = Field(default=3, ge=1, le=10)
+
+
+class DeltaNeutralBotStartRequest(BaseModel):
+    """Request to start Delta Neutral bot"""
+    broker_token: str
+    broker: str = Field(default="dhan")
+    user_id: str = Field(default="default")
+    underlying: str = Field(default="NIFTY")
+    strategy_mode: str = Field(default="iron_condor", description="iron_condor, iron_butterfly, short_strangle, straddle_hedge")
+    timeframe: str = Field(default="weekly", description="intraday, weekly, smart")
+    num_lots: int = Field(default=1, ge=1, le=5)
+    entry_delta: float = Field(default=16, ge=5, le=25)
+    wing_width: int = Field(default=200, ge=100, le=400)
+    profit_target_pct: float = Field(default=50, ge=20, le=100)
+    max_delta_drift: float = Field(default=0.1, ge=0.05, le=0.3)
+
+
+# ============================================
 # ENDPOINTS
 # ============================================
 
@@ -115,7 +160,7 @@ async def test_upstox_connection():
         "configured": upstox.is_configured(),
         "has_access_token": bool(upstox.access_token),
         "has_api_key": bool(upstox.api_key),
-        "token_preview": upstox.access_token[:20] + "..." if upstox.access_token else None
+        "token_configured": bool(upstox.access_token)
     }
     
     if upstox.is_configured():

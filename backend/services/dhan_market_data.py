@@ -98,7 +98,7 @@ class DhanMarketDataService:
             logger.error(f"Dhan API client error: {e}")
             return {"status": "error", "message": str(e)}
         except Exception as e:
-            logger.error(f"Dhan API unexpected error: {e}")
+            logger.error(f"Dhan API unexpected error: {e}", exc_info=True)
             return {"status": "error", "message": str(e)}
     
     def _parse_quote_response(self, data: Dict) -> Dict:
@@ -168,8 +168,8 @@ class DhanMarketDataService:
         # Create batches
         all_items = []
         for exchange, ids in by_exchange.items():
-            for id in ids:
-                all_items.append((exchange, id))
+            for sec_id in ids:
+                all_items.append((exchange, sec_id))
         
         batches = [all_items[i:i+batch_size] for i in range(0, len(all_items), batch_size)]
         
@@ -289,7 +289,8 @@ class DhanMarketDataService:
         exchange: str,
         from_date: str,
         to_date: str,
-        interval: str = "D"
+        interval: str = "D",
+        instrument: str = "EQUITY"
     ) -> Dict:
         """
         Get historical OHLCV data
@@ -300,6 +301,7 @@ class DhanMarketDataService:
             from_date: Start date (YYYY-MM-DD)
             to_date: End date (YYYY-MM-DD)
             interval: Candle interval (1, 5, 15, 25, 60, D)
+            instrument: Instrument type (EQUITY, INDEX, FUTIDX, OPTIDX, etc.)
         
         Returns:
             Historical candle data
@@ -311,12 +313,16 @@ class DhanMarketDataService:
             payload = {
                 "securityId": str(security_id),
                 "exchangeSegment": exchange,
-                "instrument": "EQUITY",
+                "instrument": instrument,
                 "fromDate": from_date,
                 "toDate": to_date
             }
             
-            endpoint = "charts/intraday" if interval != "D" else "charts/historical"
+            if interval != "D":
+                payload["interval"] = interval
+                endpoint = "charts/intraday"
+            else:
+                endpoint = "charts/historical"
             
             async with self.session.post(
                 f"{self.base_url}/{endpoint}",

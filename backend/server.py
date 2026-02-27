@@ -260,6 +260,81 @@ async def health_check():
 async def api_health_check():
     return {"status": "healthy", "service": "money-saarthi-api"}
 
+@api_router.get("/diagnostics")
+async def run_diagnostics():
+    """Test all critical services: Dhan, Gemini, Firestore"""
+    results = {}
+
+    # 1. Dhan API
+    try:
+        from services.dhan_market_data import get_dhan_service
+        dhan = get_dhan_service()
+        has_token = bool(dhan.access_token)
+        if has_token:
+            q = await dhan.get_market_quote({"NSE_EQ": [13]})
+            results["dhan"] = {"ok": q.get("status") == "success", "detail": q.get("status", "no response")}
+        else:
+            results["dhan"] = {"ok": False, "detail": "No access token"}
+    except Exception as e:
+        results["dhan"] = {"ok": False, "detail": str(e)[:200]}
+
+    # 2. Gemini API
+    try:
+        import httpx as _httpx
+        gkey = os.environ.get("GEMINI_API_KEY", "")
+        if gkey:
+            async with _httpx.AsyncClient(timeout=15) as c:
+                # Try 2.5-flash first (separate quota), then 2.0-flash
+                for model in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+                    r = await c.post(
+                        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gkey}",
+                        json={"contents": [{"role": "user", "parts": [{"text": "Reply with just: OK"}]}],
+                              "generationConfig": {"maxOutputTokens": 10}},
+                    )
+                    if r.status_code == 200:
+                        results["gemini"] = {"ok": True, "detail": f"{model} OK"}
+                        break
+                    elif r.status_code == 429:
+                        continue
+                else:
+                    results["gemini"] = {"ok": False, "detail": f"All models quota exhausted"}
+        else:
+            results["gemini"] = {"ok": False, "detail": "No GEMINI_API_KEY"}
+    except Exception as e:
+        results["gemini"] = {"ok": False, "detail": str(e)[:200]}
+
+    # 3. Firestore
+    try:
+        from services.firestore_db import get_firestore_client
+        client = get_firestore_client()
+        # Simple read test
+        col = client.collection("_diag_test")
+        col.document("ping").set({"ts": datetime.now().isoformat()})
+        results["firestore"] = {"ok": True, "detail": "read/write OK"}
+    except Exception as e:
+        results["firestore"] = {"ok": False, "detail": str(e)[:200]}
+
+    # 4. Env vars
+    env_keys = ["DHAN_ACCESS_TOKEN", "DHAN_CLIENT_ID", "GEMINI_API_KEY",
+                "GOOGLE_CLOUD_PROJECT", "GOOGLE_CLIENT_ID", "DB_NAME", "CORS_ORIGINS"]
+    env_status = {k: bool(os.environ.get(k)) for k in env_keys}
+    results["env_vars"] = env_status
+
+    # 5. Dhan TOTP auto-token status
+    try:
+        from services.dhan_auth_service import get_dhan_auth_service
+        auth = get_dhan_auth_service()
+        results["dhan_auto_token"] = {
+            "totp_configured": bool(auth.pin and auth.totp_secret),
+            "token_expiry": auth.token_expiry.isoformat() if auth.token_expiry else None,
+            "auto_refresh_active": dhan_token_refresh_task is not None and not dhan_token_refresh_task.done() if dhan_token_refresh_task else False
+        }
+    except Exception as e:
+        results["dhan_auto_token"] = {"totp_configured": False, "error": str(e)[:100]}
+
+    all_ok = all(r.get("ok", False) for r in [results["dhan"], results["gemini"], results["firestore"]])
+    return {"all_ok": all_ok, "services": results}
+
 # ==================== DATA SOURCE STATUS ENDPOINT ====================
 @api_router.get("/data-source/status")
 async def get_data_source_status():
@@ -13912,52 +13987,72 @@ async def get_fno_heatmap():
     # Check cache first
     cache_key = "fno_heatmap"
     if cache_key in TOOLS_CACHE:
-        logging.info("Returning cached FNO heatmap")
         cached_result = TOOLS_CACHE[cache_key]
-        cached_result["from_cache"] = True
-        return cached_result
+        if cached_result.get("stocks"):  # Only return cache if it has actual data
+            logging.info("Returning cached FNO heatmap")
+            cached_result["from_cache"] = True
+            return cached_result
     
     try:
-        fno_list = FNO_STOCKS[:80]
         results = []
         
-        def fetch_stock_heatmap_sync(symbol):
-            """Sync version for thread pool"""
-            try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="5d")
-                if hist.empty or len(hist) < 2:
-                    return None
+        # PRIORITY 1: Use unified_service (same as working scanners)
+        if unified_service:
+            cache_info = unified_service.get_cache_info()
+            if cache_info["is_stale"] or cache_info["stock_count"] == 0:
+                await unified_service.fetch_all_stocks()
+            
+            all_stocks = unified_service.get_all_stocks()
+            if all_stocks:
+                for stock in all_stocks:
+                    try:
+                        symbol = str(stock.get("symbol", "")).replace(".NS", "")
+                        price = float(stock.get("ltp", stock.get("price", 0)) or 0)
+                        change_pct = float(stock.get("change_pct", 0) or 0)
+                        volume_ratio = float(stock.get("volume_ratio", 1) or 1)
+                        volume = int(stock.get("volume", 0) or 0)
+                        
+                        # Approximate OI change from price + volume signals
+                        oi_change = (change_pct * 0.5) + ((volume_ratio - 1) * 10) if volume_ratio else change_pct * 0.5
+                        
+                        if symbol and price > 0:
+                            results.append({
+                                "symbol": symbol,
+                                "price": round(price, 2),
+                                "price_change": round(change_pct, 2),
+                                "volume": volume,
+                                "volume_change": round((volume_ratio - 1) * 100, 2),
+                                "oi_change": round(oi_change, 2)
+                            })
+                    except Exception:
+                        continue
                 
-                current_price = float(hist['Close'].iloc[-1])
-                prev_price = float(hist['Close'].iloc[-2])
-                price_change = ((current_price - prev_price) / prev_price) * 100
-                
-                current_vol = float(hist['Volume'].iloc[-1])
-                avg_vol = float(hist['Volume'].mean())
-                volume_change = ((current_vol - avg_vol) / avg_vol) * 100 if avg_vol > 0 else 0
-                
-                # Simulated OI change (in real implementation, get from NSE)
-                oi_change = (price_change * 0.5) + (volume_change * 0.1)  # Approximation
-                
-                return {
-                    "symbol": symbol.replace(".NS", ""),
-                    "price": round(current_price, 2),
-                    "price_change": round(price_change, 2),
-                    "volume": int(current_vol),
-                    "volume_change": round(volume_change, 2),
-                    "oi_change": round(oi_change, 2)
-                }
-            except Exception as e:
-                return None
+                logging.info(f"FNO heatmap from unified_service: {len(results)} stocks")
         
-        # Process in parallel using ThreadPoolExecutor
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=10) as pool:
-            futures = [loop.run_in_executor(pool, fetch_stock_heatmap_sync, s) for s in fno_list]
-            results = await asyncio.gather(*futures)
-        
-        results = [r for r in results if r is not None]
+        # FALLBACK: get_stocks_fresh
+        if not results:
+            stock_data_list = await get_stocks_fresh(FNO_STOCKS[:80])
+            for stock in stock_data_list:
+                if stock is None:
+                    continue
+                try:
+                    symbol = stock.get("symbol", "").replace(".NS", "")
+                    price = stock.get("price", 0)
+                    change_pct = stock.get("change_pct", 0)
+                    volume_ratio = stock.get("volume_ratio", 1)
+                    oi_change = (change_pct * 0.5) + ((volume_ratio - 1) * 10) if volume_ratio else change_pct * 0.5
+                    
+                    if symbol and price > 0:
+                        results.append({
+                            "symbol": symbol,
+                            "price": round(price, 2),
+                            "price_change": round(change_pct, 2),
+                            "volume": int(stock.get("volume", 0) or 0),
+                            "volume_change": round((volume_ratio - 1) * 100, 2) if volume_ratio else 0,
+                            "oi_change": round(oi_change, 2)
+                        })
+                except Exception:
+                    continue
         
         result = {
             "stocks": results,
@@ -13965,9 +14060,10 @@ async def get_fno_heatmap():
             "timestamp": datetime.now().isoformat()
         }
         
-        # Cache the result
-        TOOLS_CACHE[cache_key] = result
-        logging.info(f"FNO heatmap cached: {len(results)} stocks")
+        # Only cache if we got results
+        if results:
+            TOOLS_CACHE[cache_key] = result
+            logging.info(f"FNO heatmap cached: {len(results)} stocks")
         
         return result
         
@@ -17173,14 +17269,57 @@ async def websocket_status():
 # Store for alert broadcaster task
 alert_broadcaster_task = None
 cache_refresh_task = None
+dhan_token_refresh_task = None
+
+# ── Dhan Token Auto-Refresh Loop ──────────────────────────────────────────
+async def dhan_token_refresh_loop():
+    """Periodically check and auto-refresh Dhan token via TOTP.
+    Runs every 6 hours. On failure, retries every 30 minutes."""
+    while True:
+        try:
+            await asyncio.sleep(6 * 3600)  # 6 hours
+            logging.info("🔄 Scheduled Dhan token refresh check...")
+            from services.dhan_auth_service import get_dhan_auth_service
+            auth = get_dhan_auth_service()
+            ok = await auth.ensure_fresh_token()
+            if ok:
+                logging.info("✅ Dhan token refresh check passed")
+            else:
+                logging.warning("⚠️ Dhan token refresh failed, retrying in 30 min")
+                await asyncio.sleep(1800)
+                await auth.ensure_fresh_token()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logging.error(f"Dhan token refresh loop error: {e}")
+            await asyncio.sleep(1800)  # retry in 30 min
 
 # Lifespan context manager (replaces deprecated on_event)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage startup and shutdown lifecycle events"""
-    global alert_broadcaster_task, cache_refresh_task
+    global alert_broadcaster_task, cache_refresh_task, dhan_token_refresh_task
     # Startup
     logging.info("Starting Money Saarthi server...")
+    
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # DHAN AUTO-TOKEN: Generate fresh token on startup via TOTP
+    # ═══════════════════════════════════════════════════════════════════════════════
+    try:
+        from services.dhan_auth_service import get_dhan_auth_service
+        dhan_auth = get_dhan_auth_service()
+        token_ok = await dhan_auth.ensure_fresh_token()
+        if token_ok:
+            logging.info("✅ Dhan token ready on startup")
+        else:
+            logging.warning("⚠️ Dhan token not available - market data may fail")
+        
+        # Start periodic refresh loop
+        dhan_token_refresh_task = asyncio.create_task(dhan_token_refresh_loop())
+        logging.info("🔄 Dhan token auto-refresh loop started (every 6 hours)")
+    except Exception as e:
+        logging.error(f"Dhan auto-token startup error: {e}")
+    
     try:
         # Test Firestore connection
         if db is not None:
@@ -17237,6 +17376,22 @@ async def lifespan(app: FastAPI):
     if unified_service:
         unified_service.stop_auto_refresh()
         await unified_service.close()
+    
+    # Cancel Dhan token refresh task
+    if dhan_token_refresh_task:
+        dhan_token_refresh_task.cancel()
+        try:
+            await dhan_token_refresh_task
+        except asyncio.CancelledError:
+            pass
+    
+    # Close Dhan auth session
+    try:
+        from services.dhan_auth_service import get_dhan_auth_service
+        dhan_auth = get_dhan_auth_service()
+        await dhan_auth.close()
+    except Exception:
+        pass
     
     # Close database connection safely
     try:
