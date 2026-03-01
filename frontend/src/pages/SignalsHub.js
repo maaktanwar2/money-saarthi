@@ -8,15 +8,33 @@ import {
   RefreshCw, AlertCircle, ExternalLink,
   BarChart3, Info
 } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Skeleton from '@mui/material/Skeleton';
+import MenuItem from '@mui/material/MenuItem';
+import { useTheme, alpha } from '@mui/material/styles';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import {
   Card, Button, Badge, Select,
 } from '../components/ui';
-import { cn, formatINR, formatPercent, fetchAPI, getChangeColor } from '../lib/utils';
+import { formatINR, formatPercent, fetchAPI } from '../lib/utils';
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
+// HELPER: theme-aware change color (replaces Tailwind getChangeColor)
+// ===============================================================================
+const useChangeColor = () => {
+  const theme = useTheme();
+  return (value) => {
+    if (value > 0) return theme.palette.success.main;
+    if (value < 0) return theme.palette.error.main;
+    return theme.palette.text.secondary;
+  };
+};
+
+// ===============================================================================
 // SCANNER CATEGORIES
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
 const SCANNER_TYPES = [
   { id: 'all', label: 'All Stocks', icon: Zap },
   { id: 'buy', label: 'Gainers', icon: TrendingUp },
@@ -29,266 +47,489 @@ const TIMEFRAMES = [
   { value: 'swing', label: 'Swing (2-5 days)' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STOCK CARD COMPONENT — shows real scanner data only
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
+// STOCK CARD COMPONENT -- shows real scanner data only
+// ===============================================================================
 const StockCard = ({ stock, onView }) => {
+  const theme = useTheme();
+  const getColor = useChangeColor();
   const isBuy = stock.type === 'BUY';
-  
+
+  const accentColor = isBuy ? theme.palette.success.main : theme.palette.error.main;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
     >
-      <Card 
-        className={cn(
-          'p-4 cursor-pointer transition-all duration-200 border-l-4',
-          isBuy ? 'border-l-bullish hover:border-bullish/50' : 'border-l-bearish hover:border-bearish/50'
-        )}
+      <Card
+        sx={{
+          p: 2,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          borderLeft: `4px solid ${accentColor}`,
+          '&:hover': {
+            borderColor: alpha(accentColor, 0.5),
+          },
+        }}
         onClick={() => onView(stock)}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-bold">{stock.symbol}</span>
-              <Badge variant={isBuy ? 'success' : 'destructive'} className="text-xs">
+        {/* Top row: symbol + badge + change */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1.125rem' }}>
+                {stock.symbol}
+              </Typography>
+              <Badge variant={isBuy ? 'success' : 'destructive'}>
                 {isBuy ? 'GAINER' : 'LOSER'}
               </Badge>
-              <Badge variant="outline" className="text-xs">{stock.category}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">{stock.strategy}</p>
-          </div>
-          <div className="text-right">
-            <div className={cn('text-xl font-bold', getChangeColor(stock.changePercent))}>
+              <Badge variant="outline">{stock.category}</Badge>
+            </Stack>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {stock.strategy}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography
+              sx={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: getColor(stock.changePercent),
+              }}
+            >
               {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Day Change</p>
-          </div>
-        </div>
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Day Change
+            </Typography>
+          </Box>
+        </Box>
 
-        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
-          <div>
-            <p className="text-xs text-muted-foreground">LTP</p>
-            <p className="font-medium">{formatINR(stock.ltp)}</p>
-          </div>
+        {/* Middle row: LTP / Target|Volume / StopLoss|Score */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1,
+            mb: 1.5,
+          }}
+        >
+          <Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>LTP</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatINR(stock.ltp)}</Typography>
+          </Box>
           {stock.target ? (
-            <div>
-              <p className="text-xs text-muted-foreground">Target</p>
-              <p className="font-medium text-bullish">{formatINR(stock.target)}</p>
-            </div>
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Target</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.main' }}>
+                {formatINR(stock.target)}
+              </Typography>
+            </Box>
           ) : (
-            <div>
-              <p className="text-xs text-muted-foreground">Volume</p>
-              <p className="font-medium">{stock.volume ? stock.volume.toLocaleString('en-IN') : '—'}</p>
-            </div>
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Volume</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {stock.volume ? stock.volume.toLocaleString('en-IN') : '\u2014'}
+              </Typography>
+            </Box>
           )}
           {stock.stopLoss ? (
-            <div>
-              <p className="text-xs text-muted-foreground">Stop Loss</p>
-              <p className="font-medium text-bearish">{formatINR(stock.stopLoss)}</p>
-            </div>
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Stop Loss</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }}>
+                {formatINR(stock.stopLoss)}
+              </Typography>
+            </Box>
           ) : (
-            <div>
-              <p className="text-xs text-muted-foreground">Scanner Score</p>
-              <p className={cn('font-medium', stock.score >= 70 ? 'text-bullish' : stock.score >= 50 ? 'text-amber-500' : 'text-muted-foreground')}>
-                {stock.score || '—'}/100
-              </p>
-            </div>
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Scanner Score</Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: stock.score >= 70
+                    ? 'success.main'
+                    : stock.score >= 50
+                      ? 'warning.main'
+                      : 'text.secondary',
+                }}
+              >
+                {stock.score || '\u2014'}/100
+              </Typography>
+            </Box>
           )}
-        </div>
+        </Box>
 
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <Clock className="w-3 h-3 text-muted-foreground" />
-            <span className="text-muted-foreground">{stock.timeframe}</span>
-          </div>
-          <a 
+        {/* Bottom row: timeframe + chart link */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <Clock style={{ width: 12, height: 12, color: theme.palette.text.secondary }} />
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {stock.timeframe}
+            </Typography>
+          </Stack>
+          <Box
+            component="a"
             href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
-            target="_blank" rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-primary hover:underline"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              fontSize: '0.75rem',
+              color: 'primary.main',
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' },
+            }}
           >
-            Chart <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
+            Chart <ExternalLink style={{ width: 12, height: 12 }} />
+          </Box>
+        </Box>
 
+        {/* Optional reason */}
         {stock.reason && (
-          <p className="text-xs text-muted-foreground mt-3 line-clamp-2">{stock.reason}</p>
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              mt: 1.5,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {stock.reason}
+          </Typography>
         )}
       </Card>
     </motion.div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STOCK DETAIL MODAL — shows real data only, no fabricated metrics
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
+// STOCK DETAIL MODAL -- shows real data only, no fabricated metrics
+// ===============================================================================
 const StockDetailModal = ({ stock, onClose }) => {
+  const theme = useTheme();
+  const getColor = useChangeColor();
+
   if (!stock) return null;
 
   const isBuy = stock.type === 'BUY';
+  const accentColor = isBuy ? theme.palette.success.main : theme.palette.error.main;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        backgroundColor: alpha('#000', 0.6),
+        backdropFilter: 'blur(4px)',
+      }}
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-surface-2 border border-border rounded-2xl overflow-hidden"
+        style={{ width: '100%', maxWidth: 672 }}
       >
-        {/* Header */}
-        <div className={cn(
-          'p-6 border-b border-border',
-          isBuy ? 'bg-bullish/10' : 'bg-bearish/10'
-        )}>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl font-bold">{stock.symbol}</span>
-                <Badge variant={isBuy ? 'success' : 'destructive'} className="text-sm">
-                  {isBuy ? 'GAINER' : 'LOSER'}
-                </Badge>
-                <Badge variant="outline">{stock.timeframe}</Badge>
-              </div>
-              <p className="text-muted-foreground">{stock.strategy} — {stock.category}</p>
-            </div>
-            <div className="text-right">
-              <div className={cn('text-3xl font-bold', getChangeColor(stock.changePercent))}>
-                {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
-              </div>
-              <p className="text-sm text-muted-foreground">Day Change</p>
-            </div>
-          </div>
-        </div>
+        <Box
+          sx={{
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              p: 3,
+              borderBottom: 1,
+              borderColor: 'divider',
+              bgcolor: alpha(accentColor, 0.1),
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {stock.symbol}
+                  </Typography>
+                  <Badge variant={isBuy ? 'success' : 'destructive'}>
+                    {isBuy ? 'GAINER' : 'LOSER'}
+                  </Badge>
+                  <Badge variant="outline">{stock.timeframe}</Badge>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {stock.strategy} &mdash; {stock.category}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  sx={{
+                    fontSize: '1.875rem',
+                    fontWeight: 700,
+                    color: getColor(stock.changePercent),
+                  }}
+                >
+                  {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Day Change
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Price Info */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">LTP</p>
-              <p className="text-xl font-bold">{formatINR(stock.ltp)}</p>
-            </Card>
-            {stock.target && (
-              <Card className="p-4 text-center border-bullish/30">
-                <p className="text-xs text-muted-foreground mb-1">Target</p>
-                <p className="text-xl font-bold text-bullish">{formatINR(stock.target)}</p>
-              </Card>
-            )}
-            {stock.stopLoss && (
-              <Card className="p-4 text-center border-bearish/30">
-                <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
-                <p className="text-xl font-bold text-bearish">{formatINR(stock.stopLoss)}</p>
-              </Card>
-            )}
-            {stock.score && (
-              <Card className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Scanner Score</p>
-                <p className={cn('text-xl font-bold', stock.score >= 70 ? 'text-bullish' : 'text-amber-500')}>
-                  {stock.score}/100
-                </p>
-              </Card>
-            )}
-          </div>
-
-          {/* Extra details if available */}
-          {stock.volume && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 rounded-xl bg-surface-1">
-                <p className="text-xs text-muted-foreground">Volume</p>
-                <p className="text-lg font-bold">{stock.volume.toLocaleString('en-IN')}</p>
-              </div>
-              {stock.riskReward && (
-                <div className="p-3 rounded-xl bg-surface-1">
-                  <p className="text-xs text-muted-foreground">Risk:Reward</p>
-                  <p className={cn('text-lg font-bold', stock.riskReward >= 2 ? 'text-bullish' : 'text-amber-500')}>
-                    1:{stock.riskReward}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Scanner Reasoning */}
-          {stock.reason && (
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                Scanner Notes
-              </h4>
-              <p className="text-sm text-muted-foreground">{stock.reason}</p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Close
-            </Button>
-            <a
-              href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex-1"
+          {/* Content */}
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Price Info Cards */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                gap: 2,
+              }}
             >
-              <Button variant="gradient" className="w-full">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Chart
+              <Card sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                  LTP
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  {formatINR(stock.ltp)}
+                </Typography>
+              </Card>
+              {stock.target && (
+                <Card sx={{ p: 2, textAlign: 'center', borderColor: alpha(theme.palette.success.main, 0.3) }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                    Target
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
+                    {formatINR(stock.target)}
+                  </Typography>
+                </Card>
+              )}
+              {stock.stopLoss && (
+                <Card sx={{ p: 2, textAlign: 'center', borderColor: alpha(theme.palette.error.main, 0.3) }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                    Stop Loss
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'error.main' }}>
+                    {formatINR(stock.stopLoss)}
+                  </Typography>
+                </Card>
+              )}
+              {stock.score && (
+                <Card sx={{ p: 2, textAlign: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                    Scanner Score
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      color: stock.score >= 70 ? 'success.main' : 'warning.main',
+                    }}
+                  >
+                    {stock.score}/100
+                  </Typography>
+                </Card>
+              )}
+            </Box>
+
+            {/* Extra details if available */}
+            {stock.volume && (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 3,
+                    bgcolor: (t) =>
+                      t.palette.mode === 'dark'
+                        ? alpha(t.palette.common.white, 0.03)
+                        : alpha(t.palette.common.black, 0.02),
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Volume</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {stock.volume.toLocaleString('en-IN')}
+                  </Typography>
+                </Box>
+                {stock.riskReward && (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      bgcolor: (t) =>
+                        t.palette.mode === 'dark'
+                          ? alpha(t.palette.common.white, 0.03)
+                          : alpha(t.palette.common.black, 0.02),
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Risk:Reward</Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        color: stock.riskReward >= 2 ? 'success.main' : 'warning.main',
+                      }}
+                    >
+                      1:{stock.riskReward}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* Scanner Reasoning */}
+            {stock.reason && (
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                  <BarChart3 style={{ width: 16, height: 16, color: theme.palette.primary.main }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Scanner Notes
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {stock.reason}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Actions */}
+            <Stack direction="row" spacing={1.5}>
+              <Button variant="outline" onClick={onClose} sx={{ flex: 1 }}>
+                Close
               </Button>
-            </a>
-          </div>
-        </div>
+              <Box
+                component="a"
+                href={`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ flex: 1, textDecoration: 'none' }}
+              >
+                <Button variant="gradient" sx={{ width: '100%' }}>
+                  <ExternalLink style={{ width: 16, height: 16, marginRight: 8 }} />
+                  Open Chart
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+        </Box>
       </motion.div>
     </motion.div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SCANNER SUMMARY — real derived stats, no fabricated accuracy
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
+// SCANNER SUMMARY -- real derived stats, no fabricated accuracy
+// ===============================================================================
 const ScannerSummary = ({ stocks = [] }) => {
+  const theme = useTheme();
+  const getColor = useChangeColor();
+
   const totalStocks = stocks.length;
   const avgScore = totalStocks > 0 ? Math.round(stocks.reduce((sum, s) => sum + (s.score || 0), 0) / totalStocks) : 0;
   const buyCount = stocks.filter(s => s.type === 'BUY').length;
   const avgChange = totalStocks > 0 ? (stocks.reduce((sum, s) => sum + (s.changePercent || 0), 0) / totalStocks).toFixed(2) : '0';
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Stocks Found</div>
-        <div className="text-2xl font-bold">{totalStocks}</div>
-        <div className="text-xs text-muted-foreground">From scanners</div>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}
+    >
+      <Card sx={{ p: 2 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+          Stocks Found
+        </Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          {totalStocks}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          From scanners
+        </Typography>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Scanner Score</div>
-        <div className={cn('text-2xl font-bold', avgScore >= 70 ? 'text-bullish' : 'text-amber-500')}>{avgScore}/100</div>
-        <div className="text-xs text-muted-foreground">Technical score</div>
+
+      <Card sx={{ p: 2 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+          Avg Scanner Score
+        </Typography>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            color: avgScore >= 70 ? 'success.main' : 'warning.main',
+          }}
+        >
+          {avgScore}/100
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Technical score
+        </Typography>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Gainers</div>
-        <div className="text-2xl font-bold text-bullish">{buyCount}</div>
-        <div className="text-xs text-muted-foreground">Stocks up today</div>
+
+      <Card sx={{ p: 2 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+          Gainers
+        </Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
+          {buyCount}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Stocks up today
+        </Typography>
       </Card>
-      <Card className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">Avg Change</div>
-        <div className={cn('text-2xl font-bold', getChangeColor(parseFloat(avgChange)))}>{avgChange}%</div>
-        <div className="text-xs text-muted-foreground">Across scanned stocks</div>
+
+      <Card sx={{ p: 2 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+          Avg Change
+        </Typography>
+        <Typography
+          variant="h5"
+          sx={{ fontWeight: 700, color: getColor(parseFloat(avgChange)) }}
+        >
+          {avgChange}%
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Across scanned stocks
+        </Typography>
       </Card>
-    </div>
+    </Box>
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN STOCK SCANNER COMPONENT — real data, no synthetic dressing
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
+// MAIN STOCK SCANNER COMPONENT -- real data, no synthetic dressing
+// ===============================================================================
 const SignalsHub = () => {
+  const theme = useTheme();
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState('all');
@@ -303,10 +544,10 @@ const SignalsHub = () => {
         fetchAPI('/scanners/day-losers?limit=8').catch(() => ({ data: [] })),
         fetchAPI('/scanners/swing?limit=8').catch(() => ({ data: [] }))
       ]);
-      
+
       const scannedStocks = [];
-      
-      // Gainers — show real data only
+
+      // Gainers -- show real data only
       (gainers?.data || []).forEach((s, i) => {
         scannedStocks.push({
           id: `gainer-${i}`,
@@ -316,8 +557,8 @@ const SignalsHub = () => {
           strategy: 'Momentum',
           ltp: s.ltp || s.entry || 0,
           changePercent: s.change_percent || 0,
-          target: s.target_1 || null,       // only if scanner provides it
-          stopLoss: s.stop_loss || null,     // only if scanner provides it
+          target: s.target_1 || null,
+          stopLoss: s.stop_loss || null,
           score: s.score || null,
           volume: s.volume || null,
           timeframe: 'Intraday',
@@ -329,8 +570,8 @@ const SignalsHub = () => {
             : `Moderate gain of ${(s.change_percent || 0).toFixed(1)}%.`),
         });
       });
-      
-      // Losers — show real data only
+
+      // Losers -- show real data only
       (losers?.data || []).forEach((s, i) => {
         scannedStocks.push({
           id: `loser-${i}`,
@@ -351,8 +592,8 @@ const SignalsHub = () => {
           reason: s.signal || `Down ${Math.abs(s.change_percent || 0).toFixed(1)}% today.`,
         });
       });
-      
-      // Swing setups — show real data only
+
+      // Swing setups -- show real data only
       (swing?.data || []).forEach((s, i) => {
         scannedStocks.push({
           id: `swing-${i}`,
@@ -373,7 +614,7 @@ const SignalsHub = () => {
           reason: s.reason || s.signal || 'Swing setup detected by scanner.',
         });
       });
-      
+
       setStocks(scannedStocks);
     } catch (error) {
       console.error('Error fetching scanner data:', error);
@@ -405,14 +646,14 @@ const SignalsHub = () => {
       <SEO {...getSeoConfig('/signals')} path="/signals" />
       <PageHeader
         title="Stock Scanner"
-        description="Real-time scanner results from NSE — gainers, losers & swing setups"
+        description="Real-time scanner results from NSE -- gainers, losers & swing setups"
         breadcrumbs={[
           { label: 'Dashboard', link: '/' },
           { label: 'Scanner' },
         ]}
         actions={
           <Button variant="outline" size="sm" onClick={fetchScannerData}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} />
             Refresh
           </Button>
         }
@@ -422,93 +663,164 @@ const SignalsHub = () => {
       <ScannerSummary stocks={stocks} />
 
       {/* Filters */}
-      <Section className="mb-6">
-        <Card className="p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="flex gap-1">
-              {SCANNER_TYPES.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => setActiveType(type.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                    activeType === type.id
-                      ? 'bg-primary text-white'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-surface-1'
-                  )}
-                >
-                  <type.icon className="w-4 h-4" />
-                  {type.label}
-                </button>
-              ))}
-            </div>
+      <Section>
+        <Card sx={{ p: 2, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'flex-start', md: 'center' },
+              gap: 2,
+            }}
+          >
+            {/* Scanner type toggle buttons */}
+            <Stack direction="row" spacing={0.5}>
+              {SCANNER_TYPES.map((type) => {
+                const isActive = activeType === type.id;
+                return (
+                  <Box
+                    key={type.id}
+                    component="button"
+                    onClick={() => setActiveType(type.id)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 1.5,
+                      py: 1,
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      borderRadius: 2,
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      bgcolor: isActive ? 'primary.main' : 'transparent',
+                      color: isActive
+                        ? 'primary.contrastText'
+                        : 'text.secondary',
+                      '&:hover': isActive
+                        ? {}
+                        : {
+                            color: 'text.primary',
+                            bgcolor: (t) =>
+                              t.palette.mode === 'dark'
+                                ? alpha(t.palette.common.white, 0.05)
+                                : alpha(t.palette.common.black, 0.04),
+                          },
+                    }}
+                  >
+                    <type.icon style={{ width: 16, height: 16 }} />
+                    {type.label}
+                  </Box>
+                );
+              })}
+            </Stack>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-muted-foreground">Timeframe:</span>
+            {/* Timeframe selector */}
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ ml: { md: 'auto' } }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Timeframe:
+              </Typography>
               <Select
                 value={timeframe}
                 onChange={(e) => setTimeframe(e.target.value)}
-                className="w-40"
+                sx={{ width: 160 }}
               >
-                <option value="all">All</option>
+                <MenuItem value="all">All</MenuItem>
                 {TIMEFRAMES.map((tf) => (
-                  <option key={tf.value} value={tf.value}>{tf.label}</option>
+                  <MenuItem key={tf.value} value={tf.value}>{tf.label}</MenuItem>
                 ))}
               </Select>
-            </div>
-          </div>
+            </Stack>
+          </Box>
         </Card>
       </Section>
 
       {/* Stocks Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gap: 2,
+          }}
+        >
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 skeleton rounded-2xl" />
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={192}
+              sx={{ borderRadius: 4 }}
+            />
           ))}
-        </div>
+        </Box>
       ) : filteredStocks.length === 0 ? (
-        <Card className="p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Stocks Found</h3>
-          <p className="text-muted-foreground">
+        <Card sx={{ py: 6, px: 3, textAlign: 'center' }}>
+          <AlertCircle
+            style={{
+              width: 48,
+              height: 48,
+              color: theme.palette.text.secondary,
+              margin: '0 auto 16px',
+              display: 'block',
+            }}
+          />
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            No Stocks Found
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             No stocks match your current filters. Try adjusting the timeframe or category.
-          </p>
+          </Typography>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gap: 2,
+          }}
+        >
           {filteredStocks.map((stock) => (
-            <StockCard 
-              key={stock.id} 
-              stock={stock} 
+            <StockCard
+              key={stock.id}
+              stock={stock}
               onView={setSelectedStock}
             />
           ))}
-        </div>
+        </Box>
       )}
 
-      {/* Disclaimer — honest about data source */}
-      <Card className="mt-8 p-4 bg-primary/5 border-primary/20">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary mt-0.5" />
-          <div>
-            <h4 className="font-semibold mb-1">About Scanner Data</h4>
-            <p className="text-sm text-muted-foreground">
+      {/* Disclaimer -- honest about data source */}
+      <Card
+        sx={{
+          mt: 4,
+          p: 2,
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.05),
+          borderColor: (t) => alpha(t.palette.primary.main, 0.2),
+        }}
+      >
+        <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+          <Info style={{ width: 20, height: 20, color: theme.palette.primary.main, flexShrink: 0, marginTop: 2 }} />
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              About Scanner Data
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               This page shows real-time results from our NSE stock scanners. Gainers and losers
               are based on live market data. Swing setups use technical indicators (EMA, RSI, VWAP).
-              Scanner scores reflect technical alignment — they are not predictions. Always do your
+              Scanner scores reflect technical alignment &mdash; they are not predictions. Always do your
               own analysis and use proper risk management.
-            </p>
-          </div>
-        </div>
+            </Typography>
+          </Box>
+        </Stack>
       </Card>
 
       {/* Stock Detail Modal */}
       <AnimatePresence>
         {selectedStock && (
-          <StockDetailModal 
-            stock={selectedStock} 
-            onClose={() => setSelectedStock(null)} 
+          <StockDetailModal
+            stock={selectedStock}
+            onClose={() => setSelectedStock(null)}
           />
         )}
       </AnimatePresence>
@@ -517,4 +829,3 @@ const SignalsHub = () => {
 };
 
 export default SignalsHub;
-

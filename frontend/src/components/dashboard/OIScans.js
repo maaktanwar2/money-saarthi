@@ -2,7 +2,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Zap } from 'lucide-react';
-import { cn, fetchAPI } from '../../lib/utils';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
+import { useTheme, alpha } from '@mui/material/styles';
+import { fetchAPI } from '../../lib/utils';
 import { CHART_COLORS } from '../../lib/chartTheme';
 
 const OIScans = () => {
@@ -30,18 +34,21 @@ const OIScans = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
         {[0, 1].map(i => (
-          <div key={i} className="h-[220px] skeleton rounded-xl" />
+          <Skeleton key={i} variant="rectangular" sx={{ height: 220, borderRadius: 3 }} animation="wave" />
         ))}
-      </div>
+      </Box>
     );
   }
 
   const OIPanel = ({ title, items, type }) => {
+    const theme = useTheme();
     const isUp = type === 'up';
-    const glowColor = isUp ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)';
+    const glowColor = isUp ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.error.main, 0.12);
     const accentHex = isUp ? CHART_COLORS.bullish : CHART_COLORS.bearish;
+    const accentColor = isUp ? theme.palette.success.main : theme.palette.error.main;
+    const accentColorFaded = isUp ? alpha(theme.palette.success.main, 0.7) : alpha(theme.palette.error.main, 0.7);
     const maxOI = Math.max(...items.map(s => Math.abs(s.oi_change ?? 0)), 1);
 
     return (
@@ -49,131 +56,246 @@ const OIScans = () => {
         initial={{ opacity: 0, y: 16, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: isUp ? 0 : 0.08 }}
-        className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm h-full"
       >
-        {/* Top accent strip */}
-        <div className="h-[2px] w-full"
-          style={{ background: `linear-gradient(to right, ${glowColor}, ${accentHex}, ${glowColor})` }}
-        />
+        <Box
+          sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 3,
+            border: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            backdropFilter: 'blur(8px)',
+            height: '100%',
+          }}
+        >
+          {/* Top accent strip */}
+          <Box
+            sx={{ height: 2, width: '100%' }}
+            style={{ background: `linear-gradient(to right, ${glowColor}, ${accentHex}, ${glowColor})` }}
+          />
 
-        {/* Background glow */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-30 pointer-events-none"
-          style={{ backgroundColor: glowColor }}
-        />
+          {/* Background glow */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -40,
+              right: -40,
+              width: 128,
+              height: 128,
+              borderRadius: '50%',
+              filter: 'blur(48px)',
+              opacity: 0.3,
+              pointerEvents: 'none',
+              bgcolor: glowColor,
+            }}
+          />
 
-        <div className="relative p-3">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                'w-7 h-7 rounded-lg flex items-center justify-center',
-                isUp ? 'bg-emerald-500/15' : 'bg-rose-500/15'
-              )}
-                style={{ boxShadow: `0 4px 14px ${glowColor}` }}
+          <Box sx={{ position: 'relative', p: 1.5 }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: isUp ? alpha(theme.palette.success.main, 0.15) : alpha(theme.palette.error.main, 0.15),
+                    boxShadow: `0 4px 14px ${glowColor}`,
+                  }}
+                >
+                  {isUp
+                    ? <TrendingUp style={{ width: 16, height: 16, color: accentColor }} />
+                    : <TrendingDown style={{ width: 16, height: 16, color: accentColor }} />
+                  }
+                </Box>
+                <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: accentColor }}>
+                  {title}
+                </Typography>
+              </Box>
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '0.5625rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 5,
+                  border: 1,
+                  borderColor: isUp ? alpha(theme.palette.success.main, 0.25) : alpha(theme.palette.error.main, 0.25),
+                  color: accentColor,
+                  bgcolor: isUp ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                }}
               >
-                {isUp
-                  ? <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  : <TrendingDown className="w-4 h-4 text-rose-400" />
-                }
-              </div>
-              <span className={cn('text-sm font-bold', isUp ? 'text-emerald-400' : 'text-rose-400')}>
-                {title}
-              </span>
-            </div>
-            <span className={cn(
-              'text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border',
-              isUp
-                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25'
-                : 'text-rose-400 bg-rose-500/10 border-rose-500/25'
-            )}>
-              {isUp ? 'Buildup' : 'Unwinding'}
-            </span>
-          </div>
+                {isUp ? 'Buildup' : 'Unwinding'}
+              </Typography>
+            </Box>
 
-          {/* Stock rows */}
-          {items.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">No data available</div>
-          ) : (
-            <div className="space-y-0.5">
-              {items.map((stock, i) => {
-                const oiChg = stock.oi_change ?? 0;
-                const priceChg = stock.price_change ?? 0;
-                const barWidth = Math.min((Math.abs(oiChg) / maxOI) * 100, 100);
-                const isStrongOI = Math.abs(oiChg) > 5;
+            {/* Stock rows */}
+            {items.length === 0 ? (
+              <Typography sx={{ py: 4, textAlign: 'center', fontSize: '0.875rem', color: 'text.secondary' }}>
+                No data available
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
+                {items.map((stock, i) => {
+                  const oiChg = stock.oi_change ?? 0;
+                  const priceChg = stock.price_change ?? 0;
+                  const barWidth = Math.min((Math.abs(oiChg) / maxOI) * 100, 100);
+                  const isStrongOI = Math.abs(oiChg) > 5;
 
-                return (
-                  <motion.div
-                    key={stock.symbol}
-                    initial={{ opacity: 0, x: isUp ? -16 : 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06, type: 'spring', stiffness: 300, damping: 25 }}
-                    onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
-                    className="relative flex items-center gap-3 p-2.5 rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/[0.05] hover:-translate-y-0.5"
-                  >
-                    {/* Background bar */}
-                    <div
-                      className={cn(
-                        'absolute inset-y-0 left-0 rounded-xl opacity-[0.04] transition-all group-hover:opacity-[0.08]',
-                        isUp ? 'bg-emerald-400' : 'bg-rose-400'
-                      )}
-                      style={{ width: `${barWidth}%` }}
-                    />
+                  return (
+                    <motion.div
+                      key={stock.symbol}
+                      initial={{ opacity: 0, x: isUp ? -16 : 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06, type: 'spring', stiffness: 300, damping: 25 }}
+                    >
+                      <Box
+                        onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
+                        sx={{
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          p: 1.25,
+                          borderRadius: 3,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            bgcolor: (t) => alpha(t.palette.text.primary, 0.05),
+                            transform: 'translateY(-2px)',
+                          },
+                          '&:hover .bg-bar': {
+                            opacity: 0.08,
+                          },
+                          '&:hover .stock-symbol': {
+                            color: 'text.primary',
+                          },
+                        }}
+                      >
+                        {/* Background bar */}
+                        <Box
+                          className="bg-bar"
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            left: 0,
+                            borderRadius: 3,
+                            opacity: 0.04,
+                            transition: 'all 0.2s',
+                            bgcolor: accentColor,
+                            width: `${barWidth}%`,
+                          }}
+                        />
 
-                    {/* Rank */}
-                    <div className={cn(
-                      'relative w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-bold tabular-nums',
-                      i === 0 && isUp ? 'bg-emerald-500/20 text-emerald-400' :
-                      i === 0 && !isUp ? 'bg-rose-500/20 text-rose-400' :
-                      'bg-white/[0.06] text-muted-foreground'
-                    )}>
-                      {i + 1}
-                    </div>
+                        {/* Rank */}
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            width: 24,
+                            height: 24,
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            fontSize: '0.625rem',
+                            fontWeight: 700,
+                            fontVariantNumeric: 'tabular-nums',
+                            ...(i === 0
+                              ? {
+                                  bgcolor: isUp ? alpha(theme.palette.success.main, 0.2) : alpha(theme.palette.error.main, 0.2),
+                                  color: accentColor,
+                                }
+                              : {
+                                  bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                                  color: 'text.secondary',
+                                }),
+                          }}
+                        >
+                          {i + 1}
+                        </Box>
 
-                    {/* Symbol + price change */}
-                    <div className="relative flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold group-hover:text-foreground transition-colors truncate">
-                          {stock.symbol}
-                        </span>
-                        {isStrongOI && (
-                          <Zap className={cn('w-3 h-3 shrink-0', isUp ? 'text-emerald-400' : 'text-rose-400')} />
-                        )}
-                      </div>
-                      {priceChg !== 0 && (
-                        <span className={cn(
-                          'text-[10px] tabular-nums font-medium',
-                          priceChg > 0 ? 'text-emerald-400/70' : 'text-rose-400/70'
-                        )}>
-                          Price {priceChg > 0 ? '+' : ''}{priceChg.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
+                        {/* Symbol + price change */}
+                        <Box sx={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Typography
+                              className="stock-symbol"
+                              sx={{
+                                fontSize: '0.875rem',
+                                fontWeight: 700,
+                                transition: 'color 0.2s',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {stock.symbol}
+                            </Typography>
+                            {isStrongOI && (
+                              <Zap style={{ width: 12, height: 12, flexShrink: 0, color: accentColor }} />
+                            )}
+                          </Box>
+                          {priceChg !== 0 && (
+                            <Typography
+                              sx={{
+                                fontSize: '0.625rem',
+                                fontVariantNumeric: 'tabular-nums',
+                                fontWeight: 500,
+                                color: priceChg > 0 ? accentColorFaded : alpha(theme.palette.error.main, 0.7),
+                              }}
+                            >
+                              Price {priceChg > 0 ? '+' : ''}{priceChg.toFixed(1)}%
+                            </Typography>
+                          )}
+                        </Box>
 
-                    {/* OI change badge */}
-                    <div className="relative shrink-0">
-                      <span className={cn(
-                        'inline-flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-lg tabular-nums',
-                        isUp ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                      )}>
-                        {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {oiChg > 0 ? '+' : ''}{oiChg.toFixed(1)}%
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                        {/* OI change badge */}
+                        <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.25,
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 2,
+                              fontVariantNumeric: 'tabular-nums',
+                              bgcolor: isUp ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                              color: accentColor,
+                            }}
+                          >
+                            {isUp ? <ArrowUpRight style={{ width: 12, height: 12 }} /> : <ArrowDownRight style={{ width: 12, height: 12 }} />}
+                            {oiChg > 0 ? '+' : ''}{oiChg.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </motion.div>
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
+        </Box>
       </motion.div>
     );
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
       <OIPanel title="OI Up" items={oiUp} type="up" />
       <OIPanel title="OI Down" items={oiDown} type="down" />
-    </div>
+    </Box>
   );
 };
 

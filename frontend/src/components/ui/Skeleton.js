@@ -1,136 +1,142 @@
-// Skeleton loading components — shimmer placeholders for async content
-import { cn } from '../../lib/utils';
+// Skeleton loading components - MUI-based shimmer placeholders
+import MuiSkeleton from '@mui/material/Skeleton';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 
-/* ─── base shimmer bar ─── */
-export const Skeleton = ({ className, ...props }) => (
-  <div className={cn('skeleton', className)} {...props} />
+/* --- base shimmer bar --- */
+export const Skeleton = ({ className, width, height, variant = 'rectangular', ...props }) => (
+  <MuiSkeleton
+    variant={variant}
+    width={width}
+    height={height}
+    className={className}
+    animation="wave"
+    sx={{ borderRadius: 1 }}
+    {...props}
+  />
 );
 
-/* ─── text lines ─── */
+/* --- text lines --- */
 export const SkeletonText = ({ lines = 3, className }) => (
-  <div className={cn('space-y-2', className)}>
+  <Stack spacing={1} className={className}>
     {[...Array(lines)].map((_, i) => (
-      <Skeleton
-        key={i}
-        className={cn('h-4 rounded', i === lines - 1 ? 'w-3/4' : 'w-full')}
-      />
+      <MuiSkeleton key={i} variant="text" width={i === lines - 1 ? '75%' : '100%'} height={20} animation="wave" />
     ))}
-  </div>
+  </Stack>
 );
 
-/* ─── stat card (index card, KPI) ─── */
+/* --- stat card --- */
 export const SkeletonCard = ({ className }) => (
-  <div className={cn('glass-card rounded-2xl p-5 space-y-3', className)}>
-    <Skeleton className="h-4 w-1/3 rounded" />
-    <Skeleton className="h-8 w-2/3 rounded" />
-    <Skeleton className="h-3 w-1/2 rounded" />
-  </div>
+  <Paper className={className} sx={{ p: 2.5, borderRadius: 3 }}>
+    <Stack spacing={1.5}>
+      <MuiSkeleton variant="text" width="33%" height={20} animation="wave" />
+      <MuiSkeleton variant="text" width="66%" height={32} animation="wave" />
+      <MuiSkeleton variant="text" width="50%" height={16} animation="wave" />
+    </Stack>
+  </Paper>
 );
 
-/* ─── table rows ─── */
+/* --- table rows --- */
 export const SkeletonTable = ({ rows = 5, cols = 4, className }) => (
-  <div className={cn('glass-card rounded-2xl overflow-hidden', className)}>
-    {/* header */}
-    <div className="flex gap-4 p-4 border-b border-white/[0.06]">
+  <Paper className={className} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', gap: 2, p: 2, borderBottom: 1, borderColor: 'divider' }}>
       {[...Array(cols)].map((_, c) => (
-        <Skeleton key={c} className="h-4 flex-1 rounded" />
+        <MuiSkeleton key={c} variant="text" sx={{ flex: 1 }} height={20} animation="wave" />
       ))}
-    </div>
-    {/* rows */}
+    </Box>
     {[...Array(rows)].map((_, r) => (
-      <div key={r} className="flex gap-4 p-4 border-b border-white/[0.04]">
+      <Box key={r} sx={{ display: 'flex', gap: 2, p: 2, borderBottom: 1, borderColor: 'divider' }}>
         {[...Array(cols)].map((_, c) => (
-          <Skeleton key={c} className="h-4 flex-1 rounded" />
+          <MuiSkeleton key={c} variant="text" sx={{ flex: 1 }} height={20} animation="wave" />
         ))}
-      </div>
+      </Box>
     ))}
-  </div>
+  </Paper>
 );
 
-/* ─── chart area ─── */
+/* --- chart area --- */
 export const SkeletonChart = ({ className }) => (
-  <div className={cn('glass-card rounded-2xl p-5', className)}>
-    <Skeleton className="h-4 w-1/4 rounded mb-4" />
-    <Skeleton className="h-48 w-full rounded-xl" />
-  </div>
+  <Paper className={className} sx={{ p: 2.5, borderRadius: 3 }}>
+    <MuiSkeleton variant="text" width="25%" height={20} animation="wave" sx={{ mb: 2 }} />
+    <MuiSkeleton variant="rectangular" width="100%" height={192} animation="wave" sx={{ borderRadius: 2 }} />
+  </Paper>
 );
 
-/* ─── page-level skeleton: grid of cards ─── */
+/* --- page-level skeleton: grid of cards --- */
 export const SkeletonPage = ({ cards = 6, cols = 3 }) => (
-  <div className={cn(
-    'grid gap-4',
-    cols === 2 && 'grid-cols-1 md:grid-cols-2',
-    cols === 3 && 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-    cols === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
-    cols === 6 && 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
-  )}>
-    {[...Array(cards)].map((_, i) => (
-      <SkeletonCard key={i} />
-    ))}
-  </div>
+  <Box sx={{
+    display: 'grid', gap: 2,
+    gridTemplateColumns: {
+      xs: cols >= 4 ? 'repeat(2, 1fr)' : '1fr',
+      md: cols >= 4 ? `repeat(${Math.min(cols, 3)}, 1fr)` : `repeat(${Math.min(cols, 2)}, 1fr)`,
+      lg: `repeat(${cols}, 1fr)`,
+    },
+  }}>
+    {[...Array(cards)].map((_, i) => <SkeletonCard key={i} />)}
+  </Box>
 );
 
-/* ─── Dashboard-specific skeleton ─── */
+/* --- Dashboard-specific skeleton --- */
 export const DashboardSkeleton = () => (
-  <div className="space-y-6">
-    {/* Index cards */}
+  <Stack spacing={3}>
     <SkeletonPage cards={6} cols={6} />
-    {/* Chart + Table row */}
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <SkeletonChart className="lg:col-span-2" />
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 2 }}>
+      <SkeletonChart />
       <SkeletonTable rows={4} cols={2} />
-    </div>
-    {/* Sector heatmap */}
-    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+    </Box>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 1 }}>
       {[...Array(11)].map((_, i) => (
-        <Skeleton key={i} className="h-16 rounded-xl" />
+        <MuiSkeleton key={i} variant="rectangular" height={64} animation="wave" sx={{ borderRadius: 2 }} />
       ))}
-    </div>
-  </div>
+    </Box>
+  </Stack>
 );
 
-/* ─── Options chain skeleton ─── */
+/* --- Options chain skeleton --- */
 export const OptionsChainSkeleton = () => (
-  <div className="space-y-4">
-    <div className="flex gap-3">
-      <Skeleton className="h-10 w-40 rounded-lg" />
-      <Skeleton className="h-10 w-32 rounded-lg" />
-      <Skeleton className="h-10 w-24 rounded-lg" />
-    </div>
+  <Stack spacing={2}>
+    <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <MuiSkeleton variant="rectangular" width={160} height={40} animation="wave" sx={{ borderRadius: 1.5 }} />
+      <MuiSkeleton variant="rectangular" width={128} height={40} animation="wave" sx={{ borderRadius: 1.5 }} />
+      <MuiSkeleton variant="rectangular" width={96} height={40} animation="wave" sx={{ borderRadius: 1.5 }} />
+    </Box>
     <SkeletonTable rows={10} cols={7} />
-  </div>
+  </Stack>
 );
 
-/* ─── Signals / Scanner skeleton ─── */
+/* --- Signals / Scanner skeleton --- */
 export const SignalsSkeleton = () => (
-  <div className="space-y-4">
-    <div className="flex gap-2">
+  <Stack spacing={2}>
+    <Box sx={{ display: 'flex', gap: 1 }}>
       {[...Array(4)].map((_, i) => (
-        <Skeleton key={i} className="h-9 w-24 rounded-lg" />
+        <MuiSkeleton key={i} variant="rectangular" width={96} height={36} animation="wave" sx={{ borderRadius: 1.5 }} />
       ))}
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    </Box>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="glass-card rounded-2xl p-5 space-y-3">
-          <div className="flex justify-between">
-            <Skeleton className="h-5 w-24 rounded" />
-            <Skeleton className="h-5 w-16 rounded" />
-          </div>
-          <Skeleton className="h-7 w-32 rounded" />
-          <SkeletonText lines={2} />
-        </div>
+        <Paper key={i} sx={{ p: 2.5, borderRadius: 3 }}>
+          <Stack spacing={1.5}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <MuiSkeleton variant="text" width={96} height={22} animation="wave" />
+              <MuiSkeleton variant="text" width={64} height={22} animation="wave" />
+            </Box>
+            <MuiSkeleton variant="text" width={128} height={28} animation="wave" />
+            <SkeletonText lines={2} />
+          </Stack>
+        </Paper>
       ))}
-    </div>
-  </div>
+    </Box>
+  </Stack>
 );
 
-/* ─── Market hub section skeleton ─── */
+/* --- Market hub section skeleton --- */
 export const MarketSkeleton = () => (
-  <div className="space-y-6">
+  <Stack spacing={3}>
     <SkeletonPage cards={4} cols={4} />
     <SkeletonChart />
     <SkeletonTable rows={6} cols={5} />
-  </div>
+  </Stack>
 );
 
 export default Skeleton;

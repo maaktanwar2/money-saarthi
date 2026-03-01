@@ -2,11 +2,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Zap, AlertCircle } from 'lucide-react';
-import { Card } from '../ui';
-import { cn, formatNumber, fetchAPI } from '../../lib/utils';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Skeleton from '@mui/material/Skeleton';
+import { useTheme, alpha } from '@mui/material/styles';
+import { formatNumber } from '../../lib/utils';
 import { useMarketStats } from '../../hooks/useScannerDataEnhanced';
 
 const MarketOverview = () => {
+  const theme = useTheme();
   const [indices, setIndices] = useState([]);
   const { data: marketStats, isLoading: loading, error } = useMarketStats({ autoRefresh: true });
 
@@ -28,38 +33,81 @@ const MarketOverview = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)',
+          },
+          gap: 1,
+        }}
+      >
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-[90px] skeleton rounded-xl" />
+          <Skeleton key={i} variant="rounded" height={90} sx={{ borderRadius: 3 }} />
         ))}
-      </div>
+      </Box>
     );
   }
 
   // Show error state
   if (error) {
     return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
-        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-        <div>
-          <div className="text-sm font-medium">Market data unavailable</div>
-          <div className="text-xs opacity-75">{error?.message || 'Failed to load market indices'}</div>
-        </div>
-      </div>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: alpha(theme.palette.error.main, 0.1),
+          border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+          color: 'error.main',
+        }}
+      >
+        <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <Box>
+          <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>Market data unavailable</Typography>
+          <Typography sx={{ fontSize: '0.75rem', opacity: 0.75 }}>{error?.message || 'Failed to load market indices'}</Typography>
+        </Box>
+      </Stack>
     );
   }
 
   if (!indices.length) {
     return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50 text-muted-foreground">
-        <Zap className="w-4 h-4" />
-        <span className="text-sm">No market data available</span>
-      </div>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: 'action.hover',
+          border: 1,
+          borderColor: alpha(theme.palette.divider, 0.5),
+          color: 'text.secondary',
+        }}
+      >
+        <Zap style={{ width: 16, height: 16 }} />
+        <Typography sx={{ fontSize: '0.875rem' }}>No market data available</Typography>
+      </Stack>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: 'repeat(2, 1fr)',
+          md: 'repeat(3, 1fr)',
+          lg: 'repeat(6, 1fr)',
+        },
+        gap: 1.5,
+      }}
+    >
       {indices.map((index, i) => {
         const isPositive = (index.pChange || 0) >= 0;
         const price = index.last || index.lastPrice || 0;
@@ -75,6 +123,8 @@ const MarketOverview = () => {
           .replace('NIFTY', '')
           .trim();
 
+        const accentColor = isPositive ? theme.palette.success : theme.palette.error;
+
         return (
           <motion.div
             key={sym}
@@ -82,69 +132,152 @@ const MarketOverview = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: i * 0.06, type: 'spring', stiffness: 260, damping: 20 }}
           >
-            <div className={cn(
-              'relative group h-full rounded-xl border overflow-hidden transition-all duration-300 cursor-pointer',
-              'bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm',
-              'border-border/40 hover:border-border/80',
-              'hover:shadow-xl hover:-translate-y-0.5',
-              isPositive ? 'hover:shadow-emerald-500/10' : 'hover:shadow-rose-500/10'
-            )}>
+            <Box
+              sx={{
+                position: 'relative',
+                height: '100%',
+                borderRadius: 3,
+                border: 1,
+                overflow: 'hidden',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+                backdropFilter: 'blur(8px)',
+                borderColor: alpha(theme.palette.divider, 0.4),
+                '&:hover': {
+                  borderColor: alpha(theme.palette.divider, 0.8),
+                  boxShadow: `0 20px 40px ${alpha(accentColor.main, 0.1)}`,
+                  transform: 'translateY(-2px)',
+                },
+                '& .hover-glow': {
+                  opacity: 0,
+                  transition: 'opacity 0.5s ease',
+                },
+                '&:hover .hover-glow': {
+                  opacity: 1,
+                },
+                '& .icon-circle': {
+                  transition: 'transform 0.2s ease',
+                },
+                '&:hover .icon-circle': {
+                  transform: 'scale(1.1)',
+                },
+              }}
+            >
               {/* Top accent strip */}
-              <div className={cn(
-                'h-[2px] w-full',
-                isPositive
-                  ? 'bg-gradient-to-r from-emerald-500/60 via-emerald-400 to-emerald-500/60'
-                  : 'bg-gradient-to-r from-rose-500/60 via-rose-400 to-rose-500/60'
-              )} />
+              <Box
+                sx={{
+                  height: 2,
+                  width: '100%',
+                  background: `linear-gradient(to right, ${alpha(accentColor.main, 0.6)}, ${accentColor.light}, ${alpha(accentColor.main, 0.6)})`,
+                }}
+              />
 
               {/* Background glow */}
-              <div className={cn(
-                'absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500',
-                isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-              )} />
+              <Box
+                className="hover-glow"
+                sx={{
+                  position: 'absolute',
+                  top: -32,
+                  right: -32,
+                  width: 96,
+                  height: 96,
+                  borderRadius: '50%',
+                  filter: 'blur(16px)',
+                  bgcolor: alpha(accentColor.main, 0.1),
+                }}
+              />
 
-              <div className="p-2.5 relative">
+              <Box sx={{ p: 1.25, position: 'relative' }}>
                 {/* Header: name + icon */}
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] md:text-[11px] text-muted-foreground font-semibold uppercase tracking-wider truncate max-w-[75%]">
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                  <Typography
+                    sx={{
+                      fontSize: { xs: '0.625rem', md: '0.6875rem' },
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '75%',
+                    }}
+                  >
                     {shortName || sym}
-                  </span>
-                  <div className={cn(
-                    'w-6 h-6 rounded-full flex items-center justify-center transition-transform group-hover:scale-110',
-                    isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                  )}>
+                  </Typography>
+                  <Box
+                    className="icon-circle"
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: alpha(accentColor.main, 0.15),
+                      color: accentColor.light,
+                    }}
+                  >
                     {vix
-                      ? <Zap className="w-3 h-3" />
+                      ? <Zap style={{ width: 12, height: 12 }} />
                       : isPositive
-                        ? <TrendingUp className="w-3 h-3" />
-                        : <TrendingDown className="w-3 h-3" />
+                        ? <TrendingUp style={{ width: 12, height: 12 }} />
+                        : <TrendingDown style={{ width: 12, height: 12 }} />
                     }
-                  </div>
-                </div>
+                  </Box>
+                </Stack>
 
                 {/* Price */}
-                <div className="text-base md:text-lg font-bold tabular-nums tracking-tight mb-1">
+                <Typography
+                  sx={{
+                    fontSize: { xs: '1rem', md: '1.125rem' },
+                    fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.025em',
+                    mb: 0.5,
+                  }}
+                >
                   {vix ? price.toFixed(2) : price >= 1000 ? formatNumber(price, { decimals: 0 }) : price.toFixed(2)}
-                </div>
+                </Typography>
 
                 {/* Change row */}
-                <div className="flex items-center gap-1.5">
-                  <span className={cn(
-                    'inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-md tabular-nums',
-                    isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                  )}>
-                    {isPositive ? '▲' : '▼'} {isPositive ? '+' : ''}{pChange.toFixed(2)}%
-                  </span>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                <Stack direction="row" alignItems="center" spacing={0.75}>
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.25,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: 1.5,
+                      fontVariantNumeric: 'tabular-nums',
+                      bgcolor: alpha(accentColor.main, 0.1),
+                      color: accentColor.light,
+                    }}
+                  >
+                    {isPositive ? '\u25B2' : '\u25BC'} {isPositive ? '+' : ''}{pChange.toFixed(2)}%
+                  </Box>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: '0.625rem',
+                      color: 'text.secondary',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
                     {change >= 0 ? '+' : ''}{Math.abs(change).toFixed(change >= 100 ? 0 : 2)}
-                  </span>
-                </div>
-              </div>
-            </div>
+                  </Typography>
+                </Stack>
+              </Box>
+            </Box>
           </motion.div>
         );
       })}
-    </div>
+    </Box>
   );
 };
 

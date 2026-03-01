@@ -1,11 +1,19 @@
-// Data Table Component - Professional trading table with sorting, filtering
+// Data Table Component - MUI-based trading table with sorting, filtering, pagination
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronUp, ChevronDown, Search, Filter, 
-  ChevronLeft, ChevronRight, Download 
-} from 'lucide-react';
-import { cn, formatINR, formatPercent, getChangeColor } from '../../lib/utils';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TablePagination from '@mui/material/TablePagination';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import InputAdornment from '@mui/material/InputAdornment';
+import { Search, Filter, Download } from 'lucide-react';
+import { formatINR, formatPercent } from '../../lib/utils';
 import { Input, Button, Badge, Spinner } from './index';
 
 export const DataTable = ({
@@ -22,15 +30,12 @@ export const DataTable = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(0);
 
-  // Reset page when data or search changes
-  useEffect(() => { setCurrentPage(1); }, [data, searchQuery]);
+  useEffect(() => { setPage(0); }, [data, searchQuery]);
 
-  // Filter data based on search
   const filteredData = useMemo(() => {
     if (!searchQuery) return data;
-    
     return data.filter((row) =>
       columns.some((col) => {
         const value = row[col.key];
@@ -40,244 +45,151 @@ export const DataTable = ({
     );
   }, [data, searchQuery, columns]);
 
-  // Sort data
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return filteredData;
-    
     return [...filteredData].sort((a, b) => {
       const aVal = a[sortConfig.key];
       const bVal = b[sortConfig.key];
-      
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
-      
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
       }
-      
       return sortConfig.direction === 'asc'
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal));
     });
   }, [filteredData, sortConfig]);
 
-  // Paginate data
   const paginatedData = useMemo(() => {
     if (!pagination) return sortedData;
-    
-    const start = (currentPage - 1) * pageSize;
-    return sortedData.slice(start, start + pageSize);
-  }, [sortedData, currentPage, pageSize, pagination]);
+    return sortedData.slice(page * pageSize, page * pageSize + pageSize);
+  }, [sortedData, page, pageSize, pagination]);
 
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-
-  // Handle sort
   const handleSort = (key) => {
     if (!sortable) return;
-    
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
   };
 
-  // Render cell value
   const renderCell = (row, column) => {
     const value = row[column.key];
-    
-    if (column.render) {
-      return column.render(value, row);
-    }
-    
-    if (column.type === 'currency') {
-      return formatINR(value, { compact: column.compact });
-    }
-    
+    if (column.render) return column.render(value, row);
+    if (column.type === 'currency') return formatINR(value, { compact: column.compact });
     if (column.type === 'percent') {
-      return (
-        <span className={getChangeColor(value)}>
-          {formatPercent(value)}
-        </span>
-      );
+      const color = value > 0 ? 'success.main' : value < 0 ? 'error.main' : 'text.secondary';
+      return <Typography component="span" sx={{ color }}>{formatPercent(value)}</Typography>;
     }
-    
     if (column.type === 'change') {
-      return (
-        <span className={getChangeColor(value)}>
-          {value >= 0 ? '+' : ''}{value?.toFixed(2)}
-        </span>
-      );
+      return <Typography component="span" sx={{ color: value >= 0 ? 'success.main' : 'error.main' }}>{value >= 0 ? '+' : ''}{value?.toFixed(2)}</Typography>;
     }
-    
     if (column.type === 'badge') {
       return <Badge variant={column.getVariant?.(value) || 'default'}>{value}</Badge>;
     }
-    
     return value;
   };
 
   return (
-    <div className={cn('rounded-xl overflow-hidden', className)}>
-      {/* Search and Actions */}
+    <Paper className={className} sx={{ overflow: 'hidden' }}>
       {searchable && (
-        <div className="p-4 border-b border-border flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ flex: 1, maxWidth: 320 }}>
             <Input
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search style={{ width: 16, height: 16 }} />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </div>
+          </Box>
           <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
+            <Filter style={{ width: 16, height: 16, marginRight: 8 }} /> Filter
           </Button>
           <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download style={{ width: 16, height: 16, marginRight: 8 }} /> Export
           </Button>
-        </div>
+        </Box>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-secondary/30">
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
               {columns.map((column) => (
-                <th
+                <TableCell
                   key={column.key}
-                  onClick={() => column.sortable !== false && handleSort(column.key)}
-                  className={cn(
-                    'px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider',
-                    sortable && column.sortable !== false && 'cursor-pointer hover:text-foreground transition-colors',
-                    column.align === 'right' && 'text-right',
-                    column.align === 'center' && 'text-center'
-                  )}
+                  align={column.align || 'left'}
                   style={{ width: column.width }}
+                  sortDirection={sortConfig.key === column.key ? sortConfig.direction : false}
                 >
-                  <div className={cn(
-                    'flex items-center gap-1',
-                    column.align === 'right' && 'justify-end',
-                    column.align === 'center' && 'justify-center'
-                  )}>
-                    {column.label}
-                    {sortable && sortConfig.key === column.key && (
-                      sortConfig.direction === 'asc' 
-                        ? <ChevronUp className="w-4 h-4" />
-                        : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
+                  {sortable && column.sortable !== false ? (
+                    <TableSortLabel
+                      active={sortConfig.key === column.key}
+                      direction={sortConfig.key === column.key ? sortConfig.direction : 'asc'}
+                      onClick={() => handleSort(column.key)}
+                    >
+                      {column.label}
+                    </TableSortLabel>
+                  ) : (
+                    column.label
+                  )}
+                </TableCell>
               ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.05]">
-            <AnimatePresence mode="popLayout">
-              {loading ? (
-                <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center">
-                    <Spinner className="mx-auto" />
-                    <p className="text-sm text-muted-foreground mt-2">Loading data...</p>
-                  </td>
-                </tr>
-              ) : paginatedData.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
-                    {emptyMessage}
-                  </td>
-                </tr>
-              ) : (
-                paginatedData.map((row, index) => (
-                  <motion.tr
-                    key={row.id || index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.15, delay: index * 0.02 }}
-                    onClick={() => onRowClick?.(row)}
-                    className={cn(
-                      'hover:bg-white/[0.03] transition-colors',
-                      onRowClick && 'cursor-pointer'
-                    )}
-                  >
-                    {columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className={cn(
-                          'px-4 py-3 text-sm',
-                          column.align === 'right' && 'text-right',
-                          column.align === 'center' && 'text-center'
-                        )}
-                      >
-                        {renderCell(row, column)}
-                      </td>
-                    ))}
-                  </motion.tr>
-                ))
-              )}
-            </AnimatePresence>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {pagination && totalPages > 1 && (
-        <div className="p-4 border-t border-border flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * pageSize + 1} to{' '}
-            {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            
-            {/* Page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <Button
-                  key={pageNum}
-                  variant={currentPage === pageNum ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCurrentPage(pageNum)}
-                  className="w-8"
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} align="center" sx={{ py: 6 }}>
+                  <Spinner />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Loading data...</Typography>
+                </TableCell>
+              </TableRow>
+            ) : paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body2" color="text.secondary">{emptyMessage}</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedData.map((row, index) => (
+                <TableRow
+                  key={row.id || index}
+                  hover
+                  onClick={() => onRowClick?.(row)}
+                  sx={{ cursor: onRowClick ? 'pointer' : 'default' }}
                 >
-                  {pageNum}
-                </Button>
-              );
-            })}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+                  {columns.map((column) => (
+                    <TableCell key={column.key} align={column.align || 'left'}>
+                      {renderCell(row, column)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {pagination && sortedData.length > pageSize && (
+        <TablePagination
+          component="div"
+          count={sortedData.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={pageSize}
+          rowsPerPageOptions={[pageSize]}
+          sx={{ borderTop: 1, borderColor: 'divider' }}
+        />
       )}
-    </div>
+    </Paper>
   );
 };
 

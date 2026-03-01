@@ -6,6 +6,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Checkbox from '@mui/material/Checkbox';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   Bot, Play, Square, Settings, TrendingUp, TrendingDown,
   Activity, Target, Shield, Zap, BarChart3, Brain,
@@ -19,14 +26,13 @@ import {
   Card, CardHeader, CardTitle, CardContent,
   Button, Badge, Input, Spinner
 } from '../components/ui';
-import { cn, formatINR } from '../lib/utils';
+import { formatINR, fetchAPI } from '../lib/utils';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { API_BASE_URL, fetchWithAuth } from '../config/api';
 import { toast } from '../hooks/use-toast';
 import { useConfirm } from '../hooks/useConfirm';
 import { getTokenBalance, checkCanUseTokens } from '../services/tokenService';
-import { fetchAPI } from '../lib/utils';
 import PnLChart from '../components/algo/PnLChart';
 import RiskAnalytics from '../components/algo/RiskAnalytics';
 import StrategyShowcase from '../components/algo/StrategyShowcase';
@@ -44,28 +50,28 @@ const BOT_CONFIGS = {
     name: 'VWAP Momentum Bot',
     description: 'Auto-trades stocks showing strong momentum signals above/below VWAP',
     icon: TrendingUp,
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
     color: 'blue',
     features: ['Momentum Detection', 'Auto Position Sizing', 'Trailing Stop Loss'],
     riskLevel: 'Medium',
     winRate: '68%*',
     avgReturn: '+2.1%*',
-    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
+    disclaimer: '*Based on backtested data. Past performance \u2260 future results.',
     tokenAction: 'bot_start',
     tokenCost: 15,
   },
   strangle: {
     id: 'strangle',
     name: 'QuantStrangle AI Bot',
-    description: 'Claude-powered delta-neutral strangle with 15δ entry & 30δ adjustments',
+    description: 'Claude-powered delta-neutral strangle with 15\u03B4 entry & 30\u03B4 adjustments',
     icon: Brain,
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
     color: 'purple',
-    features: ['Claude 4.5 AI', '15-Delta Entry', 'Auto Adjustments at 30δ'],
+    features: ['Claude 4.5 AI', '15-Delta Entry', 'Auto Adjustments at 30\u03B4'],
     riskLevel: 'Medium-High',
     winRate: '72%*',
     avgReturn: '+1.8%*',
-    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
+    disclaimer: '*Based on backtested data. Past performance \u2260 future results.',
     isPremium: true,
     tokenAction: 'bot_start_ai_hedging',
     tokenCost: 60,
@@ -73,15 +79,15 @@ const BOT_CONFIGS = {
   delta: {
     id: 'delta',
     name: 'Delta Neutral Bot',
-    description: 'Iron Condor, Butterfly & Strangle strategies with auto-adjustments — choose your risk profile',
+    description: 'Iron Condor, Butterfly & Strangle strategies with auto-adjustments \u2014 choose your risk profile',
     icon: Shield,
-    gradient: 'from-emerald-500 to-teal-500',
+    gradient: 'linear-gradient(135deg, #10b981, #14b8a6)',
     color: 'emerald',
     features: ['4 Strategy Modes', 'Defined Risk Options', 'Daily & Weekly', 'Auto Adjustments', 'Trailing Profit'],
     riskLevel: 'Low-Medium',
     winRate: '78%*',
     avgReturn: '+2-4%*',
-    disclaimer: '*Based on backtested data. Past performance ≠ future results.',
+    disclaimer: '*Based on backtested data. Past performance \u2260 future results.',
     tokenAction: 'bot_start_hedging',
     tokenCost: 40,
   }
@@ -94,10 +100,11 @@ const BOT_CONFIGS = {
 const AlgoTrading = () => {
   const navigate = useNavigate();
   const [ConfirmEl, confirm] = useConfirm();
+  const theme = useTheme();
   // ─────────────────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   // Broker Connection
   const [brokerConnected, setBrokerConnected] = useState(false);
   const [brokerToken, setBrokerToken] = useState('');
@@ -107,12 +114,12 @@ const AlgoTrading = () => {
   const [connectingBroker, setConnectingBroker] = useState(false);
   const [brokerInfo, setBrokerInfo] = useState(null);
   const [selectedBroker, setSelectedBroker] = useState('dhan'); // 'dhan' or 'upstox'
-  
+
   // Bot States
   const [vwapBot, setVwapBot] = useState({ running: false, loading: false, status: null });
   const [strangleBot, setStrangleBot] = useState({ running: false, loading: false, status: null });
   const [deltaBot, setDeltaBot] = useState({ running: false, loading: false, status: null });
-  
+
   // Bot Configurations
   const [vwapConfig, setVwapConfig] = useState({
     capital: 100000,
@@ -122,7 +129,7 @@ const AlgoTrading = () => {
     stopLossPercent: 1,
     trailingStopPercent: 0.5
   });
-  
+
   const [strangleConfig, setStrangleConfig] = useState({
     underlying: 'NIFTY',
     numLots: 1,
@@ -137,7 +144,7 @@ const AlgoTrading = () => {
     entryTime: '09:30',
     exitTime: '15:15'
   });
-  
+
   const [deltaConfig, setDeltaConfig] = useState({
     underlying: 'NIFTY',
     lotSize: 65,
@@ -153,44 +160,44 @@ const AlgoTrading = () => {
     ivEntryMin: 25,
     maxAdjustmentsPerDay: 3,
   });
-  
+
   // UI State
   const [expandedBot, setExpandedBot] = useState(null);
   const [tradeHistory, setTradeHistory] = useState([]);
   const [totalPnL, setTotalPnL] = useState(0);
   const [todayPnL, setTodayPnL] = useState(0);
   const [activePositions, setActivePositions] = useState(0);
-  
+
   // Token State
   const [tokenBalance, setTokenBalance] = useState(0);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  
+
   // P&L Chart State
   const [pnlHistory, setPnlHistory] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('ms_pnl_history') || '[]');
     } catch { return []; }
   });
-  
+
   // Activity Feed State
   const [activityEvents, setActivityEvents] = useState([]);
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // CHECK BROKER CONNECTION ON MOUNT
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   useEffect(() => {
     const savedToken = sessionStorage.getItem('ms_broker_token') || localStorage.getItem('ms_broker_token');
     const savedBroker = localStorage.getItem('ms_connected_broker');
     const savedClientId = localStorage.getItem('ms_client_id');
     const savedSandbox = localStorage.getItem('ms_is_sandbox') === 'true';
-    
+
     // Migrate from localStorage to sessionStorage if needed
     if (localStorage.getItem('ms_broker_token')) {
       sessionStorage.setItem('ms_broker_token', localStorage.getItem('ms_broker_token'));
       localStorage.removeItem('ms_broker_token');
     }
-    
+
     if (savedToken && savedBroker) {
       setBrokerToken(savedToken);
       setClientId(savedClientId || '');
@@ -199,7 +206,7 @@ const AlgoTrading = () => {
       setBrokerInfo({ broker: savedBroker, sandbox: savedSandbox });
       setSelectedBroker(savedBroker);
     }
-    
+
     // Load token balance
     const loadBalance = async () => {
       try {
@@ -210,7 +217,7 @@ const AlgoTrading = () => {
     };
     loadBalance();
   }, []);
-  
+
   // Check if user has enough tokens (pre-flight, no deduction)
   const checkBotTokens = async (cost = 15) => {
     if (isAdminUser) return true;
@@ -219,7 +226,7 @@ const AlgoTrading = () => {
       const balance = res.balance || 0;
       setTokenBalance(balance);
       if (balance < cost) {
-        toast({ title: 'Insufficient Tokens', description: `You need ${cost} tokens to start this bot. Current balance: ${balance}. Go to Profile → AI Tokens to recharge.`, variant: 'destructive' });
+        toast({ title: 'Insufficient Tokens', description: `You need ${cost} tokens to start this bot. Current balance: ${balance}. Go to Profile \u2192 AI Tokens to recharge.`, variant: 'destructive' });
         return false;
       }
       return true;
@@ -244,44 +251,44 @@ const AlgoTrading = () => {
       console.error('Token deduction failed:', e);
     }
   };
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // BROKER CONNECTION
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const connectBroker = async () => {
     if (!brokerToken.trim()) {
       toast({ title: 'Error', description: `Please enter your ${selectedBroker === 'upstox' ? 'Upstox' : 'Dhan'} access token`, variant: 'destructive' });
       return;
     }
-    
+
     // Sandbox only applies to Dhan
     if (selectedBroker === 'dhan' && isSandbox && !clientId.trim()) {
       toast({ title: 'Error', description: 'Please enter your Sandbox Client ID', variant: 'destructive' });
       return;
     }
-    
+
     setConnectingBroker(true);
-    const requestBody = { 
+    const requestBody = {
       access_token: brokerToken,
       client_id: (selectedBroker === 'dhan' && isSandbox) ? clientId : undefined,
       sandbox: selectedBroker === 'dhan' ? isSandbox : false
     };
-    
+
     // Use the appropriate validation endpoint based on selected broker
-    const validatePath = selectedBroker === 'upstox' 
+    const validatePath = selectedBroker === 'upstox'
       ? '/upstox/validate-token'
       : '/dhan/validate-token';
-    
+
     try {
       const response = await fetchWithAuth(validatePath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.valid) {
         sessionStorage.setItem('ms_broker_token', brokerToken);
         localStorage.setItem('ms_connected_broker', selectedBroker);
@@ -291,21 +298,21 @@ const AlgoTrading = () => {
         setBrokerInfo({ broker: selectedBroker, sandbox: selectedBroker === 'dhan' && isSandbox, ...data });
         setShowTokenInput(false);
         const brokerName = selectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
-        toast({ 
-          title: '✅ Connected', 
-          description: (selectedBroker === 'dhan' && isSandbox) ? 'Sandbox mode connected!' : `${brokerName} connected successfully!` 
+        toast({
+          title: 'Connected',
+          description: (selectedBroker === 'dhan' && isSandbox) ? 'Sandbox mode connected!' : `${brokerName} connected successfully!`
         });
         fetchBotStatuses();
       } else {
         toast({ title: 'Invalid Token', description: data.error || 'Token validation failed', variant: 'destructive' });
       }
     } catch (error) {
-      console.error('🔥 Connection error:', error);
+      console.error('Connection error:', error);
       toast({ title: 'Connection Failed', description: error.message, variant: 'destructive' });
     }
     setConnectingBroker(false);
   };
-  
+
   const disconnectBroker = () => {
     sessionStorage.removeItem('ms_broker_token');
     localStorage.removeItem('ms_connected_broker');
@@ -322,11 +329,11 @@ const AlgoTrading = () => {
     setDeltaBot({ running: false, loading: false, status: null });
     toast({ title: 'Disconnected', description: 'Broker disconnected' });
   };
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // FETCH BOT STATUSES
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const fetchBotStatuses = useCallback(async () => {
     if (!brokerConnected) return;
 
@@ -364,31 +371,31 @@ const AlgoTrading = () => {
           status: deltaData
         }));
       }
-      
+
       // Update aggregate stats
-      const allPositions = (vwapData.positions?.length || 0) + 
-                          (strangleData.positions?.length || 0) + 
+      const allPositions = (vwapData.positions?.length || 0) +
+                          (strangleData.positions?.length || 0) +
                           (deltaData.positions?.length || 0);
       setActivePositions(allPositions);
-      
+
       const allTrades = [
         ...(vwapData.trades || []),
         ...(strangleData.trade_history || []),
         ...(deltaData.trades || [])
       ].sort((a, b) => new Date(b.timestamp || b.time) - new Date(a.timestamp || a.time));
       setTradeHistory(allTrades.slice(0, 20));
-      
+
       // Calculate P&L
-      const total = (vwapData.total_pnl || 0) + 
-                   (strangleData.total_pnl || 0) + 
+      const total = (vwapData.total_pnl || 0) +
+                   (strangleData.total_pnl || 0) +
                    (deltaData.total_pnl || 0);
       setTotalPnL(total);
-      
-      const today = (vwapData.today_pnl || 0) + 
-                   (strangleData.today_pnl || 0) + 
+
+      const today = (vwapData.today_pnl || 0) +
+                   (strangleData.today_pnl || 0) +
                    (deltaData.today_pnl || 0);
       setTodayPnL(today);
-      
+
       // Track P&L history for chart
       const now = new Date();
       const timeLabel = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -407,12 +414,12 @@ const AlgoTrading = () => {
         }
         return updated;
       });
-      
+
     } catch (error) {
       console.error('Failed to fetch bot statuses:', error);
     }
   }, [brokerConnected]);
-  
+
   // Poll bot statuses
   useEffect(() => {
     if (brokerConnected) {
@@ -421,7 +428,7 @@ const AlgoTrading = () => {
       return () => clearInterval(interval);
     }
   }, [brokerConnected, fetchBotStatuses]);
-  
+
   // Helper to add activity events
   const addActivityEvent = useCallback((type, message, pnl) => {
     setActivityEvents(prev => [...prev, {
@@ -432,7 +439,7 @@ const AlgoTrading = () => {
       timestamp: new Date().toISOString(),
     }].slice(-50)); // Keep last 50 events
   }, []);
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // BOT CONTROLS
   // ─────────────────────────────────────────────────────────────────────────────
@@ -452,7 +459,7 @@ const AlgoTrading = () => {
     const confirmed = await confirm({
       title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
       message: `You are about to start VWAP Momentum Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
-        `Capital: ₹${vwapConfig.capital.toLocaleString()} | Risk: ${vwapConfig.riskPerTrade}%\n` +
+        `Capital: \u20B9${vwapConfig.capital.toLocaleString()} | Risk: ${vwapConfig.riskPerTrade}%\n` +
         `Max Positions: ${vwapConfig.maxPositions} | Target: ${vwapConfig.targetPercent}% | SL: ${vwapConfig.stopLossPercent}%\n\n` +
         `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL orders on your ${brokerName} account.`}`,
       confirmText: 'Start Bot',
@@ -489,7 +496,7 @@ const AlgoTrading = () => {
       if (data.status === 'success' || data.status === 'running') {
         setVwapBot(prev => ({ ...prev, running: true }));
         await deductBotTokens(BOT_CONFIGS.vwap.tokenAction);
-        toast({ title: '🚀 Bot Started', description: `VWAP Momentum Bot is now active${isSandboxMode ? ' [SANDBOX]' : ''}` });
+        toast({ title: 'Bot Started', description: `VWAP Momentum Bot is now active${isSandboxMode ? ' [SANDBOX]' : ''}` });
         addActivityEvent('bot_start', `VWAP Momentum Bot started${isSandboxMode ? ' (Sandbox)' : ''}`);
       } else {
         toast({ title: 'Error', description: data.detail || data.message || 'Failed to start bot', variant: 'destructive' });
@@ -499,7 +506,7 @@ const AlgoTrading = () => {
     }
     setVwapBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   const stopVwapBot = async () => {
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
@@ -511,7 +518,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.status === 'success' || data.status === 'stopped') {
         setVwapBot(prev => ({ ...prev, running: false }));
-        toast({ title: '⏹ Bot Stopped', description: 'VWAP Momentum Bot stopped' });
+        toast({ title: 'Bot Stopped', description: 'VWAP Momentum Bot stopped' });
         addActivityEvent('bot_stop', 'VWAP Momentum Bot stopped');
       }
     } catch (error) {
@@ -519,7 +526,7 @@ const AlgoTrading = () => {
     }
     setVwapBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   const startStrangleBot = async () => {
     const { isSandboxMode, connectedBroker, brokerName, token } = getBrokerContext();
     const confirmed = await confirm({
@@ -563,7 +570,7 @@ const AlgoTrading = () => {
       if (data.status === 'success') {
         setStrangleBot(prev => ({ ...prev, running: true, status: data }));
         await deductBotTokens(BOT_CONFIGS.strangle.tokenAction);
-        toast({ title: '🤖 QuantStrangle AI Started', description: data.message || 'Bot is now monitoring positions' });
+        toast({ title: 'QuantStrangle AI Started', description: data.message || 'Bot is now monitoring positions' });
         addActivityEvent('bot_start', 'QuantStrangle AI Bot started');
       } else {
         toast({ title: 'Error', description: data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
@@ -573,7 +580,7 @@ const AlgoTrading = () => {
     }
     setStrangleBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   const stopStrangleBot = async () => {
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
@@ -585,7 +592,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.status === 'success') {
         setStrangleBot(prev => ({ ...prev, running: false, status: null }));
-        toast({ title: '⏹ Bot Stopped', description: 'QuantStrangle AI stopped' });
+        toast({ title: 'Bot Stopped', description: 'QuantStrangle AI stopped' });
         addActivityEvent('bot_stop', 'QuantStrangle AI Bot stopped');
       }
     } catch (error) {
@@ -593,7 +600,7 @@ const AlgoTrading = () => {
     }
     setStrangleBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   // Scan function for serverless execution
   const scanStrangleBot = async () => {
     try {
@@ -609,7 +616,7 @@ const AlgoTrading = () => {
       setStrangleBot(prev => ({ ...prev, status: data }));
       if (data.action_taken) {
         toast({
-          title: '🔄 Action Taken',
+          title: 'Action Taken',
           description: `${data.action_taken.reason}: ${data.action_taken.trigger || ''}`
         });
       }
@@ -619,32 +626,32 @@ const AlgoTrading = () => {
       toast({ title: 'Scan Error', description: error.message, variant: 'destructive' });
     }
   };
-  
+
   const STRATEGY_LABELS = {
     iron_condor: 'Iron Condor (Defined Risk)',
     iron_butterfly: 'Iron Butterfly (High Premium)',
     short_strangle: 'Short Strangle (Aggressive)',
     straddle_hedge: 'Straddle + Hedge (Max Theta)',
   };
-  
+
   const TIMEFRAME_LABELS = {
     intraday: '0DTE Intraday',
     weekly: 'Weekly Expiry',
     smart: 'Smart (Auto-select)',
   };
-  
+
   const startDeltaBot = async () => {
     const { isSandboxMode, connectedBroker, brokerName, token } = getBrokerContext();
     const strategyLabel = STRATEGY_LABELS[deltaConfig.strategyMode] || deltaConfig.strategyMode;
     const timeframeLabel = TIMEFRAME_LABELS[deltaConfig.timeframe] || deltaConfig.timeframe;
     const isDefinedRisk = ['iron_condor', 'iron_butterfly'].includes(deltaConfig.strategyMode);
-    
+
     const confirmed = await confirm({
       title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
       message: `You are about to start Delta Neutral Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
         `Strategy: ${strategyLabel} | Timeframe: ${timeframeLabel}\n` +
-        `Underlying: ${deltaConfig.underlying} | Entry Delta: ${deltaConfig.entryDelta}δ\n` +
-        (isDefinedRisk ? `Wing Protection: ${deltaConfig.wingWidth} pts (capped loss)\n` : 'Unlimited risk — no wing protection\n') +
+        `Underlying: ${deltaConfig.underlying} | Entry Delta: ${deltaConfig.entryDelta}\u03B4\n` +
+        (isDefinedRisk ? `Wing Protection: ${deltaConfig.wingWidth} pts (capped loss)\n` : 'Unlimited risk \u2014 no wing protection\n') +
         `Profit Target: ${deltaConfig.profitTargetPct}%${deltaConfig.trailingProfit ? ' (trailing)' : ''} | Token Cost: 40 tokens\n\n` +
         `${isSandboxMode ? 'This will simulate trades (no real orders).' : `This will place REAL options orders on your ${brokerName} account.`}`,
       confirmText: 'Start Bot',
@@ -687,7 +694,7 @@ const AlgoTrading = () => {
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: true }));
         await deductBotTokens(BOT_CONFIGS.delta.tokenAction);
-        toast({ title: '🛡️ Bot Started', description: data.message || `${strategyLabel} bot is now active` });
+        toast({ title: 'Bot Started', description: data.message || `${strategyLabel} bot is now active` });
         addActivityEvent('bot_start', `Delta Neutral (${strategyLabel}) Bot started`);
       } else {
         toast({ title: 'Error', description: data.error || data.message || data.detail || 'Failed to start bot', variant: 'destructive' });
@@ -697,7 +704,7 @@ const AlgoTrading = () => {
     }
     setDeltaBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   const stopDeltaBot = async () => {
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
@@ -709,7 +716,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: false }));
-        toast({ title: '⏹ Bot Stopped', description: 'Delta Neutral Bot stopped' });
+        toast({ title: 'Bot Stopped', description: 'Delta Neutral Bot stopped' });
         addActivityEvent('bot_stop', 'Delta Neutral Bot stopped');
       }
     } catch (error) {
@@ -717,64 +724,81 @@ const AlgoTrading = () => {
     }
     setDeltaBot(prev => ({ ...prev, loading: false }));
   };
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER - BROKER CONNECTION CARD
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const renderBrokerConnection = () => (
-    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-      <CardContent className="p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center",
-              brokerConnected 
-                ? "bg-green-500/20 text-green-500" 
-                : "bg-orange-500/20 text-orange-500"
-            )}>
-              {brokerConnected ? <Link className="w-7 h-7" /> : <Unlink className="w-7 h-7" />}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">
+    <Card sx={{
+      border: 2,
+      borderColor: alpha(theme.palette.primary.main, 0.2),
+      background: `linear-gradient(to bottom right, ${alpha(theme.palette.primary.main, 0.05)}, transparent)`,
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Box sx={{
+              width: 56, height: 56, borderRadius: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: brokerConnected
+                ? alpha(theme.palette.success.main, 0.2)
+                : alpha(theme.palette.warning.main, 0.2),
+            }}>
+              {brokerConnected
+                ? <Link style={{ width: 28, height: 28, color: theme.palette.success.main }} />
+                : <Unlink style={{ width: 28, height: 28, color: theme.palette.warning.main }} />
+              }
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={600}>
                 {brokerConnected ? 'Broker Connected' : 'Connect Broker'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {brokerConnected 
-                  ? `Connected to ${brokerInfo?.broker === 'upstox' ? 'Upstox' : 'Dhan'}${brokerInfo?.sandbox ? ' (Sandbox)' : ''} • ${brokerInfo?.sandbox ? 'Test' : 'Live'} trading enabled`
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {brokerConnected
+                  ? `Connected to ${brokerInfo?.broker === 'upstox' ? 'Upstox' : 'Dhan'}${brokerInfo?.sandbox ? ' (Sandbox)' : ''} \u2022 ${brokerInfo?.sandbox ? 'Test' : 'Live'} trading enabled`
                   : 'Connect your broker account to start live trading'
                 }
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             {brokerConnected ? (
               <>
                 {brokerInfo?.available_balance !== undefined && (
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 font-mono">
-                    ₹{Number(brokerInfo.available_balance).toLocaleString('en-IN')}
+                  <Badge variant="outline" sx={{
+                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                    color: theme.palette.info.main,
+                    borderColor: alpha(theme.palette.info.main, 0.3),
+                    fontFamily: 'monospace',
+                  }}>
+                    {'\u20B9'}{Number(brokerInfo.available_balance).toLocaleString('en-IN')}
                   </Badge>
                 )}
-                <Badge variant="outline" className={cn(
-                  brokerInfo?.sandbox 
-                    ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/30"
-                    : "bg-green-500/10 text-green-500 border-green-500/30"
-                )}>
-                  <CheckCircle2 className="w-3 h-3 mr-1" /> {brokerInfo?.sandbox ? 'Sandbox' : 'Live'}
+                <Badge variant="outline" sx={brokerInfo?.sandbox
+                  ? { bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.main, borderColor: alpha(theme.palette.warning.main, 0.3) }
+                  : { bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, borderColor: alpha(theme.palette.success.main, 0.3) }
+                }>
+                  <CheckCircle2 style={{ width: 12, height: 12, marginRight: 4 }} /> {brokerInfo?.sandbox ? 'Sandbox' : 'Live'}
                 </Badge>
                 <Button variant="outline" size="sm" onClick={disconnectBroker}>
-                  <Unlink className="w-4 h-4 mr-2" /> Disconnect
+                  <Unlink style={{ width: 16, height: 16, marginRight: 8 }} /> Disconnect
                 </Button>
               </>
             ) : (
               <Button onClick={() => setShowTokenInput(!showTokenInput)}>
-                <Link className="w-4 h-4 mr-2" /> Connect Broker
+                <Link style={{ width: 16, height: 16, marginRight: 8 }} /> Connect Broker
               </Button>
             )}
-          </div>
-        </div>
-        
+          </Stack>
+        </Stack>
+
         {/* Token Input */}
         <AnimatePresence>
           {showTokenInput && !brokerConnected && (
@@ -782,307 +806,371 @@ const AlgoTrading = () => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="mt-4 pt-4 border-t overflow-hidden"
+              style={{ overflow: 'hidden' }}
             >
-              {/* Broker Selector */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-sm font-medium">Select Broker:</span>
-                <div className="flex gap-2">
-                  <Button
-                    variant={selectedBroker === 'dhan' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedBroker('dhan')}
-                    className={selectedBroker === 'dhan' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                  >
-                    Dhan
-                  </Button>
-                  <Button
-                    variant={selectedBroker === 'upstox' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedBroker('upstox')}
-                    className={selectedBroker === 'upstox' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-                  >
-                    Upstox
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Sandbox Toggle (Dhan only) */}
-              {selectedBroker === 'dhan' && (
-              <div className="flex items-center gap-3 mb-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isSandbox}
-                    onChange={(e) => setIsSandbox(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"
-                  />
-                  <span className="text-sm font-medium">Sandbox Mode</span>
-                </label>
-                {isSandbox && (
-                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30 text-xs">
-                    Test Environment
-                  </Badge>
+              <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                {/* Broker Selector */}
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                  <Typography variant="body2" fontWeight={500}>Select Broker:</Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant={selectedBroker === 'dhan' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedBroker('dhan')}
+                      sx={selectedBroker === 'dhan' ? { bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } } : {}}
+                    >
+                      Dhan
+                    </Button>
+                    <Button
+                      variant={selectedBroker === 'upstox' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedBroker('upstox')}
+                      sx={selectedBroker === 'upstox' ? { bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } } : {}}
+                    >
+                      Upstox
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                {/* Sandbox Toggle (Dhan only) */}
+                {selectedBroker === 'dhan' && (
+                  <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ cursor: 'pointer' }}>
+                      <Checkbox
+                        checked={isSandbox}
+                        onChange={(e) => setIsSandbox(e.target.checked)}
+                        size="small"
+                        sx={{
+                          p: 0.5,
+                          color: alpha(theme.palette.warning.main, 0.5),
+                          '&.Mui-checked': { color: 'warning.main' },
+                        }}
+                      />
+                      <Typography variant="body2" fontWeight={500}>Sandbox Mode</Typography>
+                    </Stack>
+                    {isSandbox && (
+                      <Badge variant="outline" sx={{
+                        bgcolor: alpha(theme.palette.warning.main, 0.1),
+                        color: theme.palette.warning.main,
+                        borderColor: alpha(theme.palette.warning.main, 0.3),
+                      }}>
+                        Test Environment
+                      </Badge>
+                    )}
+                  </Stack>
                 )}
-              </div>
-              )}
-              
-              {/* Client ID (for Dhan sandbox) */}
-              {selectedBroker === 'dhan' && isSandbox && (
-                <div className="mb-3">
+
+                {/* Client ID (for Dhan sandbox) */}
+                {selectedBroker === 'dhan' && isSandbox && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Input
+                      type="text"
+                      placeholder="Sandbox Client ID (e.g., 2601288179)"
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                    />
+                  </Box>
+                )}
+
+                {/* Access Token */}
+                <Stack direction="row" spacing={1.5}>
                   <Input
-                    type="text"
-                    placeholder="Sandbox Client ID (e.g., 2601288179)"
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    className="w-full"
+                    type="password"
+                    placeholder={selectedBroker === 'upstox'
+                      ? "Paste your Upstox access token..."
+                      : (isSandbox ? "Paste your Sandbox access token..." : "Paste your Dhan access token...")}
+                    value={brokerToken}
+                    onChange={(e) => setBrokerToken(e.target.value)}
+                    sx={{ flex: 1 }}
                   />
-                </div>
-              )}
-              
-              {/* Access Token */}
-              <div className="flex gap-3">
-                <Input
-                  type="password"
-                  placeholder={selectedBroker === 'upstox' 
-                    ? "Paste your Upstox access token..." 
-                    : (isSandbox ? "Paste your Sandbox access token..." : "Paste your Dhan access token...")}
-                  value={brokerToken}
-                  onChange={(e) => setBrokerToken(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={connectBroker} disabled={connectingBroker}>
-                  {connectingBroker ? <Spinner className="w-4 h-4" /> : 'Connect'}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {selectedBroker === 'upstox' ? (
-                  <>
-                    Get your access token from{' '}
-                    <a href="https://login.upstox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                      Upstox Developer Console
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    Get your {isSandbox ? 'sandbox' : 'access'} token from{' '}
-                    <a href="https://dhanhq.co/login" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                      Dhan Developer Console
-                    </a>
-                    {isSandbox && ' → Sandbox section'}
-                  </>
-                )}
-              </p>
+                  <Button onClick={connectBroker} disabled={connectingBroker}>
+                    {connectingBroker ? <Spinner size="sm" /> : 'Connect'}
+                  </Button>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {selectedBroker === 'upstox' ? (
+                    <>
+                      Get your access token from{' '}
+                      <Box component="a" href="https://login.upstox.com/" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'underline' }}>
+                        Upstox Developer Console
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      Get your {isSandbox ? 'sandbox' : 'access'} token from{' '}
+                      <Box component="a" href="https://dhanhq.co/login" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'underline' }}>
+                        Dhan Developer Console
+                      </Box>
+                      {isSandbox && ' \u2192 Sandbox section'}
+                    </>
+                  )}
+                </Typography>
+              </Box>
             </motion.div>
           )}
         </AnimatePresence>
       </CardContent>
     </Card>
   );
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER - STATS CARDS
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const renderStats = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Active Bots</p>
-              <p className="text-2xl font-bold">
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+      {/* Active Bots */}
+      <Card sx={{
+        background: `linear-gradient(to bottom right, ${alpha(theme.palette.info.main, 0.1)}, transparent)`,
+        borderColor: alpha(theme.palette.info.main, 0.2),
+      }}>
+        <CardContent sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              bgcolor: alpha(theme.palette.info.main, 0.2),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Bot style={{ width: 20, height: 20, color: theme.palette.info.main }} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Active Bots</Typography>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.2 }}>
                 {[vwapBot.running, strangleBot.running, deltaBot.running].filter(Boolean).length}/3
-              </p>
-            </div>
-          </div>
+              </Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
-      
-      <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-purple-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Open Positions</p>
-              <p className="text-2xl font-bold">{activePositions}</p>
-            </div>
-          </div>
+
+      {/* Open Positions */}
+      <Card sx={{
+        background: `linear-gradient(to bottom right, ${alpha(theme.palette.secondary.main, 0.1)}, transparent)`,
+        borderColor: alpha(theme.palette.secondary.main, 0.2),
+      }}>
+        <CardContent sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              bgcolor: alpha(theme.palette.secondary.main, 0.2),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Activity style={{ width: 20, height: 20, color: theme.palette.secondary.main }} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Open Positions</Typography>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.2 }}>{activePositions}</Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
-      
-      <Card className={cn(
-        "bg-gradient-to-br border-opacity-20",
-        todayPnL >= 0 
-          ? "from-green-500/10 to-transparent border-green-500/20" 
-          : "from-red-500/10 to-transparent border-red-500/20"
-      )}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center",
-              todayPnL >= 0 ? "bg-green-500/20" : "bg-red-500/20"
-            )}>
-              {todayPnL >= 0 
-                ? <ArrowUpRight className="w-5 h-5 text-green-500" />
-                : <ArrowDownRight className="w-5 h-5 text-red-500" />
+
+      {/* Today's P&L */}
+      <Card sx={{
+        background: `linear-gradient(to bottom right, ${alpha(todayPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.1)}, transparent)`,
+        borderColor: alpha(todayPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.2),
+      }}>
+        <CardContent sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              bgcolor: alpha(todayPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.2),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {todayPnL >= 0
+                ? <ArrowUpRight style={{ width: 20, height: 20, color: theme.palette.success.main }} />
+                : <ArrowDownRight style={{ width: 20, height: 20, color: theme.palette.error.main }} />
               }
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Today's P&L</p>
-              <p className={cn(
-                "text-2xl font-bold",
-                todayPnL >= 0 ? "text-green-500" : "text-red-500"
-              )}>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Today's P&L</Typography>
+              <Typography sx={{
+                fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.2,
+                color: todayPnL >= 0 ? 'success.main' : 'error.main',
+              }}>
                 {todayPnL >= 0 ? '+' : ''}{formatINR(todayPnL)}
-              </p>
-            </div>
-          </div>
+              </Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
-      
-      <Card className={cn(
-        "bg-gradient-to-br border-opacity-20",
-        totalPnL >= 0 
-          ? "from-emerald-500/10 to-transparent border-emerald-500/20" 
-          : "from-rose-500/10 to-transparent border-rose-500/20"
-      )}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center",
-              totalPnL >= 0 ? "bg-emerald-500/20" : "bg-rose-500/20"
-            )}>
-              <Wallet className={cn("w-5 h-5", totalPnL >= 0 ? "text-emerald-500" : "text-rose-500")} />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total P&L</p>
-              <p className={cn(
-                "text-2xl font-bold",
-                totalPnL >= 0 ? "text-emerald-500" : "text-rose-500"
-              )}>
+
+      {/* Total P&L */}
+      <Card sx={{
+        background: `linear-gradient(to bottom right, ${alpha(totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.1)}, transparent)`,
+        borderColor: alpha(totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.2),
+      }}>
+        <CardContent sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              bgcolor: alpha(totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main, 0.2),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Wallet style={{ width: 20, height: 20, color: totalPnL >= 0 ? theme.palette.success.main : theme.palette.error.main }} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Total P&L</Typography>
+              <Typography sx={{
+                fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.2,
+                color: totalPnL >= 0 ? 'success.main' : 'error.main',
+              }}>
                 {totalPnL >= 0 ? '+' : ''}{formatINR(totalPnL)}
-              </p>
-            </div>
-          </div>
+              </Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
-    </div>
+    </Box>
   );
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER - BOT CARD
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const renderBotCard = (config, botState, startBot, stopBot, renderConfig) => {
     const { id, name, description, icon: Icon, gradient, features, riskLevel, winRate, avgReturn, tokenCost, disclaimer } = config;
     const isExpanded = expandedBot === id;
     const isRunning = botState.running;
     const isLoading = botState.loading;
-    
+
     return (
-      <Card 
+      <Card
         key={id}
-        className={cn(
-          "bot-card relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5",
-          isRunning && "ring-2 ring-green-500/50 shadow-lg shadow-green-500/10 animate-glow",
-          !brokerConnected && "opacity-60"
-        )}
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: `0 10px 25px ${alpha(theme.palette.primary.main, 0.05)}`,
+          },
+          ...(isRunning && {
+            outline: `2px solid ${alpha(theme.palette.success.main, 0.5)}`,
+            boxShadow: `0 10px 25px ${alpha(theme.palette.success.main, 0.1)}`,
+            '@keyframes glow': {
+              '0%, 100%': { boxShadow: `0 4px 15px ${alpha(theme.palette.success.main, 0.1)}` },
+              '50%': { boxShadow: `0 8px 30px ${alpha(theme.palette.success.main, 0.2)}` },
+            },
+            animation: 'glow 2s ease-in-out infinite',
+          }),
+          ...(!brokerConnected && { opacity: 0.6 }),
+        }}
       >
         {/* Gradient Header */}
-        <div className={`h-2 bg-gradient-to-r ${gradient}`} />
-        
-        <CardContent className="p-6">
+        <Box sx={{ height: 8, background: gradient }} />
+
+        <CardContent sx={{ p: 3 }}>
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br",
-                gradient
-              )}>
-                <Icon className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-semibold">{name}</h3>
-                  <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-500 border-violet-500/30">
-                    <Coins className="w-3 h-3 mr-1" />{tokenCost} tokens
+          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="flex-start" justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Box sx={{
+                width: 56, height: 56, borderRadius: 4,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: gradient,
+              }}>
+                <Icon style={{ width: 28, height: 28, color: '#fff' }} />
+              </Box>
+              <Box>
+                <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
+                  <Typography variant="h6" fontWeight={600}>{name}</Typography>
+                  <Badge variant="outline" sx={{
+                    bgcolor: alpha('#8b5cf6', 0.1),
+                    color: '#8b5cf6',
+                    borderColor: alpha('#8b5cf6', 0.3),
+                  }}>
+                    <Coins style={{ width: 12, height: 12, marginRight: 4 }} />{tokenCost} tokens
                   </Badge>
                   {isRunning && (
-                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30 animate-pulse">
-                      <Activity className="w-3 h-3 mr-1" /> Running
+                    <Badge sx={{
+                      bgcolor: alpha(theme.palette.success.main, 0.2),
+                      color: theme.palette.success.main,
+                      borderColor: alpha(theme.palette.success.main, 0.3),
+                      '@keyframes pulse': {
+                        '0%, 100%': { opacity: 1 },
+                        '50%': { opacity: 0.5 },
+                      },
+                      animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+                    }}>
+                      <Activity style={{ width: 12, height: 12, marginRight: 4 }} /> Running
                     </Badge>
                   )}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">{description}</p>
-              </div>
-            </div>
-            
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{description}</Typography>
+              </Box>
+            </Stack>
+
             {/* Start/Stop Button */}
             <Button
               variant={isRunning ? "destructive" : "default"}
               size="sm"
               onClick={isRunning ? stopBot : startBot}
               disabled={isLoading || !brokerConnected}
-              className="min-w-[100px]"
+              sx={{ minWidth: 100 }}
             >
               {isLoading ? (
-                <Spinner className="w-4 h-4" />
+                <Spinner size="sm" />
               ) : isRunning ? (
-                <><Square className="w-4 h-4 mr-2" /> Stop</>
+                <><Square style={{ width: 16, height: 16, marginRight: 8 }} /> Stop</>
               ) : (
-                <><Play className="w-4 h-4 mr-2" /> Start</>
+                <><Play style={{ width: 16, height: 16, marginRight: 8 }} /> Start</>
               )}
             </Button>
-          </div>
-          
+          </Stack>
+
           {/* Stats Row */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-2 text-sm">
-            <div className="flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-blue-500" />
-              <span className="text-muted-foreground">Win Rate:</span>
-              <span className="font-medium">{winRate}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              <span className="text-muted-foreground">Avg Return:</span>
-              <span className="font-medium text-green-500">{avgReturn}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-orange-500" />
-              <span className="text-muted-foreground">Risk:</span>
-              <span className="font-medium">{riskLevel}</span>
-            </div>
-          </div>
+          <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: { xs: 2, sm: 3 }, mb: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Target style={{ width: 16, height: 16, color: theme.palette.info.main }} />
+              <Typography variant="body2" color="text.secondary">Win Rate:</Typography>
+              <Typography variant="body2" fontWeight={500}>{winRate}</Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <TrendingUp style={{ width: 16, height: 16, color: theme.palette.success.main }} />
+              <Typography variant="body2" color="text.secondary">Avg Return:</Typography>
+              <Typography variant="body2" fontWeight={500} sx={{ color: 'success.main' }}>{avgReturn}</Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Shield style={{ width: 16, height: 16, color: theme.palette.warning.main }} />
+              <Typography variant="body2" color="text.secondary">Risk:</Typography>
+              <Typography variant="body2" fontWeight={500}>{riskLevel}</Typography>
+            </Stack>
+          </Stack>
           {disclaimer && (
-            <p className="text-[10px] text-muted-foreground mb-4">{disclaimer}</p>
+            <Typography sx={{ fontSize: '10px', color: 'text.secondary', mb: 2 }}>{disclaimer}</Typography>
           )}
-          
+
           {/* Features */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
             {features.map((feature, i) => (
-              <Badge key={i} variant="secondary" className="text-xs">
-                <Sparkles className="w-3 h-3 mr-1" />
+              <Badge key={i} variant="secondary">
+                <Sparkles style={{ width: 12, height: 12, marginRight: 4 }} />
                 {feature}
               </Badge>
             ))}
-          </div>
-          
+          </Stack>
+
           {/* Expand/Collapse Config */}
-          <button
+          <Box
+            component="button"
             onClick={() => setExpandedBot(isExpanded ? null : id)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 1,
+              fontSize: '0.875rem', color: 'text.secondary',
+              bgcolor: 'transparent', border: 'none', cursor: 'pointer', p: 0,
+              transition: 'color 0.2s ease',
+              '&:hover': { color: 'text.primary' },
+            }}
           >
-            <Settings className="w-4 h-4" />
+            <Settings style={{ width: 16, height: 16 }} />
             Configure Settings
-            <ChevronDown className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")} />
-          </button>
-          
+            <ChevronDown style={{
+              width: 16, height: 16,
+              transition: 'transform 0.2s',
+              transform: isExpanded ? 'rotate(180deg)' : 'none',
+            }} />
+          </Box>
+
           {/* Config Panel */}
           <AnimatePresence>
             {isExpanded && (
@@ -1090,38 +1178,40 @@ const AlgoTrading = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
+                style={{ overflow: 'hidden' }}
               >
-                <div className="mt-4 pt-4 border-t">
+                <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
                   {renderConfig()}
-                </div>
+                </Box>
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           {/* Running Status */}
           {isRunning && botState.status && (
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex items-center gap-2 text-sm text-green-500">
-                <CheckCircle2 className="w-4 h-4" />
-                Bot is actively monitoring the market
-              </div>
+            <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <CheckCircle2 style={{ width: 16, height: 16, color: theme.palette.success.main }} />
+                <Typography variant="body2" sx={{ color: 'success.main' }}>
+                  Bot is actively monitoring the market
+                </Typography>
+              </Stack>
               {botState.status.positions?.length > 0 && (
-                <div className="mt-2 text-sm text-muted-foreground">
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   {botState.status.positions.length} active position(s)
-                </div>
+                </Typography>
               )}
-            </div>
+            </Box>
           )}
         </CardContent>
       </Card>
     );
   };
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER - BOT CONFIGS
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const clampVwap = (key, min, max) => {
     setVwapConfig(prev => {
       const v = Number(prev[key]);
@@ -1132,146 +1222,151 @@ const AlgoTrading = () => {
   };
 
   const renderVwapConfig = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-      <div>
-        <label className="text-xs text-muted-foreground">Capital (₹)</label>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Capital ({'\u20B9'})</Typography>
         <Input
           type="number"
           min={10000} max={50000000}
           value={vwapConfig.capital}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, capital: Number(e.target.value) }))}
           onBlur={() => clampVwap('capital', 10000, 50000000)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Risk per Trade (%)</label>
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Risk per Trade (%)</Typography>
         <Input
           type="number"
           min={0.1} max={5} step={0.1}
           value={vwapConfig.riskPerTrade}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, riskPerTrade: Number(e.target.value) }))}
           onBlur={() => clampVwap('riskPerTrade', 0.1, 5)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Max Positions</label>
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Max Positions</Typography>
         <Input
           type="number"
           min={1} max={10}
           value={vwapConfig.maxPositions}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, maxPositions: Number(e.target.value) }))}
           onBlur={() => clampVwap('maxPositions', 1, 10)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Target (%)</label>
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Target (%)</Typography>
         <Input
           type="number"
           min={0.5} max={10} step={0.5}
           value={vwapConfig.targetPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, targetPercent: Number(e.target.value) }))}
           onBlur={() => clampVwap('targetPercent', 0.5, 10)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Stop Loss (%)</label>
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Stop Loss (%)</Typography>
         <Input
           type="number"
           min={0.5} max={5} step={0.5}
           value={vwapConfig.stopLossPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, stopLossPercent: Number(e.target.value) }))}
           onBlur={() => clampVwap('stopLossPercent', 0.5, 5)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Trailing SL (%)</label>
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary">Trailing SL (%)</Typography>
         <Input
           type="number"
           min={0.1} max={3} step={0.1}
           value={vwapConfig.trailingStopPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, trailingStopPercent: Number(e.target.value) }))}
           onBlur={() => clampVwap('trailingStopPercent', 0.1, 3)}
-          className="mt-1"
+          sx={{ mt: 0.5 }}
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
-  
+
   const renderStrangleConfig = () => (
-    <div className="space-y-4">
+    <Stack spacing={2}>
       {/* Row 1: Core Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="text-xs text-muted-foreground">Underlying</label>
-          <select
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Underlying</Typography>
+          <TextField
+            select
+            size="small"
+            fullWidth
             value={strangleConfig.underlying}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, underlying: e.target.value }))}
-            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+            sx={{ mt: 0.5 }}
           >
-            <option value="NIFTY">NIFTY</option>
-            <option value="BANKNIFTY">BANK NIFTY</option>
-            <option value="FINNIFTY">FIN NIFTY</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Number of Lots</label>
+            <MenuItem value="NIFTY">NIFTY</MenuItem>
+            <MenuItem value="BANKNIFTY">BANK NIFTY</MenuItem>
+            <MenuItem value="FINNIFTY">FIN NIFTY</MenuItem>
+          </TextField>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Number of Lots</Typography>
           <Input
             type="number"
             min="1"
             max="20"
             value={strangleConfig.numLots}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, numLots: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground flex items-center gap-1">
-            Entry Delta <span className="text-purple-400">δ</span>
-          </label>
+        </Box>
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography variant="caption" color="text.secondary">Entry Delta</Typography>
+            <Typography variant="caption" sx={{ color: theme.palette.secondary.main }}>{'\u03B4'}</Typography>
+          </Stack>
           <Input
             type="number"
             min="10"
             max="25"
             value={strangleConfig.entryDelta}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, entryDelta: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground flex items-center gap-1">
-            Adjustment Delta <span className="text-red-400">δ</span>
-          </label>
+        </Box>
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography variant="caption" color="text.secondary">Adjustment Delta</Typography>
+            <Typography variant="caption" sx={{ color: 'error.main' }}>{'\u03B4'}</Typography>
+          </Stack>
           <Input
             type="number"
             min="25"
             max="50"
             value={strangleConfig.adjustmentDelta}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, adjustmentDelta: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-      </div>
-      
+        </Box>
+      </Box>
+
       {/* Row 2: P&L Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="text-xs text-muted-foreground">Profit Target %</label>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Profit Target %</Typography>
           <Input
             type="number"
             min="20"
             max="80"
             value={strangleConfig.profitTargetPct}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, profitTargetPct: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Max Loss (x Credit)</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Max Loss (x Credit)</Typography>
           <Input
             type="number"
             min="1"
@@ -1279,325 +1374,386 @@ const AlgoTrading = () => {
             step="0.5"
             value={strangleConfig.maxLossMultiplier}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, maxLossMultiplier: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Entry Time</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Entry Time</Typography>
           <Input
             type="time"
             value={strangleConfig.entryTime}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, entryTime: e.target.value }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Exit Time</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Exit Time</Typography>
           <Input
             type="time"
             value={strangleConfig.exitTime}
             onChange={(e) => setStrangleConfig(prev => ({ ...prev, exitTime: e.target.value }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-      </div>
-      
+        </Box>
+      </Box>
+
       {/* Row 3: AI Settings */}
-      <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <Brain className="w-4 h-4 text-purple-400" />
-          <span className="text-sm font-medium text-purple-400">Claude AI Settings</span>
-          <Badge variant="outline" className="ml-auto text-xs border-purple-500/50 text-purple-400">
-            <Sparkles className="w-3 h-3 mr-1" /> Premium
+      <Box sx={{
+        p: 1.5, borderRadius: 2,
+        bgcolor: alpha(theme.palette.secondary.main, 0.1),
+        border: 1,
+        borderColor: alpha(theme.palette.secondary.main, 0.2),
+      }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+          <Brain style={{ width: 16, height: 16, color: theme.palette.secondary.light }} />
+          <Typography variant="body2" fontWeight={500} sx={{ color: theme.palette.secondary.light }}>Claude AI Settings</Typography>
+          <Badge variant="outline" sx={{
+            ml: 'auto',
+            borderColor: alpha(theme.palette.secondary.main, 0.5),
+            color: theme.palette.secondary.light,
+          }}>
+            <Sparkles style={{ width: 12, height: 12, marginRight: 4 }} /> Premium
           </Badge>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
+        </Stack>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Checkbox
               id="useAI"
               checked={strangleConfig.useAI}
               onChange={(e) => setStrangleConfig(prev => ({ ...prev, useAI: e.target.checked }))}
-              className="rounded border-purple-500/50"
+              size="small"
+              sx={{
+                p: 0.5,
+                color: alpha(theme.palette.secondary.main, 0.5),
+                '&.Mui-checked': { color: 'secondary.main' },
+              }}
             />
-            <label htmlFor="useAI" className="text-xs text-muted-foreground">Enable AI Decisions</label>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">AI Confidence %</label>
+            <Typography variant="caption" color="text.secondary" component="label" htmlFor="useAI" sx={{ cursor: 'pointer' }}>
+              Enable AI Decisions
+            </Typography>
+          </Stack>
+          <Box>
+            <Typography variant="caption" color="text.secondary">AI Confidence %</Typography>
             <Input
               type="number"
               min="50"
               max="100"
               value={strangleConfig.aiConfidenceThreshold}
               onChange={(e) => setStrangleConfig(prev => ({ ...prev, aiConfidenceThreshold: Number(e.target.value) }))}
-              className="mt-1"
+              sx={{ mt: 0.5 }}
               disabled={!strangleConfig.useAI}
             />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Max Adjustments/Day</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Max Adjustments/Day</Typography>
             <Input
               type="number"
               min="0"
               max="10"
               value={strangleConfig.maxAdjustmentsPerDay}
               onChange={(e) => setStrangleConfig(prev => ({ ...prev, maxAdjustmentsPerDay: Number(e.target.value) }))}
-              className="mt-1"
+              sx={{ mt: 0.5 }}
             />
-          </div>
-        </div>
-      </div>
-      
+          </Box>
+        </Box>
+      </Box>
+
       {/* Status Display */}
       {strangleBot.status && strangleBot.running && (
-        <div className="p-3 rounded-lg bg-background/50 border">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Position Status</span>
+        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.background.paper, 0.5), border: 1, borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography variant="body2" fontWeight={500}>Position Status</Typography>
             <Button size="sm" variant="outline" onClick={scanStrangleBot}>
-              <RefreshCw className="w-3 h-3 mr-1" /> Scan Now
+              <RefreshCw style={{ width: 12, height: 12, marginRight: 4 }} /> Scan Now
             </Button>
-          </div>
+          </Stack>
           {strangleBot.status.position && strangleBot.status.position.status !== 'none' && (
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span className="text-muted-foreground">Call:</span>
-                <span className="ml-2">{strangleBot.status.position.call_leg?.strike} @ δ{strangleBot.status.position.call_leg?.delta?.toFixed(2)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Put:</span>
-                <span className="ml-2">{strangleBot.status.position.put_leg?.strike} @ δ{strangleBot.status.position.put_leg?.delta?.toFixed(2)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">P&L:</span>
-                <span className={cn("ml-2 font-medium", strangleBot.status.position.total_pnl >= 0 ? "text-green-500" : "text-red-500")}>
-                  ₹{strangleBot.status.position.total_pnl?.toFixed(2)}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Net Delta:</span>
-                <span className="ml-2">{strangleBot.status.position.net_delta?.toFixed(4)}</span>
-              </div>
-            </div>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+              <Box>
+                <Typography component="span" variant="caption" color="text.secondary">Call:</Typography>
+                <Typography component="span" variant="caption" sx={{ ml: 1 }}>
+                  {strangleBot.status.position.call_leg?.strike} @ {'\u03B4'}{strangleBot.status.position.call_leg?.delta?.toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography component="span" variant="caption" color="text.secondary">Put:</Typography>
+                <Typography component="span" variant="caption" sx={{ ml: 1 }}>
+                  {strangleBot.status.position.put_leg?.strike} @ {'\u03B4'}{strangleBot.status.position.put_leg?.delta?.toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography component="span" variant="caption" color="text.secondary">P&L:</Typography>
+                <Typography component="span" variant="caption" fontWeight={500} sx={{
+                  ml: 1,
+                  color: strangleBot.status.position.total_pnl >= 0 ? 'success.main' : 'error.main',
+                }}>
+                  {'\u20B9'}{strangleBot.status.position.total_pnl?.toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography component="span" variant="caption" color="text.secondary">Net Delta:</Typography>
+                <Typography component="span" variant="caption" sx={{ ml: 1 }}>
+                  {strangleBot.status.position.net_delta?.toFixed(4)}
+                </Typography>
+              </Box>
+            </Box>
           )}
           {strangleBot.status.ai_summary && (
-            <div className="mt-2 pt-2 border-t text-xs">
-              <span className="text-purple-400">AI: </span>
-              <span>{strangleBot.status.ai_summary.action}</span>
-              <span className="text-muted-foreground ml-2">({strangleBot.status.ai_summary.confidence}% confidence)</span>
-            </div>
+            <Box sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="caption">
+                <Typography component="span" variant="caption" sx={{ color: theme.palette.secondary.light }}>AI: </Typography>
+                {strangleBot.status.ai_summary.action}
+                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  ({strangleBot.status.ai_summary.confidence}% confidence)
+                </Typography>
+              </Typography>
+            </Box>
           )}
-        </div>
+        </Box>
       )}
-    </div>
+    </Stack>
   );
-  
+
   const renderDeltaConfig = () => (
-    <div className="space-y-4">
+    <Stack spacing={2}>
       {/* Strategy Mode & Timeframe */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs text-muted-foreground font-medium">Strategy Mode</label>
-          <select
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={500}>Strategy Mode</Typography>
+          <TextField
+            select
+            size="small"
+            fullWidth
             value={deltaConfig.strategyMode}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, strategyMode: e.target.value }))}
-            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+            sx={{ mt: 0.5 }}
           >
-            <option value="iron_condor">🛡️ Iron Condor (Defined Risk)</option>
-            <option value="iron_butterfly">🦋 Iron Butterfly (High Premium)</option>
-            <option value="short_strangle">⚡ Short Strangle (Aggressive)</option>
-            <option value="straddle_hedge">🔄 Straddle + Hedge (Max Theta)</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground font-medium">Timeframe</label>
-          <select
+            <MenuItem value="iron_condor">Iron Condor (Defined Risk)</MenuItem>
+            <MenuItem value="iron_butterfly">Iron Butterfly (High Premium)</MenuItem>
+            <MenuItem value="short_strangle">Short Strangle (Aggressive)</MenuItem>
+            <MenuItem value="straddle_hedge">Straddle + Hedge (Max Theta)</MenuItem>
+          </TextField>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary" fontWeight={500}>Timeframe</Typography>
+          <TextField
+            select
+            size="small"
+            fullWidth
             value={deltaConfig.timeframe}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, timeframe: e.target.value }))}
-            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+            sx={{ mt: 0.5 }}
           >
-            <option value="weekly">📅 Weekly Expiry</option>
-            <option value="intraday">⚡ 0DTE Intraday</option>
-            <option value="smart">🧠 Smart (Auto-select)</option>
-          </select>
-        </div>
-      </div>
-      
+            <MenuItem value="weekly">Weekly Expiry</MenuItem>
+            <MenuItem value="intraday">0DTE Intraday</MenuItem>
+            <MenuItem value="smart">Smart (Auto-select)</MenuItem>
+          </TextField>
+        </Box>
+      </Box>
+
       {/* Strategy description */}
-      <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+      <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}>
         {deltaConfig.strategyMode === 'iron_condor' && (
-          <p>Sells OTM options + buys protective wings. <span className="text-green-500 font-medium">Max loss is capped.</span> Ideal for hands-off weekly income. Target 2-4% on margin.</p>
+          <Typography variant="caption" color="text.secondary">
+            Sells OTM options + buys protective wings.{' '}
+            <Typography component="span" variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>Max loss is capped.</Typography>
+            {' '}Ideal for hands-off weekly income. Target 2-4% on margin.
+          </Typography>
         )}
         {deltaConfig.strategyMode === 'iron_butterfly' && (
-          <p>Sells ATM straddle + buys OTM wings. <span className="text-green-500 font-medium">Higher premium, defined risk.</span> Best for range-bound/low-vol days. Target 3-6% weekly.</p>
+          <Typography variant="caption" color="text.secondary">
+            Sells ATM straddle + buys OTM wings.{' '}
+            <Typography component="span" variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>Higher premium, defined risk.</Typography>
+            {' '}Best for range-bound/low-vol days. Target 3-6% weekly.
+          </Typography>
         )}
         {deltaConfig.strategyMode === 'short_strangle' && (
-          <p>Sells naked OTM options. <span className="text-red-500 font-medium">Unlimited risk — no wings.</span> Highest premium but needs active monitoring. For experienced traders.</p>
+          <Typography variant="caption" color="text.secondary">
+            Sells naked OTM options.{' '}
+            <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 500 }}>Unlimited risk -- no wings.</Typography>
+            {' '}Highest premium but needs active monitoring. For experienced traders.
+          </Typography>
         )}
         {deltaConfig.strategyMode === 'straddle_hedge' && (
-          <p>Sells ATM straddle + dynamic hedging. <span className="text-blue-500 font-medium">Pure theta capture with gamma scalping.</span> Most automated, bot handles everything.</p>
+          <Typography variant="caption" color="text.secondary">
+            Sells ATM straddle + dynamic hedging.{' '}
+            <Typography component="span" variant="caption" sx={{ color: theme.palette.info.main, fontWeight: 500 }}>Pure theta capture with gamma scalping.</Typography>
+            {' '}Most automated, bot handles everything.
+          </Typography>
         )}
-      </div>
-      
+      </Box>
+
       {/* Core Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <div>
-          <label className="text-xs text-muted-foreground">Underlying</label>
-          <select
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Underlying</Typography>
+          <TextField
+            select
+            size="small"
+            fullWidth
             value={deltaConfig.underlying}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, underlying: e.target.value }))}
-            className="mt-1 w-full h-9 rounded-md border bg-background px-3 text-sm"
+            sx={{ mt: 0.5 }}
           >
-            <option value="NIFTY">NIFTY</option>
-            <option value="BANKNIFTY">BANK NIFTY</option>
-            <option value="FINNIFTY">FIN NIFTY</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Entry Delta (δ)</label>
+            <MenuItem value="NIFTY">NIFTY</MenuItem>
+            <MenuItem value="BANKNIFTY">BANK NIFTY</MenuItem>
+            <MenuItem value="FINNIFTY">FIN NIFTY</MenuItem>
+          </TextField>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Entry Delta ({'\u03B4'})</Typography>
           <Input
             type="number"
             min={5} max={50} step={1}
             value={deltaConfig.entryDelta}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, entryDelta: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
+        </Box>
         {['iron_condor', 'iron_butterfly', 'straddle_hedge'].includes(deltaConfig.strategyMode) && (
-          <div>
-            <label className="text-xs text-muted-foreground">Wing Width (pts)</label>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Wing Width (pts)</Typography>
             <Input
               type="number"
               min={50} max={500} step={50}
               value={deltaConfig.wingWidth}
               onChange={(e) => setDeltaConfig(prev => ({ ...prev, wingWidth: Number(e.target.value) }))}
-              className="mt-1"
+              sx={{ mt: 0.5 }}
             />
-          </div>
+          </Box>
         )}
-      </div>
-      
+      </Box>
+
       {/* Profit & Risk Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="text-xs text-muted-foreground">Profit Target (%)</label>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Profit Target (%)</Typography>
           <Input
             type="number"
             min={10} max={90} step={5}
             value={deltaConfig.profitTargetPct}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, profitTargetPct: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">IV Entry Min (%ile)</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">IV Entry Min (%ile)</Typography>
           <Input
             type="number"
             min={0} max={80} step={5}
             value={deltaConfig.ivEntryMin}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, ivEntryMin: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Max Adj/Day</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Max Adj/Day</Typography>
           <Input
             type="number"
             min={1} max={10} step={1}
             value={deltaConfig.maxAdjustmentsPerDay}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, maxAdjustmentsPerDay: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Lot Size</label>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">Lot Size</Typography>
           <Input
             type="number"
             value={deltaConfig.lotSize}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, lotSize: Number(e.target.value) }))}
-            className="mt-1"
+            sx={{ mt: 0.5 }}
           />
-        </div>
-      </div>
-      
+        </Box>
+      </Box>
+
       {/* Toggle switches */}
-      <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input 
-            type="checkbox" 
+      <Stack direction="row" spacing={3}>
+        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ cursor: 'pointer' }}>
+          <Checkbox
             checked={deltaConfig.trailingProfit}
             onChange={(e) => setDeltaConfig(prev => ({ ...prev, trailingProfit: e.target.checked }))}
-            className="rounded"
+            size="small"
+            sx={{ p: 0.5 }}
           />
-          Trailing Profit
-        </label>
-      </div>
-    </div>
+          <Typography variant="body2">Trailing Profit</Typography>
+        </Stack>
+      </Stack>
+    </Stack>
   );
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER - TRADE HISTORY
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   const renderTradeHistory = () => (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          Recent Trades
+        <CardTitle>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Clock style={{ width: 20, height: 20 }} />
+            <span>Recent Trades</span>
+          </Stack>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {tradeHistory.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No trades yet. Start a bot to begin trading!</p>
-          </div>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Activity style={{ width: 48, height: 48, margin: '0 auto 12px', opacity: 0.5, display: 'block', color: theme.palette.text.secondary }} />
+            <Typography color="text.secondary">No trades yet. Start a bot to begin trading!</Typography>
+          </Box>
         ) : (
-          <div className="space-y-3">
+          <Stack spacing={1.5}>
             {tradeHistory.slice(0, 10).map((trade, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center",
-                    trade.type === 'BUY' || trade.action === 'buy'
-                      ? "bg-green-500/20 text-green-500"
-                      : "bg-red-500/20 text-red-500"
-                  )}>
-                    {trade.type === 'BUY' || trade.action === 'buy'
-                      ? <ArrowUpRight className="w-4 h-4" />
-                      : <ArrowDownRight className="w-4 h-4" />
+              <Stack
+                key={i}
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box sx={{
+                    width: 32, height: 32, borderRadius: 2,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: (trade.type === 'BUY' || trade.action === 'buy')
+                      ? alpha(theme.palette.success.main, 0.2)
+                      : alpha(theme.palette.error.main, 0.2),
+                  }}>
+                    {(trade.type === 'BUY' || trade.action === 'buy')
+                      ? <ArrowUpRight style={{ width: 16, height: 16, color: theme.palette.success.main }} />
+                      : <ArrowDownRight style={{ width: 16, height: 16, color: theme.palette.error.main }} />
                     }
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{trade.symbol || trade.stock}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {trade.quantity || trade.qty} @ ₹{trade.price?.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={cn(
-                    "font-medium text-sm",
-                    (trade.pnl || 0) >= 0 ? "text-green-500" : "text-red-500"
-                  )}>
-                    {(trade.pnl || 0) >= 0 ? '+' : ''}₹{(trade.pnl || 0).toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" fontWeight={500}>{trade.symbol || trade.stock}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {trade.quantity || trade.qty} @ {'\u20B9'}{trade.price?.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" fontWeight={500} sx={{
+                    color: (trade.pnl || 0) >= 0 ? 'success.main' : 'error.main',
+                  }}>
+                    {(trade.pnl || 0) >= 0 ? '+' : ''}{'\u20B9'}{(trade.pnl || 0).toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
                     {new Date(trade.timestamp || trade.time).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
+                  </Typography>
+                </Box>
+              </Stack>
             ))}
-          </div>
+          </Stack>
         )}
       </CardContent>
     </Card>
   );
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // MAIN RENDER
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   return (
     <PageLayout>
       {ConfirmEl}
@@ -1607,62 +1763,85 @@ const AlgoTrading = () => {
         description="AI-powered trading bots that execute trades automatically"
         icon={Bot}
         badge={
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-            <Zap className="w-3 h-3 mr-1" /> Live Trading
+          <Badge variant="outline" sx={{
+            bgcolor: alpha(theme.palette.primary.main, 0.1),
+            color: 'primary.main',
+            borderColor: alpha(theme.palette.primary.main, 0.3),
+          }}>
+            <Zap style={{ width: 12, height: 12, marginRight: 4 }} /> Live Trading
           </Badge>
         }
       />
-      
-      <div className="space-y-6">
+
+      <Stack spacing={3}>
         {/* Token Balance Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-              <Coins className="w-5 h-5 text-violet-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">AI Token Balance</p>
-              <p className="text-xl font-bold">
-                {isAdminUser ? '∞' : tokenBalance}
-                <span className="text-sm text-muted-foreground ml-1">tokens</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Cost per bot start</p>
-              <p className="text-sm font-semibold text-violet-500">15 - 60 tokens</p>
-            </div>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          p: 2,
+          borderRadius: 3,
+          background: `linear-gradient(to right, ${alpha('#8b5cf6', 0.1)}, ${alpha(theme.palette.primary.main, 0.1)})`,
+          border: 1,
+          borderColor: alpha('#8b5cf6', 0.2),
+        }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{
+              width: 40, height: 40, borderRadius: 2,
+              bgcolor: alpha('#8b5cf6', 0.2),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Coins style={{ width: 20, height: 20, color: '#8b5cf6' }} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">AI Token Balance</Typography>
+              <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, lineHeight: 1.2 }}>
+                {isAdminUser ? '\u221E' : tokenBalance}
+                <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>tokens</Typography>
+              </Typography>
+            </Box>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" color="text.secondary">Cost per bot start</Typography>
+              <Typography variant="body2" fontWeight={600} sx={{ color: '#8b5cf6' }}>15 - 60 tokens</Typography>
+            </Box>
             {!isAdminUser && tokenBalance < 15 && (
-              <Button size="sm" onClick={() => navigate('/profile')} className="bg-violet-600 hover:bg-violet-700">
-                <Coins className="w-4 h-4 mr-2" />Recharge
+              <Button size="sm" onClick={() => navigate('/profile')} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}>
+                <Coins style={{ width: 16, height: 16, marginRight: 8 }} />Recharge
               </Button>
             )}
             {isAdminUser && (
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                <Crown className="w-3 h-3 mr-1" />Admin Free
+              <Badge variant="outline" sx={{
+                bgcolor: alpha(theme.palette.success.main, 0.1),
+                color: 'success.main',
+                borderColor: alpha(theme.palette.success.main, 0.3),
+              }}>
+                <Crown style={{ width: 12, height: 12, marginRight: 4 }} />Admin Free
               </Badge>
             )}
-          </div>
-        </div>
+          </Stack>
+        </Box>
 
         {/* Broker Connection */}
         {renderBrokerConnection()}
-        
+
         {/* Stats Dashboard */}
         {brokerConnected && renderStats()}
-        
+
         {/* P&L Performance Chart */}
         {brokerConnected && <PnLChart data={pnlHistory} />}
-        
+
         {/* Risk Analytics Panel */}
         {brokerConnected && (
-          <RiskAnalytics 
+          <RiskAnalytics
             botStates={{ vwap: vwapBot, strangle: strangleBot, delta: deltaBot }}
             tradeHistory={tradeHistory}
           />
         )}
-        
+
         {/* Strategy Comparison (shown when no bots running) */}
         {!vwapBot.running && !strangleBot.running && !deltaBot.running && (
           <StrategyShowcase onSelectStrategy={(id) => {
@@ -1672,34 +1851,39 @@ const AlgoTrading = () => {
             if (botId) setExpandedBot(botId);
           }} />
         )}
-        
+
         {/* Not Connected Warning */}
         {!brokerConnected && (
-          <Card className="border-orange-500/30 bg-orange-500/5">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <AlertCircle className="w-10 h-10 text-orange-500 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold">Broker Not Connected</h3>
-                  <p className="text-sm text-muted-foreground">
+          <Card sx={{
+            borderColor: alpha(theme.palette.warning.main, 0.3),
+            bgcolor: alpha(theme.palette.warning.main, 0.05),
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <AlertCircle style={{ width: 40, height: 40, color: theme.palette.warning.main, flexShrink: 0 }} />
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>Broker Not Connected</Typography>
+                  <Typography variant="body2" color="text.secondary">
                     Connect your Dhan or Upstox broker account above to enable live trading with AI bots.
-                  </p>
-                </div>
-              </div>
+                  </Typography>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         )}
-        
+
         {/* Trading Bots */}
-        <div className="space-y-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Brain className="w-5 h-5" />
-            AI Trading Bots
-            <Badge variant="secondary" className="text-xs ml-2">
-              <Coins className="w-3 h-3 mr-1" />15-60 tokens/start
+        <Stack spacing={3}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Brain style={{ width: 20, height: 20 }} />
+            <Typography variant="h6" fontWeight={600}>
+              AI Trading Bots
+            </Typography>
+            <Badge variant="secondary" sx={{ ml: 1 }}>
+              <Coins style={{ width: 12, height: 12, marginRight: 4 }} />15-60 tokens/start
             </Badge>
-          </h2>
-          
+          </Stack>
+
           {renderBotCard(
             BOT_CONFIGS.vwap,
             vwapBot,
@@ -1707,7 +1891,7 @@ const AlgoTrading = () => {
             stopVwapBot,
             renderVwapConfig
           )}
-          
+
           {renderBotCard(
             BOT_CONFIGS.strangle,
             strangleBot,
@@ -1715,7 +1899,7 @@ const AlgoTrading = () => {
             stopStrangleBot,
             renderStrangleConfig
           )}
-          
+
           {renderBotCard(
             BOT_CONFIGS.delta,
             deltaBot,
@@ -1723,36 +1907,35 @@ const AlgoTrading = () => {
             stopDeltaBot,
             renderDeltaConfig
           )}
-        </div>
-        
+        </Stack>
+
         {/* Trade History */}
         {brokerConnected && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' }, gap: 3 }}>
             {renderTradeHistory()}
             <ActivityFeed events={activityEvents} />
-          </div>
+          </Box>
         )}
-        
+
         {/* Risk Disclaimer */}
-        <Card className="bg-muted/30">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-foreground">Risk Disclaimer</p>
-                <p className="mt-1">
-                  Trading involves significant risk. These AI bots make automated trades based on 
-                  algorithms and market conditions. Past performance does not guarantee future results. 
+        <Card sx={{ bgcolor: alpha(theme.palette.text.primary, 0.03) }}>
+          <CardContent sx={{ p: 2 }}>
+            <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+              <Info style={{ width: 20, height: 20, marginTop: 2, flexShrink: 0, color: theme.palette.text.secondary }} />
+              <Box>
+                <Typography variant="body2" fontWeight={500} color="text.primary">Risk Disclaimer</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Trading involves significant risk. These AI bots make automated trades based on
+                  algorithms and market conditions. Past performance does not guarantee future results.
                   Only trade with capital you can afford to lose.
-                </p>
-              </div>
-            </div>
+                </Typography>
+              </Box>
+            </Stack>
           </CardContent>
         </Card>
-      </div>
+      </Stack>
     </PageLayout>
   );
 };
 
 export default AlgoTrading;
-

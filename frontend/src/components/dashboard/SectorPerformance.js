@@ -5,10 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownRight, Flame, X
 } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Skeleton from '@mui/material/Skeleton';
+import IconButton from '@mui/material/IconButton';
+import { useTheme, alpha } from '@mui/material/styles';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../ui';
-import { cn, formatINR, fetchAPI } from '../../lib/utils';
+import { formatINR, fetchAPI } from '../../lib/utils';
 
 const SectorPerformance = () => {
+  const theme = useTheme();
   const [sectors, setSectors] = useState([]);
   const [sectorStocks, setSectorStocks] = useState([]);
   const [selectedSector, setSelectedSector] = useState(null);
@@ -76,16 +83,20 @@ const SectorPerformance = () => {
 
   if (loading) {
     return (
-      <div className="flex gap-2 overflow-hidden">
-        {[...Array(11)].map((_, i) => <div key={i} className="w-16 h-32 skeleton rounded-lg shrink-0" />)}
-      </div>
+      <Stack direction="row" spacing={1} sx={{ overflow: 'hidden' }}>
+        {[...Array(11)].map((_, i) => (
+          <Skeleton key={i} variant="rounded" width={64} height={128} sx={{ borderRadius: 2, flexShrink: 0 }} />
+        ))}
+      </Stack>
     );
   }
 
   if (!sectors.length) {
     return (
-      <Card className="p-6 text-center text-muted-foreground text-sm">
-        Sector data unavailable. Market may be closed.
+      <Card sx={{ p: 3, textAlign: 'center' }}>
+        <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+          Sector data unavailable. Market may be closed.
+        </Typography>
       </Card>
     );
   }
@@ -93,17 +104,17 @@ const SectorPerformance = () => {
   // Max bar height in px (each half — up for gainers, down for losers)
   const MAX_BAR_H = 70;
 
-  // Color helpers
+  // Color helpers — returns actual CSS values
   const getBarColor = (pct) => {
-    if (pct >= 2) return { bg: 'bg-emerald-500', glow: 'rgba(16,185,129,0.25)', text: 'text-emerald-400' };
-    if (pct >= 1) return { bg: 'bg-emerald-500/80', glow: 'rgba(16,185,129,0.18)', text: 'text-emerald-400' };
-    if (pct >= 0.3) return { bg: 'bg-emerald-600/60', glow: 'rgba(16,185,129,0.12)', text: 'text-emerald-400' };
-    if (pct >= 0) return { bg: 'bg-emerald-700/50', glow: 'rgba(16,185,129,0.08)', text: 'text-emerald-400' };
-    if (pct >= -0.5) return { bg: 'bg-rose-700/50', glow: 'rgba(244,63,94,0.08)', text: 'text-rose-400' };
-    if (pct >= -1) return { bg: 'bg-rose-600/60', glow: 'rgba(244,63,94,0.12)', text: 'text-rose-400' };
-    if (pct >= -1.5) return { bg: 'bg-rose-500/75', glow: 'rgba(244,63,94,0.18)', text: 'text-rose-400' };
-    if (pct >= -2) return { bg: 'bg-rose-500/85', glow: 'rgba(244,63,94,0.22)', text: 'text-rose-400' };
-    return { bg: 'bg-rose-500', glow: 'rgba(244,63,94,0.28)', text: 'text-rose-400' };
+    if (pct >= 2) return { bg: theme.palette.success.main, glow: alpha(theme.palette.success.main, 0.25), textColor: theme.palette.success.light };
+    if (pct >= 1) return { bg: alpha(theme.palette.success.main, 0.8), glow: alpha(theme.palette.success.main, 0.18), textColor: theme.palette.success.light };
+    if (pct >= 0.3) return { bg: alpha(theme.palette.success.dark, 0.6), glow: alpha(theme.palette.success.main, 0.12), textColor: theme.palette.success.light };
+    if (pct >= 0) return { bg: alpha('#047857', 0.5), glow: alpha(theme.palette.success.main, 0.08), textColor: theme.palette.success.light };
+    if (pct >= -0.5) return { bg: alpha('#be123c', 0.5), glow: alpha(theme.palette.error.main, 0.08), textColor: theme.palette.error.light };
+    if (pct >= -1) return { bg: alpha('#e11d48', 0.6), glow: alpha(theme.palette.error.main, 0.12), textColor: theme.palette.error.light };
+    if (pct >= -1.5) return { bg: alpha('#f43f5e', 0.75), glow: alpha(theme.palette.error.main, 0.18), textColor: theme.palette.error.light };
+    if (pct >= -2) return { bg: alpha('#f43f5e', 0.85), glow: alpha(theme.palette.error.main, 0.22), textColor: theme.palette.error.light };
+    return { bg: '#f43f5e', glow: alpha(theme.palette.error.main, 0.28), textColor: theme.palette.error.light };
   };
 
   // Count gainers/losers
@@ -111,31 +122,51 @@ const SectorPerformance = () => {
   const losers = sectors.length - gainers;
 
   return (
-    <div className="space-y-4">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Vertical Bar Chart — myfno-style */}
-      <Card className="border-border/40 bg-gradient-to-b from-card/90 to-card/50 backdrop-blur-sm overflow-hidden">
+      <Card
+        sx={{
+          borderColor: alpha(theme.palette.divider, 0.4),
+          background: `linear-gradient(to bottom, ${alpha(theme.palette.background.paper, 0.9)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+          backdropFilter: 'blur(8px)',
+          overflow: 'hidden',
+        }}
+      >
         {/* Summary strip */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-1">
-          <div className="flex items-center gap-3">
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             {gainers > 0 && (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {gainers} Gaining
-              </span>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.light' }} />
+                <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'success.light' }}>
+                  {gainers} Gaining
+                </Typography>
+              </Stack>
             )}
             {losers > 0 && (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-rose-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                {losers} Declining
-              </span>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.light' }} />
+                <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'error.light' }}>
+                  {losers} Declining
+                </Typography>
+              </Stack>
             )}
-          </div>
-          <span className="text-[10px] text-muted-foreground">Click to drill down</span>
-        </div>
+          </Stack>
+          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>Click to drill down</Typography>
+        </Stack>
 
         {/* Vertical bars container */}
-        <div className="px-2 pb-2 pt-1">
-          <div className="flex items-end justify-center gap-0 w-full" style={{ minHeight: MAX_BAR_H * 2 + 36 }}>
+        <Box sx={{ px: 1, pb: 1, pt: 0.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              gap: 0,
+              width: '100%',
+              minHeight: MAX_BAR_H * 2 + 36,
+            }}
+          >
             {sectors.map((sector, i) => {
               const pct = sector.change_percent ?? 0;
               const isPositive = pct >= 0;
@@ -151,13 +182,19 @@ const SectorPerformance = () => {
                   animate={{ opacity: 1, scaleY: 1 }}
                   transition={{ delay: i * 0.03, type: 'spring', stiffness: 300, damping: 25 }}
                   onClick={() => handleSectorClick(sector)}
-                  className={cn(
-                    'flex flex-col items-center cursor-pointer group transition-all duration-200 relative',
-                    'hover:opacity-100',
-                    isSelected && 'opacity-100',
-                    !isSelected && 'opacity-80'
-                  )}
-                  style={{ flex: '1 1 0', minWidth: 0 }}
+                  style={{
+                    flex: '1 1 0',
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    position: 'relative',
+                    transition: 'opacity 0.2s ease',
+                  }}
                 >
                   {/* Percentage label above bar (for positive) */}
                   {isPositive && (
@@ -165,21 +202,31 @@ const SectorPerformance = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 + 0.3 }}
-                      className={cn('text-[7px] sm:text-[8px] font-bold tabular-nums mb-0.5 leading-none', colors.text)}
+                      style={{
+                        fontSize: 'clamp(7px, 1.2vw, 8px)',
+                        fontWeight: 700,
+                        fontVariantNumeric: 'tabular-nums',
+                        marginBottom: 2,
+                        lineHeight: 1,
+                        color: colors.textColor,
+                      }}
                     >
                       +{Number(pct).toFixed(1)}%
                     </motion.span>
                   )}
 
                   {/* The vertical bar */}
-                  <div className="relative flex flex-col items-center">
+                  <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {/* Glow effect */}
                     {Math.abs(pct) > 0.8 && (
                       <div
-                        className="absolute rounded-full blur-md pointer-events-none"
                         style={{
+                          position: 'absolute',
                           width: 12,
                           height: barHeightPx * 0.6,
+                          borderRadius: 50,
+                          filter: 'blur(8px)',
+                          pointerEvents: 'none',
                           backgroundColor: colors.glow,
                           ...(isPositive
                             ? { bottom: 0, left: '50%', transform: 'translateX(-50%)' }
@@ -191,17 +238,37 @@ const SectorPerformance = () => {
                       initial={{ height: 0 }}
                       animate={{ height: barHeightPx }}
                       transition={{ delay: i * 0.03 + 0.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-                      className={cn(
-                        'w-3 sm:w-4 md:w-5 rounded-t-sm relative overflow-hidden',
-                        colors.bg,
-                        isSelected && 'ring-1 ring-primary/50',
-                        'group-hover:brightness-110 transition-all'
-                      )}
+                      style={{
+                        width: 'clamp(12px, 2.5vw, 20px)',
+                        borderRadius: '2px 2px 0 0',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        backgroundColor: colors.bg,
+                        transition: 'filter 0.2s ease',
+                        ...(isSelected && {
+                          boxShadow: `0 0 0 1px ${alpha(theme.palette.primary.main, 0.5)}`,
+                        }),
+                      }}
                     >
                       {/* Shimmer */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/15 to-transparent" />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: `linear-gradient(to top, transparent, ${alpha('#fff', 0.15)}, transparent)`,
+                        }}
+                      />
                       {/* Top edge highlight */}
-                      <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: 1.5,
+                          background: `linear-gradient(to right, transparent, ${alpha('#fff', 0.4)}, transparent)`,
+                        }}
+                      />
                     </motion.div>
                   </div>
 
@@ -211,20 +278,28 @@ const SectorPerformance = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 + 0.3 }}
-                      className={cn('text-[7px] sm:text-[8px] font-bold tabular-nums mt-0.5 leading-none', colors.text)}
+                      style={{
+                        fontSize: 'clamp(7px, 1.2vw, 8px)',
+                        fontWeight: 700,
+                        fontVariantNumeric: 'tabular-nums',
+                        marginTop: 2,
+                        lineHeight: 1,
+                        color: colors.textColor,
+                      }}
                     >
                       {Number(pct).toFixed(1)}%
                     </motion.span>
                   )}
 
                   {/* Sector name — rotated vertically */}
-                  <div className="mt-1 w-full flex items-center justify-center" style={{ height: 40 }}>
+                  <div style={{ marginTop: 4, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40 }}>
                     <span
-                      className={cn(
-                        'text-[7px] sm:text-[8px] md:text-[9px] font-medium whitespace-nowrap transition-colors',
-                        isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground/70 group-hover:text-foreground'
-                      )}
                       style={{
+                        fontSize: 'clamp(7px, 1.2vw, 9px)',
+                        fontWeight: isSelected ? 600 : 500,
+                        whiteSpace: 'nowrap',
+                        transition: 'color 0.2s ease',
+                        color: isSelected ? theme.palette.text.primary : alpha(theme.palette.text.secondary, 0.7),
                         writingMode: 'vertical-rl',
                         transform: 'rotate(180deg)',
                         maxHeight: 40,
@@ -238,157 +313,347 @@ const SectorPerformance = () => {
                 </motion.button>
               );
             })}
-          </div>
-        </div>
+          </Box>
+        </Box>
       </Card>
 
-      {/* Drill-down: Sector → Stocks */}
+      {/* Drill-down: Sector -> Stocks */}
       <AnimatePresence>
         {selectedSector && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+            style={{ overflow: 'hidden' }}
           >
-            <Card className="border-primary/30">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
-                    <CardTitle className="text-sm">
+            <Card sx={{ borderColor: alpha(theme.palette.primary.main, 0.3) }}>
+              <CardHeader sx={{ pb: 1 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <CardTitle sx={{ fontSize: '0.875rem' }}>
                       {selectedSector.name} — Stocks
                     </CardTitle>
-                    <Badge className={cn(
-                      'text-xs',
-                      (selectedSector.change_percent ?? 0) >= 0
-                        ? 'bg-bullish/20 text-bullish'
-                        : 'bg-bearish/20 text-bearish'
-                    )}>
+                    <Badge
+                      sx={{
+                        fontSize: '0.75rem',
+                        bgcolor: (selectedSector.change_percent ?? 0) >= 0
+                          ? alpha(theme.palette.success.main, 0.2)
+                          : alpha(theme.palette.error.main, 0.2),
+                        color: (selectedSector.change_percent ?? 0) >= 0
+                          ? theme.palette.success.light
+                          : theme.palette.error.light,
+                      }}
+                    >
                       {(selectedSector.change_percent ?? 0) >= 0 ? '+' : ''}{Number(selectedSector.change_percent ?? 0).toFixed(2)}%
                     </Badge>
                     {selectedSector.advances != null && (
-                      <span className="text-[10px] text-muted-foreground">
-                        <span className="text-green-400">▲{selectedSector.advances}</span>
+                      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                        <Box component="span" sx={{ color: 'success.light' }}>{'\u25B2'}{selectedSector.advances}</Box>
                         {' '}
-                        <span className="text-red-400">▼{selectedSector.declines}</span>
-                      </span>
+                        <Box component="span" sx={{ color: 'error.light' }}>{'\u25BC'}{selectedSector.declines}</Box>
+                      </Typography>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
+                  </Stack>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box
+                      component="button"
                       onClick={() => setStockTab('momentum')}
-                      className={cn(
-                        'px-3 py-1 rounded-lg text-xs font-medium transition-all',
-                        stockTab === 'momentum'
-                          ? 'bg-bullish/20 text-bullish'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
+                      sx={{
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        bgcolor: stockTab === 'momentum'
+                          ? alpha(theme.palette.success.main, 0.2)
+                          : 'transparent',
+                        color: stockTab === 'momentum'
+                          ? theme.palette.success.light
+                          : theme.palette.text.secondary,
+                        '&:hover': {
+                          color: stockTab !== 'momentum' ? theme.palette.text.primary : undefined,
+                        },
+                      }}
                     >
-                      <Flame className="w-3 h-3 inline mr-1" />Momentum
-                    </button>
-                    <button
+                      <Flame style={{ width: 12, height: 12, marginRight: 4 }} />Momentum
+                    </Box>
+                    <Box
+                      component="button"
                       onClick={() => setStockTab('correction')}
-                      className={cn(
-                        'px-3 py-1 rounded-lg text-xs font-medium transition-all',
-                        stockTab === 'correction'
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
+                      sx={{
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        bgcolor: stockTab === 'correction'
+                          ? alpha(theme.palette.warning.main, 0.2)
+                          : 'transparent',
+                        color: stockTab === 'correction'
+                          ? theme.palette.warning.light
+                          : theme.palette.text.secondary,
+                        '&:hover': {
+                          color: stockTab !== 'correction' ? theme.palette.text.primary : undefined,
+                        },
+                      }}
                     >
-                      <ArrowDownRight className="w-3 h-3 inline mr-1" />Pullback
-                    </button>
-                    <button onClick={() => { setSelectedSector(null); setSectorStocks([]); }} className="p-1 rounded hover:bg-white/10">
-                      <X className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                </div>
+                      <ArrowDownRight style={{ width: 12, height: 12, marginRight: 4 }} />Pullback
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={() => { setSelectedSector(null); setSectorStocks([]); }}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <X style={{ width: 16, height: 16 }} />
+                    </IconButton>
+                  </Stack>
+                </Stack>
               </CardHeader>
               <CardContent>
                 {stocksLoading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-20 skeleton rounded-lg" />)}
-                  </div>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                      gap: 1,
+                    }}
+                  >
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} variant="rounded" height={80} sx={{ borderRadius: 2 }} />
+                    ))}
+                  </Box>
                 ) : (
                   <>
                     {stockTab === 'momentum' && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: {
+                            xs: 'repeat(2, 1fr)',
+                            md: 'repeat(3, 1fr)',
+                            lg: 'repeat(4, 1fr)',
+                          },
+                          gap: 1,
+                        }}
+                      >
                         {momentumStocks.length === 0 ? (
-                          <p className="text-sm text-muted-foreground col-span-full text-center py-4">No momentum stocks right now</p>
+                          <Typography
+                            sx={{
+                              fontSize: '0.875rem',
+                              color: 'text.secondary',
+                              gridColumn: '1 / -1',
+                              textAlign: 'center',
+                              py: 2,
+                            }}
+                          >
+                            No momentum stocks right now
+                          </Typography>
                         ) : momentumStocks.map((stock, i) => {
                           const chg = stock.change_pct ?? 0;
                           const price = stock.price ?? 0;
                           const volR = stock.volume_ratio ?? 1;
                           return (
-                            <motion.div
+                            <Box
+                              component={motion.div}
                               key={stock.symbol}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.04 }}
                               onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
-                              className="p-3 rounded-lg bg-bullish/5 border border-bullish/20 hover:border-bullish/40 cursor-pointer transition-all group"
+                              sx={{
+                                p: 1.5,
+                                borderRadius: 2,
+                                bgcolor: alpha(theme.palette.success.main, 0.05),
+                                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  borderColor: alpha(theme.palette.success.main, 0.4),
+                                },
+                                '&:hover .stock-sym': {
+                                  color: theme.palette.primary.main,
+                                },
+                              }}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-bold text-sm group-hover:text-primary transition-colors">{stock.symbol}</span>
-                                <ArrowUpRight className="w-3 h-3 text-bullish" />
-                              </div>
-                              <div className="text-xs text-muted-foreground">{formatINR(price)}</div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs font-bold text-bullish">+{Number(chg).toFixed(2)}%</span>
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                <Typography
+                                  className="stock-sym"
+                                  sx={{ fontWeight: 700, fontSize: '0.875rem', transition: 'color 0.2s ease' }}
+                                >
+                                  {stock.symbol}
+                                </Typography>
+                                <ArrowUpRight style={{ width: 12, height: 12, color: theme.palette.success.light }} />
+                              </Stack>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                                {formatINR(price)}
+                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
+                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'success.light' }}>
+                                  +{Number(chg).toFixed(2)}%
+                                </Typography>
                                 {volR > 1.2 && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-bullish/10 text-bullish font-medium">
-                                    Vol {volR.toFixed(1)}×
-                                  </span>
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      fontSize: '0.625rem',
+                                      px: 0.75,
+                                      py: 0.25,
+                                      borderRadius: 1,
+                                      bgcolor: alpha(theme.palette.success.main, 0.1),
+                                      color: 'success.light',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    Vol {volR.toFixed(1)}x
+                                  </Box>
                                 )}
-                              </div>
-                            </motion.div>
+                              </Stack>
+                            </Box>
                           );
                         })}
-                      </div>
+                      </Box>
                     )}
                     {stockTab === 'correction' && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: {
+                            xs: 'repeat(2, 1fr)',
+                            md: 'repeat(3, 1fr)',
+                            lg: 'repeat(4, 1fr)',
+                          },
+                          gap: 1,
+                        }}
+                      >
                         {correctionStocks.length === 0 ? (
-                          <p className="text-sm text-muted-foreground col-span-full text-center py-4">No pullback stocks right now</p>
+                          <Typography
+                            sx={{
+                              fontSize: '0.875rem',
+                              color: 'text.secondary',
+                              gridColumn: '1 / -1',
+                              textAlign: 'center',
+                              py: 2,
+                            }}
+                          >
+                            No pullback stocks right now
+                          </Typography>
                         ) : correctionStocks.map((stock, i) => {
                           const chg = stock.change_pct ?? 0;
                           const price = stock.price ?? 0;
                           const volR = stock.volume_ratio ?? 1;
                           return (
-                            <motion.div
+                            <Box
+                              component={motion.div}
                               key={stock.symbol}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.04 }}
                               onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
-                              className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 cursor-pointer transition-all group"
+                              sx={{
+                                p: 1.5,
+                                borderRadius: 2,
+                                bgcolor: alpha(theme.palette.warning.main, 0.05),
+                                border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  borderColor: alpha(theme.palette.warning.main, 0.4),
+                                },
+                                '&:hover .stock-sym': {
+                                  color: theme.palette.primary.main,
+                                },
+                              }}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-bold text-sm group-hover:text-primary transition-colors">{stock.symbol}</span>
-                                <ArrowDownRight className="w-3 h-3 text-amber-400" />
-                              </div>
-                              <div className="text-xs text-muted-foreground">{formatINR(price)}</div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs font-bold text-amber-400">{Number(chg).toFixed(2)}%</span>
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                <Typography
+                                  className="stock-sym"
+                                  sx={{ fontWeight: 700, fontSize: '0.875rem', transition: 'color 0.2s ease' }}
+                                >
+                                  {stock.symbol}
+                                </Typography>
+                                <ArrowDownRight style={{ width: 12, height: 12, color: theme.palette.warning.light }} />
+                              </Stack>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                                {formatINR(price)}
+                              </Typography>
+                              <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
+                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'warning.light' }}>
+                                  {Number(chg).toFixed(2)}%
+                                </Typography>
                                 {volR < 0.8 && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      fontSize: '0.625rem',
+                                      px: 0.75,
+                                      py: 0.25,
+                                      borderRadius: 1,
+                                      bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                      color: 'warning.light',
+                                      fontWeight: 500,
+                                    }}
+                                  >
                                     Low Vol
-                                  </span>
+                                  </Box>
                                 )}
-                              </div>
-                            </motion.div>
+                              </Stack>
+                            </Box>
                           );
                         })}
-                      </div>
+                      </Box>
                     )}
                     {sectorStocks.length > 0 && (
-                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                        <span>Quick:</span>
-                        <Link to={`/options`} className="text-primary hover:underline">Options Chain</Link>
-                        <span>•</span>
-                        <Link to={`/trade-finder`} className="text-primary hover:underline">Trade Finder</Link>
-                        <span>•</span>
-                        <Link to={`/scanners`} className="text-primary hover:underline">Full Scanner</Link>
-                      </div>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1.5, fontSize: '0.75rem', color: 'text.secondary' }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Quick:</Typography>
+                        <Typography
+                          component={Link}
+                          to="/options"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          Options Chain
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{'\u2022'}</Typography>
+                        <Typography
+                          component={Link}
+                          to="/trade-finder"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          Trade Finder
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{'\u2022'}</Typography>
+                        <Typography
+                          component={Link}
+                          to="/scanners"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          Full Scanner
+                        </Typography>
+                      </Stack>
                     )}
                   </>
                 )}
@@ -397,7 +662,7 @@ const SectorPerformance = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Box>
   );
 };
 

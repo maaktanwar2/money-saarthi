@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
@@ -13,6 +17,7 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || 'https://moneysaarthi-back
 
 // Full Year Strategy Comparison Backtest Page
 export default function Backtest() {
+  const theme = useTheme();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +37,7 @@ export default function Backtest() {
     },
     strategies: {
       iron_condor: {
-        name: "Iron Condor", icon: "🦅", color: "#3b82f6",
+        name: "Iron Condor", icon: "\u{1F985}", color: "#3b82f6",
         total_trades: 55, winning_trades: 37, losing_trades: 18, win_rate: 67.3,
         total_pnl: 163352, avg_pnl_per_trade: 2970, max_profit: 9180, max_loss: -16650,
         max_drawdown: 16650, sharpe_ratio: 3.43, profit_factor: 2.75,
@@ -53,7 +58,7 @@ export default function Backtest() {
         ]
       },
       iron_butterfly: {
-        name: "Iron Butterfly", icon: "🦋", color: "#a855f7",
+        name: "Iron Butterfly", icon: "\u{1F98B}", color: "#a855f7",
         total_trades: 55, winning_trades: 22, losing_trades: 33, win_rate: 40.0,
         total_pnl: -213983, avg_pnl_per_trade: -3890, max_profit: 28500, max_loss: -31200,
         max_drawdown: 226588, sharpe_ratio: -3.38, profit_factor: 0.32,
@@ -74,7 +79,7 @@ export default function Backtest() {
         ]
       },
       short_strangle: {
-        name: "Short Strangle", icon: "🐍", color: "#10b981",
+        name: "Short Strangle", icon: "\u{1F40D}", color: "#10b981",
         total_trades: 55, winning_trades: 48, losing_trades: 7, win_rate: 87.3,
         total_pnl: 489159, avg_pnl_per_trade: 8894, max_profit: 22500, max_loss: -56806,
         max_drawdown: 56806, sharpe_ratio: 4.11, profit_factor: 3.51,
@@ -95,7 +100,7 @@ export default function Backtest() {
         ]
       },
       straddle_hedge: {
-        name: "Straddle + Hedge", icon: "🛡️", color: "#f59e0b",
+        name: "Straddle + Hedge", icon: "\u{1F6E1}\u{FE0F}", color: "#f59e0b",
         total_trades: 55, winning_trades: 29, losing_trades: 26, win_rate: 52.7,
         total_pnl: -308192, avg_pnl_per_trade: -5603, max_profit: 18200, max_loss: -42600,
         max_drawdown: 366030, sharpe_ratio: -11.79, profit_factor: 0.48,
@@ -156,21 +161,23 @@ export default function Backtest() {
     return [...strategyList].sort((a, b) => b.total_pnl - a.total_pnl);
   }, [strategyList]);
 
-  const getScoreColor = (pnl) => pnl >= 0 ? 'text-green-400' : 'text-red-400';
-  const getBgColor = (pnl) => pnl >= 0 ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30';
+  const getScoreColor = (pnl) => pnl >= 0 ? 'success.main' : 'error.main';
+  const getBgSx = (pnl) => pnl >= 0
+    ? { bgcolor: alpha('#22c55e', 0.1), border: 1, borderColor: alpha('#22c55e', 0.3) }
+    : { bgcolor: alpha('#ef4444', 0.1), border: 1, borderColor: alpha('#ef4444', 0.3) };
   const getRankBadge = (idx) => {
-    const badges = ['🥇', '🥈', '🥉', '4th'];
+    const badges = ['\u{1F947}', '\u{1F948}', '\u{1F949}', '4th'];
     return badges[idx] || '';
   };
 
   if (loading) {
     return (
       <PageLayout>
-        <div className="space-y-6 py-6">
+        <Stack spacing={3} sx={{ py: 3 }}>
           <SkeletonPage cards={4} cols={4} />
           <SkeletonChart />
           <SkeletonTable rows={6} cols={5} />
-        </div>
+        </Stack>
       </PageLayout>
     );
   }
@@ -180,41 +187,54 @@ export default function Backtest() {
       <SEO {...getSeoConfig('/backtest')} path="/backtest" />
       <PageHeader
         title="Full Year Strategy Backtest"
-        subtitle={`NIFTY 50 Delta Neutral Strategies | ${data?.summary?.period || 'Jan 2024 - Jan 2025'} | ${data?.summary?.total_expiry_cycles || 55} Weekly Expiries`}
+        description={`NIFTY 50 Delta Neutral Strategies | ${data?.summary?.period || 'Jan 2024 - Jan 2025'} | ${data?.summary?.total_expiry_cycles || 55} Weekly Expiries`}
       />
 
       {/* Disclaimer */}
-      <div className="mx-4 mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm">
-        ⚠️ Past performance does not guarantee future results. Backtest uses realistic option pricing with slippage, brokerage & STT. Lot size: 65 | NIFTY return: {data?.summary?.nifty_return_pct?.toFixed(1) || '8.2'}%
-      </div>
+      <Box sx={{
+        mx: 2, mb: 2, p: 1.5, borderRadius: 2,
+        bgcolor: alpha('#eab308', 0.1),
+        border: 1, borderColor: alpha('#eab308', 0.3),
+        color: '#fde047', fontSize: '0.875rem',
+      }}>
+        {'\u26A0\uFE0F'} Past performance does not guarantee future results. Backtest uses realistic option pricing with slippage, brokerage & STT. Lot size: 65 | NIFTY return: {data?.summary?.nifty_return_pct?.toFixed(1) || '8.2'}%
+      </Box>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 px-4 mb-6">
+      <Box sx={{ display: 'flex', gap: 1, px: 2, mb: 3 }}>
         {[
           { id: 'overview', label: 'Overview' },
           { id: 'monthly', label: 'Monthly Breakdown' },
           { id: 'details', label: 'Strategy Details' }
         ].map(tab => (
-          <button
+          <Box
+            component="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab.id
-                ? 'bg-primary text-white'
-                : 'bg-card border border-border text-muted-foreground hover:border-primary/50'
-            }`}
+            sx={{
+              px: 2, py: 1, borderRadius: 2, fontSize: '0.875rem', fontWeight: 500,
+              transition: 'all 0.2s', cursor: 'pointer', outline: 'none',
+              ...(activeTab === tab.id
+                ? { bgcolor: 'primary.main', color: 'common.white', border: 'none' }
+                : {
+                    bgcolor: 'background.paper', border: 1, borderColor: 'divider',
+                    color: 'text.secondary',
+                    '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
+                  }
+              ),
+            }}
           >
             {tab.label}
-          </button>
+          </Box>
         ))}
-      </div>
+      </Box>
 
       <Section>
         {/* ===== OVERVIEW TAB ===== */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <Stack spacing={3}>
             {/* Strategy Ranking Cards */}
-            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(4, 1fr)' }, gap: 2 }}>
               {sortedStrategies.map((s, idx) => (
                 <motion.div
                   key={s.key}
@@ -222,78 +242,83 @@ export default function Backtest() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
                 >
-                  <Card 
-                    className={`glass-card cursor-pointer transition-all hover:scale-[1.02] ${
-                      selectedStrategy === s.key ? 'ring-2 ring-primary' : ''
-                    } ${idx === 0 ? 'ring-1 ring-green-500/50' : ''}`}
+                  <Card
                     onClick={() => { setSelectedStrategy(s.key); setActiveTab('details'); }}
+                    sx={{
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      '&:hover': { transform: 'scale(1.02)' },
+                      ...(selectedStrategy === s.key ? { outline: 2, outlineStyle: 'solid', outlineColor: 'primary.main' } : {}),
+                      ...(idx === 0 ? { boxShadow: `0 0 0 1px ${alpha('#22c55e', 0.5)}` } : {}),
+                    }}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{s.icon}</span>
-                          <div>
-                            <div className="font-semibold text-sm">{s.name}</div>
-                            <div className="text-xs text-muted-foreground">{s.legs} legs</div>
-                          </div>
-                        </div>
-                        <div className="text-lg">{getRankBadge(idx)}</div>
-                      </div>
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontSize: '1.5rem' }}>{s.icon}</Typography>
+                          <Box>
+                            <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.name}</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{s.legs} legs</Typography>
+                          </Box>
+                        </Box>
+                        <Typography sx={{ fontSize: '1.125rem' }}>{getRankBadge(idx)}</Typography>
+                      </Box>
 
-                      <div className={`text-2xl font-bold mb-1 ${getScoreColor(s.total_pnl)}`}>
+                      <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, mb: 0.5, color: getScoreColor(s.total_pnl) }}>
                         {formatINR(s.total_pnl)}
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-3">Total P&L (55 trades)</div>
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1.5 }}>Total P&L (55 trades)</Typography>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className={`p-2 rounded ${getBgColor(s.total_pnl)}`}>
-                          <div className="text-muted-foreground">Win Rate</div>
-                          <div className="font-bold">{s.win_rate}%</div>
-                        </div>
-                        <div className={`p-2 rounded ${getBgColor(s.total_pnl)}`}>
-                          <div className="text-muted-foreground">ROI</div>
-                          <div className="font-bold">{s.roi_pct}%</div>
-                        </div>
-                        <div className={`p-2 rounded ${getBgColor(s.sharpe_ratio)}`}>
-                          <div className="text-muted-foreground">Sharpe</div>
-                          <div className="font-bold">{s.sharpe_ratio}</div>
-                        </div>
-                        <div className="p-2 rounded bg-red-500/10 border border-red-500/30">
-                          <div className="text-muted-foreground">Max DD</div>
-                          <div className="font-bold text-red-400">{formatINR(-Math.abs(s.max_drawdown))}</div>
-                        </div>
-                      </div>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+                        <Box sx={{ p: 1, borderRadius: 1, ...getBgSx(s.total_pnl) }}>
+                          <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Win Rate</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{s.win_rate}%</Typography>
+                        </Box>
+                        <Box sx={{ p: 1, borderRadius: 1, ...getBgSx(s.total_pnl) }}>
+                          <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>ROI</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{s.roi_pct}%</Typography>
+                        </Box>
+                        <Box sx={{ p: 1, borderRadius: 1, ...getBgSx(s.sharpe_ratio) }}>
+                          <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Sharpe</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{s.sharpe_ratio}</Typography>
+                        </Box>
+                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha('#ef4444', 0.1), border: 1, borderColor: alpha('#ef4444', 0.3) }}>
+                          <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Max DD</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'error.main' }}>{formatINR(-Math.abs(s.max_drawdown))}</Typography>
+                        </Box>
+                      </Box>
 
                       {idx === 0 && (
-                        <Badge className="mt-3 bg-green-500/20 text-green-400 border-green-500/30 w-full justify-center">
-                          ⭐ BEST PERFORMER
-                        </Badge>
+                        <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
+                          <Badge sx={{ bgcolor: alpha('#22c55e', 0.2), color: '#4ade80', borderColor: alpha('#22c55e', 0.3) }}>
+                            {'\u2B50'} BEST PERFORMER
+                          </Badge>
+                        </Box>
                       )}
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
-            </div>
+            </Box>
 
             {/* Head-to-Head Comparison Table */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Head-to-Head Comparison</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 text-muted-foreground">Metric</th>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Box component="table" sx={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+                    <Box component="thead">
+                      <Box component="tr" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1, color: 'text.secondary', fontWeight: 600 }}>Metric</Box>
                         {sortedStrategies.map(s => (
-                          <th key={s.key} className="text-center py-3 px-2" style={{ color: s.color }}>
+                          <Box component="th" key={s.key} sx={{ textAlign: 'center', py: 1.5, px: 1, fontWeight: 600 }} style={{ color: s.color }}>
                             {s.icon} {s.name}
-                          </th>
+                          </Box>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
+                      </Box>
+                    </Box>
+                    <Box component="tbody">
                       {[
                         { label: 'Total P&L', key: 'total_pnl', fmt: v => formatINR(v), colorize: true },
                         { label: 'Win Rate', key: 'win_rate', fmt: v => `${v}%`, colorize: true },
@@ -313,39 +338,40 @@ export default function Backtest() {
                         const vals = sortedStrategies.map(s => s[row.key]);
                         const best = row.isDD ? Math.min(...vals) : Math.max(...vals);
                         return (
-                          <tr key={row.label} className="border-b border-border/50 hover:bg-card/50">
-                            <td className="py-2 px-2 text-muted-foreground">{row.label}</td>
+                          <Box component="tr" key={row.label} sx={{ borderBottom: 1, borderColor: alpha(theme.palette.divider, 0.5), '&:hover': { bgcolor: alpha(theme.palette.background.paper, 0.5) } }}>
+                            <Box component="td" sx={{ py: 1, px: 1, color: 'text.secondary' }}>{row.label}</Box>
                             {sortedStrategies.map(s => {
                               const v = s[row.key];
                               const isBest = v === best && row.colorize;
                               return (
-                                <td key={s.key} className={`text-center py-2 px-2 font-medium ${
-                                  isBest ? 'text-green-400 font-bold' :
-                                  row.colorize && v < 0 ? 'text-red-400' :
-                                  row.isDD ? 'text-red-400' : ''
-                                }`}>
-                                  {row.fmt(v)} {isBest && '✓'}
-                                </td>
+                                <Box component="td" key={s.key} sx={{
+                                  textAlign: 'center', py: 1, px: 1, fontWeight: 500,
+                                  ...(isBest ? { color: 'success.main', fontWeight: 700 } :
+                                    row.colorize && v < 0 ? { color: 'error.main' } :
+                                    row.isDD ? { color: 'error.main' } : {}),
+                                }}>
+                                  {row.fmt(v)} {isBest && '\u2713'}
+                                </Box>
                               );
                             })}
-                          </tr>
+                          </Box>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                    </Box>
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
 
             {/* Equity Curves Comparison */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
               {sortedStrategies.map(s => (
-                <Card key={s.key} className="glass-card">
+                <Card key={s.key}>
                   <CardHeader>
-                    <CardTitle className="text-sm">{s.icon} {s.name} - Equity Curve</CardTitle>
+                    <CardTitle sx={{ fontSize: '0.875rem' }}>{s.icon} {s.name} - Equity Curve</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-48">
+                    <Box sx={{ height: 192 }}>
                       <TradingAreaChart
                         data={s.equity_curve || []}
                         dataKey="value"
@@ -353,129 +379,133 @@ export default function Backtest() {
                         color={s.total_pnl >= 0 ? CHART_COLORS.bullish : CHART_COLORS.bearish}
                         gradientId={`eq-${s.key}`}
                       />
-                    </div>
+                    </Box>
                   </CardContent>
                 </Card>
               ))}
-            </div>
+            </Box>
 
             {/* Verdict */}
-            <Card className="glass-card border-green-500/30">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-bold mb-3">📋 Verdict & Recommendations</h3>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-400">✅</span>
-                      <span><strong>Best Overall:</strong> 🐍 Short Strangle — highest P&L, best Sharpe & win rate</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-blue-400">🛡️</span>
-                      <span><strong>Best Risk-Adjusted:</strong> 🦅 Iron Condor — defined risk, lowest drawdown</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-400">⚠️</span>
-                      <span><strong>Not Recommended:</strong> 🦋 Iron Butterfly & 🛡️ Straddle+Hedge — negative returns</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-muted-foreground">
-                    <p>• Short Strangle works best in range-bound markets but carries unlimited risk</p>
-                    <p>• Iron Condor is safest for beginners with defined max loss</p>
-                    <p>• ATM strategies (Butterfly, Straddle) need very precise timing to profit</p>
-                    <p>• All strategies tested with realistic slippage, brokerage & STT costs</p>
-                  </div>
-                </div>
+            <Card sx={{ boxShadow: `0 0 0 1px ${alpha('#22c55e', 0.3)}` }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, mb: 1.5 }}>
+                  {'\u{1F4CB}'} Verdict & Recommendations
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, fontSize: '0.875rem' }}>
+                  <Stack spacing={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box component="span" sx={{ color: 'success.main' }}>{'\u2705'}</Box>
+                      <Typography variant="body2"><strong>Best Overall:</strong> {'\u{1F40D}'} Short Strangle — highest P&L, best Sharpe & win rate</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box component="span" sx={{ color: 'info.main' }}>{'\u{1F6E1}\u{FE0F}'}</Box>
+                      <Typography variant="body2"><strong>Best Risk-Adjusted:</strong> {'\u{1F985}'} Iron Condor — defined risk, lowest drawdown</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box component="span" sx={{ color: 'warning.main' }}>{'\u26A0\u{FE0F}'}</Box>
+                      <Typography variant="body2"><strong>Not Recommended:</strong> {'\u{1F98B}'} Iron Butterfly & {'\u{1F6E1}\u{FE0F}'} Straddle+Hedge — negative returns</Typography>
+                    </Box>
+                  </Stack>
+                  <Stack spacing={1} sx={{ color: 'text.secondary' }}>
+                    <Typography variant="body2">{'\u2022'} Short Strangle works best in range-bound markets but carries unlimited risk</Typography>
+                    <Typography variant="body2">{'\u2022'} Iron Condor is safest for beginners with defined max loss</Typography>
+                    <Typography variant="body2">{'\u2022'} ATM strategies (Butterfly, Straddle) need very precise timing to profit</Typography>
+                    <Typography variant="body2">{'\u2022'} All strategies tested with realistic slippage, brokerage & STT costs</Typography>
+                  </Stack>
+                </Box>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
         {/* ===== MONTHLY BREAKDOWN TAB ===== */}
         {activeTab === 'monthly' && (
-          <div className="space-y-6">
+          <Stack spacing={3}>
             {/* Monthly P&L Table */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Monthly P&L Comparison</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 text-muted-foreground">Month</th>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Box component="table" sx={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+                    <Box component="thead">
+                      <Box component="tr" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        <Box component="th" sx={{ textAlign: 'left', py: 1.5, px: 1, color: 'text.secondary', fontWeight: 600 }}>Month</Box>
                         {sortedStrategies.map(s => (
-                          <th key={s.key} className="text-center py-3 px-2" style={{ color: s.color }}>
+                          <Box component="th" key={s.key} sx={{ textAlign: 'center', py: 1.5, px: 1, fontWeight: 600 }} style={{ color: s.color }}>
                             {s.icon} {s.name}
-                          </th>
+                          </Box>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
+                      </Box>
+                    </Box>
+                    <Box component="tbody">
                       {Object.keys(sortedStrategies[0]?.monthly_pnl || {}).map(month => (
-                        <tr key={month} className="border-b border-border/50 hover:bg-card/50">
-                          <td className="py-2 px-2 font-medium">{month}</td>
+                        <Box component="tr" key={month} sx={{ borderBottom: 1, borderColor: alpha(theme.palette.divider, 0.5), '&:hover': { bgcolor: alpha(theme.palette.background.paper, 0.5) } }}>
+                          <Box component="td" sx={{ py: 1, px: 1, fontWeight: 500 }}>{month}</Box>
                           {sortedStrategies.map(s => {
                             const v = s.monthly_pnl?.[month] || 0;
                             return (
-                              <td key={s.key} className={`text-center py-2 px-2 font-medium ${
-                                v >= 0 ? 'text-green-400' : 'text-red-400'
-                              }`}>
+                              <Box component="td" key={s.key} sx={{
+                                textAlign: 'center', py: 1, px: 1, fontWeight: 500,
+                                color: v >= 0 ? 'success.main' : 'error.main',
+                              }}>
                                 {formatINR(v)}
-                              </td>
+                              </Box>
                             );
                           })}
-                        </tr>
+                        </Box>
                       ))}
-                      <tr className="border-t-2 border-primary/50 font-bold">
-                        <td className="py-2 px-2">TOTAL</td>
+                      <Box component="tr" sx={{ borderTop: 2, borderColor: alpha(theme.palette.primary.main, 0.5), fontWeight: 700 }}>
+                        <Box component="td" sx={{ py: 1, px: 1, fontWeight: 700 }}>TOTAL</Box>
                         {sortedStrategies.map(s => (
-                          <td key={s.key} className={`text-center py-2 px-2 ${
-                            s.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
+                          <Box component="td" key={s.key} sx={{
+                            textAlign: 'center', py: 1, px: 1, fontWeight: 700,
+                            color: s.total_pnl >= 0 ? 'success.main' : 'error.main',
+                          }}>
                             {formatINR(s.total_pnl)}
-                          </td>
+                          </Box>
                         ))}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
 
             {/* Monthly Bar Charts */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
               {sortedStrategies.map(s => {
                 const monthData = Object.entries(s.monthly_pnl || {}).map(([month, pnl]) => ({
                   month: month.replace('-24', ''),
                   pnl: Math.round(pnl / 1000)
                 }));
                 return (
-                  <Card key={s.key} className="glass-card">
+                  <Card key={s.key}>
                     <CardHeader>
-                      <CardTitle className="text-sm">{s.icon} {s.name} Monthly P&L (₹K)</CardTitle>
+                      <CardTitle sx={{ fontSize: '0.875rem' }}>{s.icon} {s.name} Monthly P&L ({'\u20B9'}K)</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-48">
+                      <Box sx={{ height: 192 }}>
                         <TradingBarChart
                           data={monthData}
                           dataKey="pnl"
                           xKey="month"
                         />
-                      </div>
+                      </Box>
                     </CardContent>
                   </Card>
                 );
               })}
-            </div>
+            </Box>
 
             {/* Profitable vs Loss Months */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Monthly Win/Loss Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-4 gap-4">
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
                   {sortedStrategies.map(s => {
                     const months = Object.values(s.monthly_pnl || {});
                     const profitMonths = months.filter(v => v > 0).length;
@@ -483,116 +513,123 @@ export default function Backtest() {
                     const bestMonth = Math.max(...months);
                     const worstMonth = Math.min(...months);
                     return (
-                      <div key={s.key} className="p-4 rounded-lg bg-card border border-border">
-                        <div className="font-medium mb-2" style={{ color: s.color }}>
+                      <Box key={s.key} sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
+                        <Typography sx={{ fontWeight: 500, mb: 1 }} style={{ color: s.color }}>
                           {s.icon} {s.name}
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Profitable Months</span>
-                            <span className="text-green-400 font-bold">{profitMonths}/12</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Loss Months</span>
-                            <span className="text-red-400 font-bold">{lossMonths}/12</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Best Month</span>
-                            <span className="text-green-400">{formatINR(bestMonth)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Worst Month</span>
-                            <span className="text-red-400">{formatINR(worstMonth)}</span>
-                          </div>
-                          <div className="w-full bg-red-500/20 rounded-full h-2 mt-2">
-                            <div
-                              className="bg-green-500 rounded-full h-2"
-                              style={{ width: `${(profitMonths / 12) * 100}%` }}
+                        </Typography>
+                        <Stack spacing={0.5} sx={{ fontSize: '0.75rem' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Profitable Months</Typography>
+                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 700 }}>{profitMonths}/12</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Loss Months</Typography>
+                            <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 700 }}>{lossMonths}/12</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Best Month</Typography>
+                            <Typography variant="caption" sx={{ color: 'success.main' }}>{formatINR(bestMonth)}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Worst Month</Typography>
+                            <Typography variant="caption" sx={{ color: 'error.main' }}>{formatINR(worstMonth)}</Typography>
+                          </Box>
+                          <Box sx={{ width: '100%', bgcolor: alpha('#ef4444', 0.2), borderRadius: 5, height: 8, mt: 1 }}>
+                            <Box
+                              sx={{
+                                bgcolor: 'success.main',
+                                borderRadius: 5,
+                                height: 8,
+                                width: `${(profitMonths / 12) * 100}%`,
+                              }}
                             />
-                          </div>
-                        </div>
-                      </div>
+                          </Box>
+                        </Stack>
+                      </Box>
                     );
                   })}
-                </div>
+                </Box>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
         {/* ===== STRATEGY DETAILS TAB ===== */}
         {activeTab === 'details' && (
-          <div className="space-y-6">
+          <Stack spacing={3}>
             {/* Strategy Selector */}
-            <div className="flex gap-2 flex-wrap">
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {sortedStrategies.map(s => (
                 <Button
                   key={s.key}
                   onClick={() => setSelectedStrategy(s.key)}
-                  className={`${
-                    selectedStrategy === s.key
-                      ? 'bg-primary text-white'
-                      : 'bg-card border border-border text-muted-foreground'
-                  }`}
+                  variant={selectedStrategy === s.key ? 'default' : 'outline'}
+                  sx={selectedStrategy === s.key
+                    ? { bgcolor: 'primary.main', color: 'common.white' }
+                    : { bgcolor: 'background.paper', borderColor: 'divider', color: 'text.secondary' }
+                  }
                 >
                   {s.icon} {s.name}
                 </Button>
               ))}
-            </div>
+            </Box>
 
             {selectedStrategy && data?.strategies?.[selectedStrategy] && (() => {
               const s = { key: selectedStrategy, ...data.strategies[selectedStrategy] };
               return (
-                <div className="space-y-6">
+                <Stack spacing={3}>
                   {/* Strategy Header */}
-                  <Card className="glass-card">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        <span className="text-4xl">{s.icon}</span>
-                        <div>
-                          <h2 className="text-2xl font-bold">{s.name}</h2>
-                          <p className="text-muted-foreground">{s.description}</p>
-                        </div>
-                        <Badge className={`ml-auto ${
-                          s.risk_level === 'Medium' ? 'bg-blue-500/20 text-blue-400' :
-                          s.risk_level === 'High' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
+                  <Card>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Typography sx={{ fontSize: '2.25rem' }}>{s.icon}</Typography>
+                        <Box>
+                          <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>{s.name}</Typography>
+                          <Typography sx={{ color: 'text.secondary' }}>{s.description}</Typography>
+                        </Box>
+                        <Badge sx={{
+                          ml: 'auto',
+                          ...(s.risk_level === 'Medium'
+                            ? { bgcolor: alpha('#3b82f6', 0.2), color: '#60a5fa' }
+                            : s.risk_level === 'High'
+                              ? { bgcolor: alpha('#f97316', 0.2), color: '#fb923c' }
+                              : { bgcolor: alpha('#ef4444', 0.2), color: '#f87171' }),
+                        }}>
                           {s.risk_level} Risk
                         </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="p-3 rounded-lg bg-card border border-border text-center">
-                          <div className={`text-xl font-bold ${getScoreColor(s.total_pnl)}`}>{formatINR(s.total_pnl)}</div>
-                          <div className="text-xs text-muted-foreground">Total P&L</div>
-                        </div>
-                        <div className="p-3 rounded-lg bg-card border border-border text-center">
-                          <div className="text-xl font-bold text-primary">{s.win_rate}%</div>
-                          <div className="text-xs text-muted-foreground">Win Rate</div>
-                        </div>
-                        <div className="p-3 rounded-lg bg-card border border-border text-center">
-                          <div className={`text-xl font-bold ${getScoreColor(s.roi_pct)}`}>{s.roi_pct}%</div>
-                          <div className="text-xs text-muted-foreground">ROI</div>
-                        </div>
-                        <div className="p-3 rounded-lg bg-card border border-border text-center">
-                          <div className={`text-xl font-bold ${getScoreColor(s.sharpe_ratio)}`}>{s.sharpe_ratio}</div>
-                          <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
-                        </div>
-                        <div className="p-3 rounded-lg bg-card border border-border text-center">
-                          <div className="text-xl font-bold text-red-400">{formatINR(-Math.abs(s.max_drawdown))}</div>
-                          <div className="text-xs text-muted-foreground">Max Drawdown</div>
-                        </div>
-                      </div>
+                      </Box>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2 }}>
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', textAlign: 'center' }}>
+                          <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: getScoreColor(s.total_pnl) }}>{formatINR(s.total_pnl)}</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Total P&L</Typography>
+                        </Box>
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', textAlign: 'center' }}>
+                          <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: 'primary.main' }}>{s.win_rate}%</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Win Rate</Typography>
+                        </Box>
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', textAlign: 'center' }}>
+                          <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: getScoreColor(s.roi_pct) }}>{s.roi_pct}%</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>ROI</Typography>
+                        </Box>
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', textAlign: 'center' }}>
+                          <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: getScoreColor(s.sharpe_ratio) }}>{s.sharpe_ratio}</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Sharpe Ratio</Typography>
+                        </Box>
+                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', textAlign: 'center' }}>
+                          <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: 'error.main' }}>{formatINR(-Math.abs(s.max_drawdown))}</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Max Drawdown</Typography>
+                        </Box>
+                      </Box>
                     </CardContent>
                   </Card>
 
                   {/* Equity Curve */}
-                  <Card className="glass-card">
+                  <Card>
                     <CardHeader>
                       <CardTitle>Equity Curve</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-64">
+                      <Box sx={{ height: 256 }}>
                         <TradingAreaChart
                           data={s.equity_curve || []}
                           dataKey="value"
@@ -600,74 +637,77 @@ export default function Backtest() {
                           color={s.total_pnl >= 0 ? CHART_COLORS.bullish : CHART_COLORS.bearish}
                           gradientId={`detail-${s.key}`}
                         />
-                      </div>
+                      </Box>
                     </CardContent>
                   </Card>
 
                   {/* Trade Stats & Risk */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card className="glass-card">
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+                    <Card>
                       <CardHeader>
                         <CardTitle>Trade Statistics</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        {[
-                          { label: 'Total Trades', value: s.total_trades },
-                          { label: 'Winning Trades', value: s.winning_trades, color: 'text-green-400' },
-                          { label: 'Losing Trades', value: s.losing_trades, color: 'text-red-400' },
-                          { label: 'Win Rate', value: `${s.win_rate}%`, color: s.win_rate >= 50 ? 'text-green-400' : 'text-red-400' },
-                          { label: 'Best Trade', value: formatINR(s.max_profit), color: 'text-green-400' },
-                          { label: 'Worst Trade', value: formatINR(s.max_loss), color: 'text-red-400' },
-                          { label: 'Avg P&L/Trade', value: formatINR(s.avg_pnl_per_trade), color: getScoreColor(s.avg_pnl_per_trade) },
-                          { label: 'Legs per Trade', value: s.legs },
-                        ].map(stat => (
-                          <div key={stat.label} className="flex justify-between">
-                            <span className="text-muted-foreground">{stat.label}</span>
-                            <span className={`font-medium ${stat.color || ''}`}>{stat.value}</span>
-                          </div>
-                        ))}
+                      <CardContent>
+                        <Stack spacing={1.5}>
+                          {[
+                            { label: 'Total Trades', value: s.total_trades },
+                            { label: 'Winning Trades', value: s.winning_trades, color: 'success.main' },
+                            { label: 'Losing Trades', value: s.losing_trades, color: 'error.main' },
+                            { label: 'Win Rate', value: `${s.win_rate}%`, color: s.win_rate >= 50 ? 'success.main' : 'error.main' },
+                            { label: 'Best Trade', value: formatINR(s.max_profit), color: 'success.main' },
+                            { label: 'Worst Trade', value: formatINR(s.max_loss), color: 'error.main' },
+                            { label: 'Avg P&L/Trade', value: formatINR(s.avg_pnl_per_trade), color: getScoreColor(s.avg_pnl_per_trade) },
+                            { label: 'Legs per Trade', value: s.legs },
+                          ].map(stat => (
+                            <Box key={stat.label} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{stat.label}</Typography>
+                              <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', ...(stat.color ? { color: stat.color } : {}) }}>{stat.value}</Typography>
+                            </Box>
+                          ))}
+                        </Stack>
                       </CardContent>
                     </Card>
 
-                    <Card className="glass-card">
+                    <Card>
                       <CardHeader>
                         <CardTitle>Risk Metrics</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        {[
-                          { label: 'Max Drawdown', value: formatINR(-Math.abs(s.max_drawdown)), color: 'text-red-400' },
-                          { label: 'Sharpe Ratio', value: s.sharpe_ratio?.toFixed(2), color: getScoreColor(s.sharpe_ratio) },
-                          { label: 'Profit Factor', value: s.profit_factor?.toFixed(2), color: getScoreColor(s.profit_factor - 1) },
-                          { label: 'ROI', value: `${s.roi_pct}%`, color: getScoreColor(s.roi_pct) },
-                          { label: 'Margin Used', value: formatINR(s.margin_used) },
-                          { label: 'Risk Level', value: s.risk_level },
-                          { label: 'Risk/Reward', value: s.max_profit && s.max_loss ? (s.max_profit / Math.abs(s.max_loss)).toFixed(2) : 'N/A' },
-                          { label: 'Recovery Factor', value: s.total_pnl > 0 ? (s.total_pnl / Math.abs(s.max_drawdown)).toFixed(2) : 'N/A' },
-                        ].map(stat => (
-                          <div key={stat.label} className="flex justify-between">
-                            <span className="text-muted-foreground">{stat.label}</span>
-                            <span className={`font-medium ${stat.color || ''}`}>{stat.value}</span>
-                          </div>
-                        ))}
+                      <CardContent>
+                        <Stack spacing={1.5}>
+                          {[
+                            { label: 'Max Drawdown', value: formatINR(-Math.abs(s.max_drawdown)), color: 'error.main' },
+                            { label: 'Sharpe Ratio', value: s.sharpe_ratio?.toFixed(2), color: getScoreColor(s.sharpe_ratio) },
+                            { label: 'Profit Factor', value: s.profit_factor?.toFixed(2), color: getScoreColor(s.profit_factor - 1) },
+                            { label: 'ROI', value: `${s.roi_pct}%`, color: getScoreColor(s.roi_pct) },
+                            { label: 'Margin Used', value: formatINR(s.margin_used) },
+                            { label: 'Risk Level', value: s.risk_level },
+                            { label: 'Risk/Reward', value: s.max_profit && s.max_loss ? (s.max_profit / Math.abs(s.max_loss)).toFixed(2) : 'N/A' },
+                            { label: 'Recovery Factor', value: s.total_pnl > 0 ? (s.total_pnl / Math.abs(s.max_drawdown)).toFixed(2) : 'N/A' },
+                          ].map(stat => (
+                            <Box key={stat.label} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{stat.label}</Typography>
+                              <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', ...(stat.color ? { color: stat.color } : {}) }}>{stat.value}</Typography>
+                            </Box>
+                          ))}
+                        </Stack>
                       </CardContent>
                     </Card>
-                  </div>
-                </div>
+                  </Box>
+                </Stack>
               );
             })()}
 
             {!selectedStrategy && (
-              <Card className="glass-card flex items-center justify-center min-h-[300px]">
-                <div className="text-center text-muted-foreground">
-                  <div className="text-4xl mb-4">👆</div>
-                  <p>Select a strategy above to see detailed analysis</p>
-                </div>
+              <Card sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
+                <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                  <Typography sx={{ fontSize: '2.25rem', mb: 2 }}>{'\u{1F446}'}</Typography>
+                  <Typography>Select a strategy above to see detailed analysis</Typography>
+                </Box>
               </Card>
             )}
-          </div>
+          </Stack>
         )}
       </Section>
     </PageLayout>
   );
 }
-

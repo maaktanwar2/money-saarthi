@@ -4,6 +4,20 @@ import {
   AlertCircle, CircleDot
 } from 'lucide-react';
 
+/** Maps semantic color names to hex values (replaces tw() helper) */
+export const COLOR_MAP = {
+  emerald: '#10b981',
+  blue: '#3b82f6',
+  purple: '#a855f7',
+  green: '#22c55e',
+  red: '#ef4444',
+  amber: '#f59e0b',
+  cyan: '#06b6d4',
+  slate: '#64748b',
+  gray: '#9ca3af',
+  yellow: '#eab308',
+};
+
 export const STRATEGY_INFO = {
   short_strangle: { name: 'Short Strangle', icon: '🎯', color: 'emerald', desc: 'Sell OTM CE+PE' },
   iron_condor: { name: 'Iron Condor', icon: '🛡️', color: 'blue', desc: 'Defined-risk range' },
@@ -17,15 +31,15 @@ export const STRATEGY_INFO = {
 };
 
 export const REGIME_COLORS = {
-  strongly_bullish: 'text-green-400',
-  bullish: 'text-green-400',
-  mildly_bullish: 'text-emerald-400',
-  range_bound: 'text-blue-400',
-  mildly_bearish: 'text-orange-400',
-  bearish: 'text-red-400',
-  strongly_bearish: 'text-red-500',
-  high_volatility: 'text-amber-400',
-  unknown: 'text-slate-400',
+  strongly_bullish: '#4ade80',
+  bullish: '#4ade80',
+  mildly_bullish: '#34d399',
+  range_bound: '#60a5fa',
+  mildly_bearish: '#fb923c',
+  bearish: '#f87171',
+  strongly_bearish: '#ef4444',
+  high_volatility: '#fbbf24',
+  unknown: '#94a3b8',
 };
 
 export const STATE_CONFIG = {

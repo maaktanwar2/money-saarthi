@@ -1,5 +1,9 @@
 // Options Hub — OI Analysis with charts, PCR, max pain, spurts
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   RefreshCw, WifiOff, Zap, Eye, Percent, Target,
   ArrowUpRight, ArrowDownRight, Shield, AlertTriangle, Info
@@ -9,11 +13,16 @@ import {
   Button, Badge
 } from '../ui';
 import { TradingBarChart } from '../ui/Charts';
-import { cn, formatINR, formatNumber, fetchAPI, getChangeColor, isMarketHours } from '../../lib/utils';
+import { formatINR, formatNumber, fetchAPI, isMarketHours } from '../../lib/utils';
 import { SkeletonChart, SkeletonTable } from '../ui/Skeleton';
 import { REFRESH_INTERVAL, formatTime } from './constants';
 
+/** Returns a theme-aware MUI color string based on value sign */
+const changeColor = (value) => value > 0 ? 'success.main' : value < 0 ? 'error.main' : 'text.secondary';
+
 const OIAnalysis = ({ symbol }) => {
+  const theme = useTheme();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,20 +53,20 @@ const OIAnalysis = ({ symbol }) => {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <Stack spacing={2}>
         <SkeletonChart />
         <SkeletonTable rows={6} cols={5} />
-      </div>
+      </Stack>
     );
   }
 
   if (!data) {
     return (
-      <Card className="p-8 text-center">
-        <WifiOff className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">Failed to load OI data</p>
-        <Button onClick={() => fetchOI(false)} variant="outline" size="sm" className="mt-3">
-          <RefreshCw className="w-4 h-4 mr-2" /> Retry
+      <Card sx={{ p: 4, textAlign: 'center' }}>
+        <WifiOff style={{ width: 48, height: 48, color: theme.palette.text.secondary, margin: '0 auto 12px' }} />
+        <Typography color="text.secondary">Failed to load OI data</Typography>
+        <Button onClick={() => fetchOI(false)} variant="outline" size="sm" sx={{ mt: 1.5 }}>
+          <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} /> Retry
         </Button>
       </Card>
     );
@@ -82,108 +91,155 @@ const OIAnalysis = ({ symbol }) => {
       'Put OI': s.put?.oi || 0,
     }));
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">OI Analytics - {symbol}</h3>
-          <p className="text-xs text-muted-foreground">Updated: {formatTime(lastUpdated)}</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => fetchOI(true)} disabled={refreshing}>
-          <RefreshCw className={cn('w-4 h-4 mr-1', refreshing && 'animate-spin')} /> Refresh
-        </Button>
-      </div>
+  const viewColor = overallView === 'BULLISH' ? 'success' : overallView === 'BEARISH' ? 'error' : 'warning';
 
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="h6" fontWeight={600}>OI Analytics - {symbol}</Typography>
+          <Typography variant="caption" color="text.secondary">Updated: {formatTime(lastUpdated)}</Typography>
+        </Box>
+        <Button variant="outline" size="sm" onClick={() => fetchOI(true)} disabled={refreshing}>
+          <RefreshCw
+            style={{
+              width: 16,
+              height: 16,
+              marginRight: 4,
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+            }}
+          />
+          Refresh
+        </Button>
+      </Box>
+
+      {/* Overall View Banner */}
       {overallView && (
-        <Card className={cn(
-          'p-4 border-l-4',
-          overallView === 'BULLISH' ? 'border-l-green-500 bg-green-500/5' :
-          overallView === 'BEARISH' ? 'border-l-red-500 bg-red-500/5' :
-          'border-l-amber-500 bg-amber-500/5'
-        )}>
-          <div className="flex items-center gap-3 mb-2">
-            <Zap className={cn('w-5 h-5',
-              overallView === 'BULLISH' ? 'text-bullish' :
-              overallView === 'BEARISH' ? 'text-bearish' : 'text-amber-500'
-            )} />
-            <span className="font-bold text-lg">{overallView}</span>
+        <Card
+          sx={{
+            p: 2,
+            borderLeft: 4,
+            borderColor: `${viewColor}.main`,
+            bgcolor: (t) => alpha(t.palette[viewColor].main, 0.05),
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Zap style={{ width: 20, height: 20, color: theme.palette[viewColor].main }} />
+            <Typography variant="h6" fontWeight={700}>{overallView}</Typography>
             <Badge variant={overallView === 'BULLISH' ? 'success' : overallView === 'BEARISH' ? 'destructive' : 'secondary'}>
               {pcrSignal}
             </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">{data?.summary?.pcrInterpretation}</p>
-          {tradeSuggestion && <p className="text-sm font-medium mt-1 text-primary">{tradeSuggestion}</p>}
+          </Box>
+          <Typography variant="body2" color="text.secondary">{data?.summary?.pcrInterpretation}</Typography>
+          {tradeSuggestion && (
+            <Typography variant="body2" fontWeight={500} sx={{ mt: 0.5, color: 'primary.main' }}>
+              {tradeSuggestion}
+            </Typography>
+          )}
         </Card>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Spot Price</span>
-            <Eye className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <p className="text-2xl font-bold text-primary">{formatINR(spotPrice)}</p>
+      {/* Key Metrics Grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' },
+          gap: 1.5,
+        }}
+      >
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">Spot Price</Typography>
+            <Eye style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'primary.main' }}>{formatINR(spotPrice)}</Typography>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Put-Call Ratio</span>
-            <Percent className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <p className={cn('text-2xl font-bold', pcr > 1 ? 'text-bullish' : pcr < 0.7 ? 'text-bearish' : 'text-amber-500')}>
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">Put-Call Ratio</Typography>
+            <Percent style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+          </Box>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            sx={{ color: pcr > 1 ? 'success.main' : pcr < 0.7 ? 'error.main' : 'warning.main' }}
+          >
             {pcr?.toFixed(2)}
-          </p>
-          <p className="text-xs text-muted-foreground">{pcr > 1 ? 'Bullish bias' : pcr < 0.7 ? 'Bearish bias' : 'Neutral'}</p>
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {pcr > 1 ? 'Bullish bias' : pcr < 0.7 ? 'Bearish bias' : 'Neutral'}
+          </Typography>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Max Pain</span>
-            <Target className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <p className="text-2xl font-bold text-primary">{formatNumber(maxPain)}</p>
-          {data?.maxPainAnalysis && <p className="text-xs text-muted-foreground">{data.maxPainAnalysis.interpretation}</p>}
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">Max Pain</Typography>
+            <Target style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'primary.main' }}>{formatNumber(maxPain)}</Typography>
+          {data?.maxPainAnalysis && (
+            <Typography variant="caption" color="text.secondary">{data.maxPainAnalysis.interpretation}</Typography>
+          )}
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Support</span>
-            <ArrowUpRight className="w-4 h-4 text-bullish" />
-          </div>
-          <p className="text-2xl font-bold text-bullish">{formatNumber(support)}</p>
-          <p className="text-xs text-muted-foreground">Highest PE OI</p>
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">Support</Typography>
+            <ArrowUpRight style={{ width: 16, height: 16, color: theme.palette.success.main }} />
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'success.main' }}>{formatNumber(support)}</Typography>
+          <Typography variant="caption" color="text.secondary">Highest PE OI</Typography>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Resistance</span>
-            <ArrowDownRight className="w-4 h-4 text-bearish" />
-          </div>
-          <p className="text-2xl font-bold text-bearish">{formatNumber(resistance)}</p>
-          <p className="text-xs text-muted-foreground">Highest CE OI</p>
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary">Resistance</Typography>
+            <ArrowDownRight style={{ width: 16, height: 16, color: theme.palette.error.main }} />
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'error.main' }}>{formatNumber(resistance)}</Typography>
+          <Typography variant="caption" color="text.secondary">Highest CE OI</Typography>
         </Card>
-      </div>
+      </Box>
 
+      {/* Expected Move */}
       {expectedMove && (
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield className="w-5 h-5 text-primary" />
-            <h4 className="font-semibold">Expected Move (1σ)</h4>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Lower Bound</p>
-              <p className="text-xl font-bold text-bearish">{formatINR(expectedMove.lowerBound)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Expected Range</p>
-              <p className="text-xl font-bold">±{expectedMove.pct?.toFixed(2)}%</p>
-              <p className="text-xs text-muted-foreground">±{formatINR(expectedMove.value)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Upper Bound</p>
-              <p className="text-xl font-bold text-bullish">{formatINR(expectedMove.upperBound)}</p>
-            </div>
-          </div>
+        <Card sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Shield style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+            <Typography variant="subtitle1" fontWeight={600}>Expected Move (1{'\u03C3'})</Typography>
+          </Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 2,
+              textAlign: 'center',
+            }}
+          >
+            <Box>
+              <Typography variant="body2" color="text.secondary">Lower Bound</Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ color: 'error.main' }}>
+                {formatINR(expectedMove.lowerBound)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Expected Range</Typography>
+              <Typography variant="h6" fontWeight={700}>
+                {'\u00B1'}{expectedMove.pct?.toFixed(2)}%
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {'\u00B1'}{formatINR(expectedMove.value)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Upper Bound</Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ color: 'success.main' }}>
+                {formatINR(expectedMove.upperBound)}
+              </Typography>
+            </Box>
+          </Box>
         </Card>
       )}
 
+      {/* OI Distribution Chart */}
       {oiChartData.length > 0 && (
         <Card>
           <CardHeader>
@@ -196,58 +252,94 @@ const OIAnalysis = ({ symbol }) => {
         </Card>
       )}
 
+      {/* OI Spurts */}
       {oiSpurts.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AlertTriangle style={{ width: 20, height: 20, color: theme.palette.warning.main }} />
               <CardTitle>OI Spurts - Unusual Activity</CardTitle>
-            </div>
+            </Box>
             <CardDescription>Strikes with significant OI changes ({'>'}10%)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {oiSpurts.slice(0, 8).map((spurt, i) => (
-                <div key={i} className={cn(
-                  'flex items-center justify-between p-3 rounded-lg',
-                  spurt.signal === 'SUPPORT' ? 'bg-green-500/5 border border-green-500/20' :
-                  spurt.signal === 'RESISTANCE' ? 'bg-red-500/5 border border-red-500/20' :
-                  'bg-amber-500/5 border border-amber-500/20'
-                )}>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={spurt.type === 'Call' ? 'default' : 'secondary'} className="text-xs">{spurt.type}</Badge>
-                    <span className="font-bold tabular-nums">{spurt.strike}</span>
-                    <Badge variant={spurt.signal.includes('SUPPORT') ? 'success' : 'destructive'} className="text-xs">{spurt.signal}</Badge>
-                  </div>
-                  <div className="text-right">
-                    <p className={cn('text-sm font-medium tabular-nums', getChangeColor(spurt.oiChange))}>
-                      {spurt.oiChange > 0 ? '+' : ''}{formatNumber(spurt.oiChange, { compact: true })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{spurt.oiChangePct?.toFixed(1)}% change</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Stack spacing={1}>
+              {oiSpurts.slice(0, 8).map((spurt, i) => {
+                const spurtColor = spurt.signal === 'SUPPORT' ? 'success' : spurt.signal === 'RESISTANCE' ? 'error' : 'warning';
+                return (
+                  <Box
+                    key={i}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: (t) => alpha(t.palette[spurtColor].main, 0.05),
+                      border: 1,
+                      borderColor: (t) => alpha(t.palette[spurtColor].main, 0.2),
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Badge variant={spurt.type === 'Call' ? 'default' : 'secondary'}>{spurt.type}</Badge>
+                      <Typography fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{spurt.strike}</Typography>
+                      <Badge variant={spurt.signal.includes('SUPPORT') ? 'success' : 'destructive'}>{spurt.signal}</Badge>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={500}
+                        sx={{ fontVariantNumeric: 'tabular-nums', color: changeColor(spurt.oiChange) }}
+                      >
+                        {spurt.oiChange > 0 ? '+' : ''}{formatNumber(spurt.oiChange, { compact: true })}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {spurt.oiChangePct?.toFixed(1)}% change
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Stack>
           </CardContent>
         </Card>
       )}
 
-      <Card className="p-4 bg-primary/5 border-primary/20">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary mt-0.5" />
-          <div>
-            <h4 className="font-semibold mb-1">Understanding OI Analysis</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• <strong>PCR {'>'} 1:</strong> More puts sold = Bullish sentiment (support expected)</li>
-              <li>• <strong>PCR {'<'} 0.7:</strong> More calls sold = Bearish sentiment (resistance expected)</li>
-              <li>• <strong>Max Pain:</strong> Strike where option buyers lose maximum premium</li>
-              <li>• <strong>High PE OI:</strong> Acts as support (put writers defend this level)</li>
-              <li>• <strong>High CE OI:</strong> Acts as resistance (call writers defend this level)</li>
-            </ul>
-          </div>
-        </div>
+      {/* Info Card */}
+      <Card
+        sx={{
+          p: 2,
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.05),
+          borderColor: (t) => alpha(t.palette.primary.main, 0.2),
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <Info style={{ width: 20, height: 20, color: theme.palette.primary.main, marginTop: 2 }} />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Understanding OI Analysis
+            </Typography>
+            <Box component="ul" sx={{ pl: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>PCR {'>'} 1:</strong> More puts sold = Bullish sentiment (support expected)
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>PCR {'<'} 0.7:</strong> More calls sold = Bearish sentiment (resistance expected)
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>Max Pain:</strong> Strike where option buyers lose maximum premium
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>High PE OI:</strong> Acts as support (put writers defend this level)
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>High CE OI:</strong> Acts as resistance (call writers defend this level)
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 };
 

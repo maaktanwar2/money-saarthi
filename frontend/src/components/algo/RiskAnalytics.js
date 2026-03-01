@@ -3,69 +3,112 @@
  * Shows Greeks exposure, risk metrics, and open positions
  */
 import React, { useMemo, useState } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import LinearProgress from '@mui/material/LinearProgress';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Shield, Activity, BarChart3, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Tabs } from '../ui';
-import { cn, formatINR } from '../../lib/utils';
+import { formatINR } from '../../lib/utils';
 
 // ─── Greeks Display ──────────────────────────────────────────────────────────
 
 const GreekGauge = ({ label, value, safeRange, unit = '' }) => {
+  const theme = useTheme();
   const absVal = Math.abs(value);
   const max = safeRange * 2;
   const pct = Math.min((absVal / max) * 100, 100);
   const isBreached = absVal > safeRange;
 
   return (
-    <div className="flex-1 min-w-[120px]">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className={cn(
-          "text-sm font-mono font-bold",
-          isBreached ? "text-red-500" : "text-green-500"
-        )}>
+    <Box sx={{ flex: 1, minWidth: 120 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="caption" color="text.secondary">{label}</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            color: isBreached ? 'error.main' : 'success.main',
+          }}
+        >
           {value >= 0 ? '+' : ''}{typeof value === 'number' ? value.toFixed(2) : value}{unit}
-        </span>
-      </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div 
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            isBreached ? "bg-red-500" : "bg-green-500"
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="flex justify-between mt-0.5">
-        <span className="text-[10px] text-muted-foreground">0</span>
-        <span className="text-[10px] text-muted-foreground">Safe: ±{safeRange}</span>
-      </div>
-    </div>
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={pct}
+        sx={{
+          height: 8,
+          borderRadius: 4,
+          bgcolor: (t) => alpha(t.palette.action.hover, 0.12),
+          '& .MuiLinearProgress-bar': {
+            borderRadius: 4,
+            bgcolor: isBreached ? 'error.main' : 'success.main',
+            transition: 'all 0.5s',
+          },
+        }}
+      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.25 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>0</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+          Safe: {'\u00B1'}{safeRange}
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 
 const GreeksTab = ({ greeks }) => (
-  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-    <GreekGauge label="Delta (Δ)" value={greeks.delta} safeRange={0.3} />
-    <GreekGauge label="Gamma (Γ)" value={greeks.gamma} safeRange={0.05} />
-    <GreekGauge label="Theta (Θ)" value={greeks.theta} safeRange={2000} unit="₹" />
-    <GreekGauge label="Vega (ν)" value={greeks.vega} safeRange={500} unit="₹" />
-  </div>
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+      gap: 2,
+      mt: 2,
+    }}
+  >
+    <GreekGauge label="Delta (\u0394)" value={greeks.delta} safeRange={0.3} />
+    <GreekGauge label="Gamma (\u0393)" value={greeks.gamma} safeRange={0.05} />
+    <GreekGauge label="Theta (\u0398)" value={greeks.theta} safeRange={2000} unit="\u20B9" />
+    <GreekGauge label="Vega (\u03BD)" value={greeks.vega} safeRange={500} unit="\u20B9" />
+  </Box>
 );
 
 // ─── Risk Metrics Display ────────────────────────────────────────────────────
 
-const MetricCard = ({ label, value, suffix = '', good, className }) => (
-  <div className={cn("rounded-xl bg-muted/30 p-3", className)}>
-    <p className="text-xs text-muted-foreground mb-1">{label}</p>
-    <p className={cn(
-      "text-lg font-bold",
-      good === true && "text-green-500",
-      good === false && "text-red-500"
-    )}>
-      {value}{suffix}
-    </p>
-  </div>
-);
+const MetricCard = ({ label, value, suffix = '', good }) => {
+  const theme = useTheme();
+  return (
+    <Box
+      sx={{
+        borderRadius: 2,
+        bgcolor: (t) => alpha(t.palette.action.hover, 0.06),
+        p: 1.5,
+      }}
+    >
+      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="h6"
+        fontWeight={700}
+        sx={{
+          ...(good === true && { color: 'success.main' }),
+          ...(good === false && { color: 'error.main' }),
+        }}
+      >
+        {value}{suffix}
+      </Typography>
+    </Box>
+  );
+};
 
 const RiskMetricsTab = ({ tradeHistory = [] }) => {
   const metrics = useMemo(() => {
@@ -77,7 +120,7 @@ const RiskMetricsTab = ({ tradeHistory = [] }) => {
     const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + (t.pnl || 0), 0) / wins.length : 0;
     const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + (t.pnl || 0), 0) / losses.length) : 0;
     const profitFactor = avgLoss > 0 ? (avgWin * wins.length) / (avgLoss * losses.length) : 0;
-    
+
     // Calculate max drawdown
     let peak = 0, maxDrawdown = 0, cumPnl = 0;
     tradeHistory.forEach(t => {
@@ -98,27 +141,36 @@ const RiskMetricsTab = ({ tradeHistory = [] }) => {
 
   if (!metrics) {
     return (
-      <div className="h-32 flex items-center justify-center text-muted-foreground text-sm mt-4">
-        No trade data available yet
-      </div>
+      <Box sx={{ height: 128, display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+        <Typography variant="body2" color="text.secondary">No trade data available yet</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
+        gap: 1.5,
+        mt: 2,
+      }}
+    >
       <MetricCard label="Win Rate" value={metrics.winRate.toFixed(1)} suffix="%" good={metrics.winRate > 50} />
       <MetricCard label="Avg Win" value={formatINR(metrics.avgWin)} good={true} />
       <MetricCard label="Avg Loss" value={formatINR(metrics.avgLoss)} good={false} />
       <MetricCard label="Profit Factor" value={metrics.profitFactor.toFixed(2)} good={metrics.profitFactor > 1} />
       <MetricCard label="Max Drawdown" value={formatINR(metrics.maxDrawdown)} good={false} />
       <MetricCard label="Sharpe Ratio" value={metrics.sharpe.toFixed(2)} good={metrics.sharpe > 1} />
-    </div>
+    </Box>
   );
 };
 
 // ─── Positions Table ─────────────────────────────────────────────────────────
 
 const PositionsTab = ({ botStates }) => {
+  const theme = useTheme();
+
   const positions = useMemo(() => {
     const all = [];
     const bots = [
@@ -126,7 +178,7 @@ const PositionsTab = ({ botStates }) => {
       { name: 'Strangle', state: botStates.strangle },
       { name: 'Delta', state: botStates.delta },
     ];
-    
+
     bots.forEach(({ name, state }) => {
       if (state?.status?.positions) {
         state.status.positions.forEach(pos => {
@@ -139,69 +191,76 @@ const PositionsTab = ({ botStates }) => {
 
   if (!positions.length) {
     return (
-      <div className="h-32 flex items-center justify-center text-muted-foreground text-sm mt-4">
-        No open positions
-      </div>
+      <Box sx={{ height: 128, display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+        <Typography variant="body2" color="text.secondary">No open positions</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="overflow-x-auto mt-4">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="text-left p-2 text-xs text-muted-foreground font-medium">Bot</th>
-            <th className="text-left p-2 text-xs text-muted-foreground font-medium">Symbol</th>
-            <th className="text-left p-2 text-xs text-muted-foreground font-medium">Type</th>
-            <th className="text-right p-2 text-xs text-muted-foreground font-medium">Qty</th>
-            <th className="text-right p-2 text-xs text-muted-foreground font-medium">Avg Price</th>
-            <th className="text-right p-2 text-xs text-muted-foreground font-medium">LTP</th>
-            <th className="text-right p-2 text-xs text-muted-foreground font-medium">P&L</th>
-          </tr>
-        </thead>
-        <tbody>
+    <TableContainer sx={{ mt: 2 }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>Bot</TableCell>
+            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>Symbol</TableCell>
+            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>Type</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>Qty</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>Avg Price</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>LTP</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}>P&L</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {positions.map((pos, i) => {
             const pnl = pos.pnl || ((pos.ltp || 0) - (pos.avg_price || 0)) * (pos.qty || 0);
             return (
-              <tr key={i} className={cn(
-                "border-b border-border/50 hover:bg-muted/30 transition-colors",
-                pnl >= 0 ? "bg-green-500/5" : "bg-red-500/5"
-              )}>
-                <td className="p-2 font-medium">{pos.bot}</td>
-                <td className="p-2">{pos.symbol || pos.tradingsymbol || 'N/A'}</td>
-                <td className="p-2">
-                  <Badge variant="outline" className="text-xs">
-                    {pos.type || pos.transaction_type || 'N/A'}
-                  </Badge>
-                </td>
-                <td className="p-2 text-right font-mono">{pos.qty || pos.quantity || 0}</td>
-                <td className="p-2 text-right font-mono">{formatINR(pos.avg_price || pos.entry_price || 0)}</td>
-                <td className="p-2 text-right font-mono">{formatINR(pos.ltp || pos.current_price || 0)}</td>
-                <td className={cn(
-                  "p-2 text-right font-mono font-medium",
-                  pnl >= 0 ? "text-green-500" : "text-red-500"
-                )}>
+              <TableRow
+                key={i}
+                hover
+                sx={{
+                  bgcolor: (t) => alpha(pnl >= 0 ? t.palette.success.main : t.palette.error.main, 0.04),
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <TableCell sx={{ fontWeight: 500 }}>{pos.bot}</TableCell>
+                <TableCell>{pos.symbol || pos.tradingsymbol || 'N/A'}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{pos.type || pos.transaction_type || 'N/A'}</Badge>
+                </TableCell>
+                <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{pos.qty || pos.quantity || 0}</TableCell>
+                <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{formatINR(pos.avg_price || pos.entry_price || 0)}</TableCell>
+                <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{formatINR(pos.ltp || pos.current_price || 0)}</TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: 'monospace',
+                    fontWeight: 500,
+                    color: pnl >= 0 ? 'success.main' : 'error.main',
+                  }}
+                >
                   {pnl >= 0 ? '+' : ''}{formatINR(pnl)}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 const RiskAnalytics = ({ botStates = {}, tradeHistory = [], className }) => {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState('greeks');
 
   // Aggregate greeks from all bots
   const greeks = useMemo(() => {
     const defaults = { delta: 0, gamma: 0, theta: 0, vega: 0 };
     const bots = [botStates.vwap, botStates.strangle, botStates.delta];
-    
+
     bots.forEach(bot => {
       if (bot?.status?.greeks) {
         defaults.delta += bot.status.greeks.delta || 0;
@@ -221,25 +280,29 @@ const RiskAnalytics = ({ botStates = {}, tradeHistory = [], className }) => {
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Shield className="w-5 h-5 text-primary" />
-          Risk Analytics
-          {greeks.delta !== 0 && Math.abs(greeks.delta) > 0.3 && (
-            <Badge variant="destructive" className="ml-auto text-xs">
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              Delta Breach
-            </Badge>
-          )}
+      <CardHeader sx={{ pb: 1 }}>
+        <CardTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1rem' }}>
+            <Shield style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+            Risk Analytics
+            {greeks.delta !== 0 && Math.abs(greeks.delta) > 0.3 && (
+              <Badge variant="destructive" sx={{ ml: 'auto' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <AlertTriangle style={{ width: 12, height: 12 }} />
+                  Delta Breach
+                </Box>
+              </Badge>
+            )}
+          </Box>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs 
-          tabs={tabs} 
-          activeTab={activeTab} 
-          onChange={setActiveTab} 
+        <Tabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
         />
-        
+
         {activeTab === 'greeks' && <GreeksTab greeks={greeks} />}
         {activeTab === 'metrics' && <RiskMetricsTab tradeHistory={tradeHistory} />}
         {activeTab === 'positions' && <PositionsTab botStates={botStates} />}

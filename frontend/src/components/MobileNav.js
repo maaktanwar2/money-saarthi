@@ -1,6 +1,9 @@
-// Mobile Bottom Navigation - Fixed bottom bar for mobile devices
-import { NavLink, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+// Mobile Bottom Navigation - MUI BottomNavigation for mobile devices
+import { useLocation, useNavigate } from 'react-router-dom';
+import BottomNavigation from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
 import {
   LayoutDashboard,
   Star,
@@ -8,7 +11,6 @@ import {
   Activity,
   Menu,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 const NAV_ITEMS = [
   { label: 'Home', icon: LayoutDashboard, path: '/' },
@@ -19,57 +21,64 @@ const NAV_ITEMS = [
 
 const MobileNav = ({ onMoreClick }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const theme = useTheme();
+
+  // Determine the active nav index based on current path
+  const activeIndex = NAV_ITEMS.findIndex((item) =>
+    item.path === '/'
+      ? location.pathname === '/' || location.pathname === '/dashboard'
+      : location.pathname.startsWith(item.path)
+  );
+
+  const handleChange = (_event, newValue) => {
+    // Last index (4) is the "More" button
+    if (newValue === NAV_ITEMS.length) {
+      onMoreClick?.();
+      return;
+    }
+    const target = NAV_ITEMS[newValue];
+    if (target) {
+      navigate(target.path);
+    }
+  };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-xl border-t border-border safe-area-bottom">
-      <div className="flex items-center justify-around h-16 px-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.path === '/'
-              ? location.pathname === '/' || location.pathname === '/dashboard'
-              : location.pathname.startsWith(item.path);
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1 relative"
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="mobileActiveTab"
-                  className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <item.icon
-                className={cn(
-                  'w-5 h-5 transition-colors',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )}
-              />
-              <span
-                className={cn(
-                  'text-[10px] font-medium transition-colors',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )}
-              >
-                {item.label}
-              </span>
-            </NavLink>
-          );
-        })}
-
-        {/* More button opens sidebar drawer */}
-        <button
-          onClick={onMoreClick}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1"
-        >
-          <Menu className="w-5 h-5 text-muted-foreground" />
-          <span className="text-[10px] font-medium text-muted-foreground">More</span>
-        </button>
-      </div>
-    </nav>
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: theme.zIndex.appBar + 10,
+        display: { lg: 'none' },
+        pb: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <BottomNavigation
+        value={activeIndex >= 0 ? activeIndex : false}
+        onChange={handleChange}
+        showLabels
+      >
+        {NAV_ITEMS.map((item) => (
+          <BottomNavigationAction
+            key={item.path}
+            label={item.label}
+            icon={<item.icon size={20} />}
+          />
+        ))}
+        <BottomNavigationAction
+          label="More"
+          icon={<Menu size={20} />}
+          sx={{
+            // More button never appears selected
+            '&.Mui-selected': {
+              color: theme.palette.text.secondary,
+            },
+          }}
+        />
+      </BottomNavigation>
+    </Box>
   );
 };
 

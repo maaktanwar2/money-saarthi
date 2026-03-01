@@ -3,6 +3,10 @@
  * Shows real-time P&L performance across all bots
  */
 import React from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import { useTheme } from '@mui/material/styles';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
@@ -12,38 +16,64 @@ import { formatINR } from '../../lib/utils';
 import { CHART_COLORS } from '../../lib/chartTheme';
 
 const CustomTooltip = ({ active, payload, label }) => {
+  const theme = useTheme();
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-xl p-3 shadow-xl">
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+    <Paper
+      elevation={8}
+      sx={{
+        p: 1.5,
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+        {label}
+      </Typography>
       {payload.map((entry, i) => (
-        <p key={i} className="text-sm font-medium" style={{ color: entry.color }}>
+        <Typography key={i} variant="body2" fontWeight={500} style={{ color: entry.color }}>
           {entry.name}: {formatINR(entry.value)}
-        </p>
+        </Typography>
       ))}
-    </div>
+    </Paper>
   );
 };
 
 const PnLChart = ({ data = [], className }) => {
+  const theme = useTheme();
+
   // If no data, show empty state
   if (!data.length) {
     return (
       <Card className={className}>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            P&L Performance
+        <CardHeader sx={{ pb: 1 }}>
+          <CardTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1rem' }}>
+              <TrendingUp style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+              P&L Performance
+            </Box>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-            <div className="text-center">
-              <TrendingUp className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p>No P&L data yet</p>
-              <p className="text-xs mt-1">Start a bot to see performance chart</p>
-            </div>
-          </div>
+          <Box
+            sx={{
+              height: 200,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'text.secondary',
+            }}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              <TrendingUp style={{ width: 40, height: 40, margin: '0 auto 8px', opacity: 0.3, color: theme.palette.text.secondary }} />
+              <Typography variant="body2">No P&L data yet</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Start a bot to see performance chart
+              </Typography>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
     );
@@ -51,17 +81,23 @@ const PnLChart = ({ data = [], className }) => {
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          P&L Performance
-          <span className="text-xs font-normal text-muted-foreground ml-auto">
-            {data.length} data points
-          </span>
+      <CardHeader sx={{ pb: 1 }}>
+        <CardTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1rem' }}>
+            <TrendingUp style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+            P&L Performance
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ ml: 'auto', fontWeight: 400 }}
+            >
+              {data.length} data points
+            </Typography>
+          </Box>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <Box sx={{ height: 250 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <defs>
@@ -93,56 +129,56 @@ const PnLChart = ({ data = [], className }) => {
               <YAxis
                 stroke={CHART_COLORS.axis}
                 fontSize={11}
-                tickFormatter={(v) => `₹${v >= 1000 ? `${(v/1000).toFixed(1)}K` : v}`}
+                tickFormatter={(v) => `\u20B9${v >= 1000 ? `${(v/1000).toFixed(1)}K` : v}`}
                 tickLine={false}
                 axisLine={false}
               />
               <Tooltip content={<CustomTooltip />} />
               {data[0]?.vwap !== undefined && (
-                <Area 
-                  type="monotone" 
-                  dataKey="vwap" 
+                <Area
+                  type="monotone"
+                  dataKey="vwap"
                   name="VWAP Bot"
-                  stroke="#3B82F6" 
-                  fill="url(#vwapGradient)" 
+                  stroke="#3B82F6"
+                  fill="url(#vwapGradient)"
                   strokeWidth={1.5}
                   dot={false}
                 />
               )}
               {data[0]?.strangle !== undefined && (
-                <Area 
-                  type="monotone" 
-                  dataKey="strangle" 
+                <Area
+                  type="monotone"
+                  dataKey="strangle"
                   name="Strangle Bot"
-                  stroke="#A855F7" 
-                  fill="url(#strangleGradient)" 
+                  stroke="#A855F7"
+                  fill="url(#strangleGradient)"
                   strokeWidth={1.5}
                   dot={false}
                 />
               )}
               {data[0]?.delta !== undefined && (
-                <Area 
-                  type="monotone" 
-                  dataKey="delta" 
+                <Area
+                  type="monotone"
+                  dataKey="delta"
                   name="Delta Bot"
                   stroke={CHART_COLORS.bullish}
-                  fill="url(#deltaGradient)" 
+                  fill="url(#deltaGradient)"
                   strokeWidth={1.5}
                   dot={false}
                 />
               )}
-              <Area 
-                type="monotone" 
-                dataKey="pnl" 
+              <Area
+                type="monotone"
+                dataKey="pnl"
                 name="Total P&L"
                 stroke={CHART_COLORS.primary}
-                fill="url(#pnlGradient)" 
+                fill="url(#pnlGradient)"
                 strokeWidth={2}
                 dot={false}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </Box>
       </CardContent>
     </Card>
   );

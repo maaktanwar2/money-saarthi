@@ -1,10 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import { alpha } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
-import { Card, CardHeader, CardTitle, CardContent, Input, Button, Tabs, StatDisplay, Badge, AccuracyBadge } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Input, Button, AccuracyBadge } from '../components/ui';
 import { formatINR, formatPercent } from '../lib/utils';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -116,7 +122,7 @@ function MarginCalculator() {
     // Simplified margin calculation
     const lotValue = quantity * price;
     let spanMargin, exposureMargin;
-    
+
     if (segment === 'futures') {
       spanMargin = lotValue * 0.09; // ~9% SPAN
       exposureMargin = lotValue * 0.03; // ~3% Exposure
@@ -124,7 +130,7 @@ function MarginCalculator() {
       spanMargin = lotValue * 0.02; // Options have lower margin
       exposureMargin = lotValue * 0.01;
     }
-    
+
     return {
       span: spanMargin,
       exposure: exposureMargin,
@@ -134,58 +140,72 @@ function MarginCalculator() {
   }, [segment, quantity, price]);
 
   return (
-    <Card className="glass-card">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">📊</span>
+        <CardTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="span" sx={{ fontSize: '1.5rem' }}>📊</Box>
           Margin Calculator
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Segment</label>
-            <select 
-              value={segment} 
-              onChange={e => setSegment(e.target.value)}
-              className="input w-full"
-            >
-              <option value="futures">Futures</option>
-              <option value="options">Options</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Symbol</label>
-            <Input value={symbol} onChange={e => setSymbol(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Quantity</label>
-            <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Price (₹)</label>
-            <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} />
-          </div>
-        </div>
+      <CardContent>
+        <Stack spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Segment
+              </Typography>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={segment}
+                onChange={e => setSegment(e.target.value)}
+              >
+                <MenuItem value="futures">Futures</MenuItem>
+                <MenuItem value="options">Options</MenuItem>
+              </TextField>
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Symbol
+              </Typography>
+              <Input value={symbol} onChange={e => setSymbol(e.target.value)} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Quantity
+              </Typography>
+              <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Price (₹)
+              </Typography>
+              <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} />
+            </Box>
+          </Box>
 
-        <div className="pt-4 border-t border-border space-y-3">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Contract Value</span>
-            <span className="font-semibold">{formatINR(margin.lotValue)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">SPAN Margin</span>
-            <span className="text-orange-500">{formatINR(margin.span)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Exposure Margin</span>
-            <span className="text-blue-500">{formatINR(margin.exposure)}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border">
-            <span className="font-semibold">Total Margin Required</span>
-            <span className="text-xl font-bold text-primary">{formatINR(margin.total)}</span>
-          </div>
-        </div>
+          <Stack spacing={1.5} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Contract Value</Typography>
+              <Typography variant="body2" fontWeight={600}>{formatINR(margin.lotValue)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">SPAN Margin</Typography>
+              <Typography variant="body2" sx={{ color: 'warning.main' }}>{formatINR(margin.span)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Exposure Margin</Typography>
+              <Typography variant="body2" sx={{ color: 'info.main' }}>{formatINR(margin.exposure)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body2" fontWeight={600}>Total Margin Required</Typography>
+              <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: 'primary.main' }}>
+                {formatINR(margin.total)}
+              </Typography>
+            </Box>
+          </Stack>
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -202,10 +222,10 @@ function BrokerageCalculator() {
   const charges = useMemo(() => {
     const turnover = (buyPrice + sellPrice) * qty;
     const profit = (sellPrice - buyPrice) * qty;
-    
+
     let brokerage = 0;
     let stt = 0;
-    
+
     if (segment === 'equity_intraday') {
       brokerage = Math.min(turnover * 0.0003, 40); // 0.03% or ₹20 per order
       stt = sellPrice * qty * 0.00025; // 0.025% sell side
@@ -219,15 +239,15 @@ function BrokerageCalculator() {
       brokerage = 40; // Flat ₹20 per order
       stt = sellPrice * qty * 0.0005; // 0.05% sell side
     }
-    
+
     const exchangeCharges = turnover * 0.0000325;
     const sebi = turnover * 0.000001;
     const gst = (brokerage + exchangeCharges + sebi) * 0.18;
     const stampDuty = buyPrice * qty * 0.00015;
-    
+
     const totalCharges = brokerage + stt + exchangeCharges + sebi + gst + stampDuty;
     const netProfit = profit - totalCharges;
-    
+
     return {
       brokerage,
       stt,
@@ -243,82 +263,99 @@ function BrokerageCalculator() {
   }, [buyPrice, sellPrice, qty, segment]);
 
   return (
-    <Card className="glass-card">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">💰</span>
+        <CardTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="span" sx={{ fontSize: '1.5rem' }}>💰</Box>
           Brokerage Calculator
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Segment</label>
-            <select 
-              value={segment} 
-              onChange={e => setSegment(e.target.value)}
-              className="input w-full"
-            >
-              <option value="equity_intraday">Equity Intraday</option>
-              <option value="equity_delivery">Equity Delivery</option>
-              <option value="futures">Futures</option>
-              <option value="options">Options</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Quantity</label>
-            <Input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Buy Price (₹)</label>
-            <Input type="number" value={buyPrice} onChange={e => setBuyPrice(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Sell Price (₹)</label>
-            <Input type="number" value={sellPrice} onChange={e => setSellPrice(Number(e.target.value))} />
-          </div>
-        </div>
+      <CardContent>
+        <Stack spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Segment
+              </Typography>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={segment}
+                onChange={e => setSegment(e.target.value)}
+              >
+                <MenuItem value="equity_intraday">Equity Intraday</MenuItem>
+                <MenuItem value="equity_delivery">Equity Delivery</MenuItem>
+                <MenuItem value="futures">Futures</MenuItem>
+                <MenuItem value="options">Options</MenuItem>
+              </TextField>
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Quantity
+              </Typography>
+              <Input type="number" value={qty} onChange={e => setQty(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Buy Price (₹)
+              </Typography>
+              <Input type="number" value={buyPrice} onChange={e => setBuyPrice(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Sell Price (₹)
+              </Typography>
+              <Input type="number" value={sellPrice} onChange={e => setSellPrice(Number(e.target.value))} />
+            </Box>
+          </Box>
 
-        <div className="pt-4 border-t border-border space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Brokerage</span>
-            <span>{formatINR(charges.brokerage)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">STT</span>
-            <span>{formatINR(charges.stt)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Exchange Txn</span>
-            <span>{formatINR(charges.exchangeCharges)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">GST</span>
-            <span>{formatINR(charges.gst)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">SEBI Charges</span>
-            <span>{formatINR(charges.sebi)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Stamp Duty</span>
-            <span>{formatINR(charges.stampDuty)}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border text-base">
-            <span className="font-semibold">Total Charges</span>
-            <span className="text-red-500 font-semibold">{formatINR(charges.totalCharges)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Breakeven</span>
-            <span>{formatINR(charges.breakeven)} per share</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border text-base">
-            <span className="font-semibold">Net Profit/Loss</span>
-            <span className={`font-bold ${charges.netProfit >= 0 ? 'text-profit' : 'text-loss'}`}>
-              {formatINR(charges.netProfit)}
-            </span>
-          </div>
-        </div>
+          <Stack spacing={1} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Brokerage</Typography>
+              <Typography variant="body2">{formatINR(charges.brokerage)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">STT</Typography>
+              <Typography variant="body2">{formatINR(charges.stt)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Exchange Txn</Typography>
+              <Typography variant="body2">{formatINR(charges.exchangeCharges)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">GST</Typography>
+              <Typography variant="body2">{formatINR(charges.gst)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">SEBI Charges</Typography>
+              <Typography variant="body2">{formatINR(charges.sebi)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Stamp Duty</Typography>
+              <Typography variant="body2">{formatINR(charges.stampDuty)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body1" fontWeight={600}>Total Charges</Typography>
+              <Typography variant="body1" sx={{ color: 'error.main', fontWeight: 600 }}>
+                {formatINR(charges.totalCharges)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Breakeven</Typography>
+              <Typography variant="body2">{formatINR(charges.breakeven)} per share</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body1" fontWeight={600}>Net Profit/Loss</Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 700, color: charges.netProfit >= 0 ? 'success.main' : 'error.main' }}
+              >
+                {formatINR(charges.netProfit)}
+              </Typography>
+            </Box>
+          </Stack>
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -337,7 +374,7 @@ function PositionSizeCalculator() {
     const shares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare) : 0;
     const positionValue = shares * entryPrice;
     const maxLoss = shares * riskPerShare;
-    
+
     return {
       riskAmount,
       riskPerShare,
@@ -349,59 +386,71 @@ function PositionSizeCalculator() {
   }, [capital, riskPercent, entryPrice, stopLoss]);
 
   return (
-    <Card className="glass-card">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">⚖️</span>
+        <CardTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="span" sx={{ fontSize: '1.5rem' }}>⚖️</Box>
           Position Size Calculator
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Account Capital (₹)</label>
-            <Input type="number" value={capital} onChange={e => setCapital(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Risk Per Trade (%)</label>
-            <Input type="number" value={riskPercent} onChange={e => setRiskPercent(Number(e.target.value))} step="0.5" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Entry Price (₹)</label>
-            <Input type="number" value={entryPrice} onChange={e => setEntryPrice(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Stop Loss (₹)</label>
-            <Input type="number" value={stopLoss} onChange={e => setStopLoss(Number(e.target.value))} />
-          </div>
-        </div>
+      <CardContent>
+        <Stack spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Account Capital (₹)
+              </Typography>
+              <Input type="number" value={capital} onChange={e => setCapital(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Risk Per Trade (%)
+              </Typography>
+              <Input type="number" value={riskPercent} onChange={e => setRiskPercent(Number(e.target.value))} step="0.5" />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Entry Price (₹)
+              </Typography>
+              <Input type="number" value={entryPrice} onChange={e => setEntryPrice(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Stop Loss (₹)
+              </Typography>
+              <Input type="number" value={stopLoss} onChange={e => setStopLoss(Number(e.target.value))} />
+            </Box>
+          </Box>
 
-        <div className="pt-4 border-t border-border space-y-3">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Risk Amount</span>
-            <span className="text-orange-500">{formatINR(result.riskAmount)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Risk Per Share</span>
-            <span>{formatINR(result.riskPerShare)}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border">
-            <span className="font-semibold">Recommended Shares</span>
-            <span className="text-2xl font-bold text-primary">{result.shares}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Position Value</span>
-            <span>{formatINR(result.positionValue)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Capital Used</span>
-            <span>{result.capitalUsed.toFixed(1)}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Max Loss</span>
-            <span className="text-red-500">{formatINR(result.maxLoss)}</span>
-          </div>
-        </div>
+          <Stack spacing={1.5} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Risk Amount</Typography>
+              <Typography variant="body2" sx={{ color: 'warning.main' }}>{formatINR(result.riskAmount)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Risk Per Share</Typography>
+              <Typography variant="body2">{formatINR(result.riskPerShare)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body2" fontWeight={600}>Recommended Shares</Typography>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'primary.main' }}>
+                {result.shares}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Position Value</Typography>
+              <Typography variant="body2">{formatINR(result.positionValue)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Capital Used</Typography>
+              <Typography variant="body2">{result.capitalUsed.toFixed(1)}%</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Max Loss</Typography>
+              <Typography variant="body2" sx={{ color: 'error.main' }}>{formatINR(result.maxLoss)}</Typography>
+            </Box>
+          </Stack>
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -417,11 +466,11 @@ function SIPCalculator() {
     const monthlyRate = annualReturn / 12 / 100;
     const months = years * 12;
     const totalInvested = monthlyAmount * months;
-    
+
     // FV = P × [{(1 + r)^n – 1} / r] × (1 + r)
     const futureValue = monthlyAmount * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
     const wealthGained = futureValue - totalInvested;
-    
+
     return {
       totalInvested,
       futureValue,
@@ -431,47 +480,57 @@ function SIPCalculator() {
   }, [monthlyAmount, annualReturn, years]);
 
   return (
-    <Card className="glass-card">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">🎯</span>
+        <CardTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="span" sx={{ fontSize: '1.5rem' }}>🎯</Box>
           SIP Calculator
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Monthly Investment (₹)</label>
-            <Input type="number" value={monthlyAmount} onChange={e => setMonthlyAmount(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Expected Return (% p.a.)</label>
-            <Input type="number" value={annualReturn} onChange={e => setAnnualReturn(Number(e.target.value))} step="0.5" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Time Period (Years)</label>
-            <Input type="number" value={years} onChange={e => setYears(Number(e.target.value))} />
-          </div>
-        </div>
+      <CardContent>
+        <Stack spacing={2}>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Monthly Investment (₹)
+              </Typography>
+              <Input type="number" value={monthlyAmount} onChange={e => setMonthlyAmount(Number(e.target.value))} />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Expected Return (% p.a.)
+              </Typography>
+              <Input type="number" value={annualReturn} onChange={e => setAnnualReturn(Number(e.target.value))} step="0.5" />
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                Time Period (Years)
+              </Typography>
+              <Input type="number" value={years} onChange={e => setYears(Number(e.target.value))} />
+            </Box>
+          </Stack>
 
-        <div className="pt-4 border-t border-border space-y-3">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Invested</span>
-            <span>{formatINR(result.totalInvested)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Wealth Gained</span>
-            <span className="text-profit">{formatINR(result.wealthGained)}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border">
-            <span className="font-semibold">Future Value</span>
-            <span className="text-2xl font-bold text-primary">{formatINR(result.futureValue)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Returns</span>
-            <span className="text-profit">{result.effectiveReturn.toFixed(1)}%</span>
-          </div>
-        </div>
+          <Stack spacing={1.5} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Total Invested</Typography>
+              <Typography variant="body2">{formatINR(result.totalInvested)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Wealth Gained</Typography>
+              <Typography variant="body2" sx={{ color: 'success.main' }}>{formatINR(result.wealthGained)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="body2" fontWeight={600}>Future Value</Typography>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'primary.main' }}>
+                {formatINR(result.futureValue)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">Total Returns</Typography>
+              <Typography variant="body2" sx={{ color: 'success.main' }}>{result.effectiveReturn.toFixed(1)}%</Typography>
+            </Box>
+          </Stack>
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -494,95 +553,158 @@ export default function Calculators() {
 
       {/* Calculator Selector */}
       <Section>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
+            gap: 2,
+            mb: 4,
+          }}
+        >
           {CALCULATORS.map(calc => (
-            <motion.button
+            <Box
               key={calc.id}
+              component={motion.button}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveCalc(calc.id)}
-              className={`p-4 rounded-xl border text-left transition-all ${
-                activeCalc === calc.id
-                  ? 'bg-primary/10 border-primary'
-                  : 'bg-card border-border hover:border-primary/50'
-              }`}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                border: 1,
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease',
+                ...(activeCalc === calc.id
+                  ? {
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      borderColor: 'primary.main',
+                    }
+                  : {
+                      bgcolor: 'background.paper',
+                      borderColor: 'divider',
+                      '&:hover': {
+                        borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
+                      },
+                    }),
+              }}
             >
-              <div className="text-2xl mb-2">{calc.icon}</div>
-              <div className="font-medium text-sm">{calc.name}</div>
-              <div className="text-xs text-muted-foreground mt-1">{calc.accuracy}% accurate</div>
-            </motion.button>
+              <Typography sx={{ fontSize: '1.5rem', mb: 1 }}>{calc.icon}</Typography>
+              <Typography variant="body2" fontWeight={500}>{calc.name}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                {calc.accuracy}% accurate
+              </Typography>
+            </Box>
           ))}
-        </div>
+        </Box>
 
         {/* Active Calculator */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' },
+            gap: 3,
+          }}
+        >
+          <Box>
             {activeCalc === 'margin' && <MarginCalculator />}
             {activeCalc === 'brokerage' && <BrokerageCalculator />}
             {activeCalc === 'position' && <PositionSizeCalculator />}
             {activeCalc === 'sip' && <SIPCalculator />}
             {activeCalc === 'options' && (
-              <Card className="glass-card">
+              <Card>
                 <CardHeader>
                   <CardTitle>Options Premium Calculator</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center text-muted-foreground py-8">
-                  Use the Options Hub for comprehensive Greeks and premium calculation
-                  <Button className="mt-4 block mx-auto" variant="outline" onClick={() => navigate('/options')}>
-                    Go to Options Hub
-                  </Button>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Use the Options Hub for comprehensive Greeks and premium calculation
+                    </Typography>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/options')}
+                      sx={{ mt: 2, display: 'block', mx: 'auto' }}
+                    >
+                      Go to Options Hub
+                    </Button>
+                  </Box>
                 </CardContent>
               </Card>
             )}
             {activeCalc === 'tax' && (
-              <Card className="glass-card">
+              <Card>
                 <CardHeader>
                   <CardTitle>Tax Calculator</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center text-muted-foreground py-8">
-                  Tax calculation feature coming soon
+                <CardContent>
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Tax calculation feature coming soon
+                    </Typography>
+                  </Box>
                 </CardContent>
               </Card>
             )}
-          </div>
+          </Box>
 
           {/* How to Use */}
-          <div>
-            <Card className="glass-card sticky top-4">
+          <Box>
+            <Card sx={{ position: 'sticky', top: 16 }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>📖</span>
+                <CardTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box component="span">📖</Box>
                   How to Use
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {CALCULATORS.filter(c => c.id === activeCalc).map(calc => (
-                  <div key={calc.id}>
-                    <p className="text-muted-foreground mb-4">{calc.description}</p>
-                    <ol className="space-y-2">
+                  <Box key={calc.id}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                      {calc.description}
+                    </Typography>
+                    <Stack component="ol" spacing={1} sx={{ listStyle: 'none', p: 0, m: 0 }}>
                       {calc.howToUse.map((step, i) => (
-                        <li key={i} className="flex gap-3 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                        <Box component="li" key={i} sx={{ display: 'flex', gap: 1.5 }}>
+                          <Box
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                              color: 'primary.main',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
                             {i + 1}
-                          </span>
-                          <span className="text-foreground">{step}</span>
-                        </li>
+                          </Box>
+                          <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                            {step}
+                          </Typography>
+                        </Box>
                       ))}
-                    </ol>
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <div className="flex items-center gap-2">
+                    </Stack>
+                    <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
                         <AccuracyBadge accuracy={calc.accuracy} />
-                        <span className="text-xs text-muted-foreground">based on {calc.trades} calculations</span>
-                      </div>
-                    </div>
-                  </div>
+                        <Typography variant="caption" color="text.secondary">
+                          based on {calc.trades} calculations
+                        </Typography>
+                      </Stack>
+                    </Box>
+                  </Box>
                 ))}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </Box>
+        </Box>
       </Section>
     </PageLayout>
   );
 }
-

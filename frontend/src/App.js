@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Crown, Lock, ArrowRight } from 'lucide-react';
 import { API } from './config/api';
 import { checkRedirectResult } from './config/firebase';
+import { ToastContainer } from './hooks/use-toast';
 import './App.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -441,6 +442,7 @@ function App() {
             <BrowserRouter>
               <AppRouter />
             </BrowserRouter>
+            <ToastContainer />
           </ThemeProvider>
         </QueryClientProvider>
       </HelmetProvider>

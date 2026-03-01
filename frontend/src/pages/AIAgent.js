@@ -4,14 +4,18 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { tw } from '../lib/colorMap';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Chip from '@mui/material/Chip';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   Brain, Play, Square, Pause, Rocket,
   TrendingUp, Target, Gauge
 } from 'lucide-react';
 import { PageLayout } from '../components/PageLayout';
 import { Button, Badge, Spinner } from '../components/ui';
-import { cn, formatINR } from '../lib/utils';
+import { formatINR } from '../lib/utils';
 import { toast } from '../hooks/use-toast';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
@@ -38,6 +42,15 @@ import ThoughtLogPanel from '../components/ai-agent/ThoughtLogPanel';
 import EvolvedParamsCard from '../components/ai-agent/EvolvedParamsCard';
 import IdleView from '../components/ai-agent/IdleView';
 
+// Map color names to hex values for dynamic state styling
+const COLOR_HEX = {
+  green: '#22c55e', red: '#ef4444', blue: '#3b82f6',
+  yellow: '#eab308', amber: '#f59e0b', emerald: '#10b981',
+  purple: '#a855f7', cyan: '#06b6d4', pink: '#ec4899',
+  slate: '#64748b', gray: '#6b7280',
+};
+const getHex = (name) => COLOR_HEX[name] || COLOR_HEX.gray;
+
 const POLL_ACTIVE = 3000;   // 3s when agent is running
 const POLL_IDLE = 30000;    // 30s when idle/stopped
 
@@ -50,6 +63,7 @@ const AIAgent = () => {
   const [showThoughts, setShowThoughts] = useState(false);
   const [eventFilter, setEventFilter] = useState('ALL');
   const pollRef = useRef(null);
+  const theme = useTheme();
 
   const [config, setConfig] = useState({
     underlying: 'NIFTY',
@@ -180,16 +194,25 @@ const AIAgent = () => {
   const isActive = agentStatus?.active || false;
   const state = agentStatus?.state || 'idle';
   const stateConf = STATE_CONFIG[state] || STATE_CONFIG.idle;
+  const stateColor = getHex(stateConf.color);
 
   if (loading) {
     return (
       <PageLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-center">
-            <Brain className="w-12 h-12 text-purple-500 mx-auto mb-4 animate-pulse" />
-            <p className="text-muted-foreground">Initializing AI Agent...</p>
-          </div>
-        </div>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Brain
+              style={{
+                width: 48,
+                height: 48,
+                color: '#a855f7',
+                display: 'block',
+                margin: '0 auto 16px',
+              }}
+            />
+            <Typography color="text.secondary">Initializing AI Agent...</Typography>
+          </Box>
+        </Box>
       </PageLayout>
     );
   }
@@ -197,83 +220,196 @@ const AIAgent = () => {
   return (
     <PageLayout>
       <SEO {...getSeoConfig('/ai-agent')} path="/ai-agent" />
-      <div className="mb-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30")}>
-                <Brain className="w-6 h-6 text-purple-400" />
-              </div>
-              {isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse" />}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                AI Trading Agent
-                <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-[10px]">AUTONOMOUS</Badge>
-              </h1>
-              <p className="text-xs text-muted-foreground">Self-thinking · Self-adjusting · Multi-strategy</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium", `${tw(stateConf.color, 'bg10')} ${tw(stateConf.color, 'text400')} border ${tw(stateConf.color, 'border20')}`)}>
-              {stateConf.pulse && <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${tw(stateConf.color, 'bg400')} opacity-75`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${tw(stateConf.color, 'bg500')}`}></span>
-              </span>}
-              <stateConf.icon className="w-4 h-4" />
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ position: 'relative' }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: `linear-gradient(to bottom right, ${alpha('#a855f7', 0.2)}, ${alpha('#ec4899', 0.2)})`,
+                  border: 1,
+                  borderColor: alpha('#a855f7', 0.3),
+                }}
+              >
+                <Brain style={{ width: 24, height: 24, color: '#c084fc' }} />
+              </Box>
+              {isActive && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 14,
+                    height: 14,
+                    bgcolor: 'success.main',
+                    borderRadius: '50%',
+                    border: 2,
+                    borderColor: 'background.default',
+                    '@keyframes pulse': {
+                      '0%, 100%': { opacity: 1 },
+                      '50%': { opacity: 0.5 },
+                    },
+                    animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+                  }}
+                />
+              )}
+            </Box>
+            <Box>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="h6" fontWeight={700} color="text.primary">
+                  AI Trading Agent
+                </Typography>
+                <Chip
+                  label="AUTONOMOUS"
+                  size="small"
+                  sx={{
+                    background: 'linear-gradient(to right, #a855f7, #ec4899)',
+                    color: '#fff',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    height: 20,
+                    border: 0,
+                  }}
+                />
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                Self-thinking · Self-adjusting · Multi-strategy
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {/* State indicator */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 10,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                bgcolor: alpha(stateColor, 0.1),
+                color: stateColor,
+                border: 1,
+                borderColor: alpha(stateColor, 0.2),
+              }}
+            >
+              {stateConf.pulse && (
+                <Box sx={{ position: 'relative', display: 'flex', width: 8, height: 8 }}>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      bgcolor: stateColor,
+                      opacity: 0.75,
+                      '@keyframes ping': {
+                        '75%, 100%': { transform: 'scale(2)', opacity: 0 },
+                      },
+                      animation: 'ping 1s cubic-bezier(0,0,0.2,1) infinite',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      bgcolor: stateColor,
+                    }}
+                  />
+                </Box>
+              )}
+              <stateConf.icon style={{ width: 16, height: 16 }} />
               {stateConf.label}
-            </div>
+            </Box>
 
+            {/* Action buttons */}
             {!isActive ? (
-              <Button onClick={() => setShowConfig(true)} disabled={starting} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0">
-                {starting ? <Spinner className="w-4 h-4 mr-2" /> : <Rocket className="w-4 h-4 mr-2" />}
+              <Button
+                onClick={() => setShowConfig(true)}
+                disabled={starting}
+                sx={{
+                  background: 'linear-gradient(to right, #9333ea, #db2777)',
+                  color: '#fff',
+                  border: 0,
+                  '&:hover': { background: 'linear-gradient(to right, #a855f7, #ec4899)' },
+                }}
+              >
+                {starting ? <Spinner sx={{ mr: 1 }} /> : <Rocket style={{ width: 16, height: 16, marginRight: 8 }} />}
                 {starting ? 'Starting...' : 'Launch Agent'}
               </Button>
             ) : (
-              <div className="flex gap-2">
+              <Stack direction="row" spacing={1}>
                 {state === 'paused' ? (
-                  <Button onClick={resumeAgent} className="bg-emerald-600 hover:bg-emerald-500 text-white border-0" size="sm"><Play className="w-4 h-4 mr-1" /> Resume</Button>
+                  <Button
+                    onClick={resumeAgent}
+                    size="sm"
+                    sx={{ bgcolor: 'success.main', color: '#fff', border: 0, '&:hover': { bgcolor: 'success.dark' } }}
+                  >
+                    <Play style={{ width: 16, height: 16, marginRight: 4 }} /> Resume
+                  </Button>
                 ) : (
-                  <Button onClick={pauseAgent} className="bg-amber-600 hover:bg-amber-500 text-white border-0" size="sm"><Pause className="w-4 h-4 mr-1" /> Pause</Button>
+                  <Button
+                    onClick={pauseAgent}
+                    size="sm"
+                    sx={{ bgcolor: 'warning.main', color: '#fff', border: 0, '&:hover': { bgcolor: 'warning.dark' } }}
+                  >
+                    <Pause style={{ width: 16, height: 16, marginRight: 4 }} /> Pause
+                  </Button>
                 )}
-                <Button onClick={stopAgent} disabled={stopping} className="bg-red-600 hover:bg-red-500 text-white border-0" size="sm">
-                  {stopping ? <Spinner className="w-4 h-4 mr-1" /> : <Square className="w-4 h-4 mr-1" />} Stop
+                <Button
+                  onClick={stopAgent}
+                  disabled={stopping}
+                  size="sm"
+                  sx={{ bgcolor: 'error.main', color: '#fff', border: 0, '&:hover': { bgcolor: 'error.dark' } }}
+                >
+                  {stopping ? <Spinner sx={{ mr: 0.5 }} /> : <Square style={{ width: 16, height: 16, marginRight: 4 }} />} Stop
                 </Button>
-              </div>
+              </Stack>
             )}
-          </div>
-        </div>
-      </div>
+          </Stack>
+        </Stack>
+      </Box>
 
       <AnimatePresence>
         {showConfig && <ConfigPanel key="config-panel" config={config} setConfig={setConfig} onStart={startAgent} onClose={() => setShowConfig(false)} starting={starting} />}
       </AnimatePresence>
 
       {isActive || agentStatus?.cycle_count > 0 ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stack spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
             <StatCard title="Daily P&L" value={formatINR(agentStatus?.performance?.daily_pnl || 0)} icon={TrendingUp} color={(agentStatus?.performance?.daily_pnl || 0) >= 0 ? 'emerald' : 'red'} subtitle={`${agentStatus?.performance?.total_trades || 0} trades today`} />
             <StatCard title="Win Rate" value={`${agentStatus?.performance?.win_rate || 0}%`} icon={Target} color="blue" subtitle={`${agentStatus?.performance?.winning_trades || 0}W / ${agentStatus?.performance?.losing_trades || 0}L`} />
             <StatCard title="Confidence" value={`${agentStatus?.evolved_params?.confidence_threshold?.toFixed(0) || 65}%`} icon={Brain} color="purple" subtitle={`Cycle #${agentStatus?.cycle_count || 0}`} />
             <StatCard title="Positions" value={agentStatus?.active_positions?.length || 0} icon={Gauge} color="amber" subtitle={`Max: ${agentStatus?.config?.max_positions || 3}`} />
-          </div>
+          </Box>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 space-y-4">
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 2 }}>
+            <Stack spacing={2}>
               <LatestDecision decision={agentStatus?.last_decision} snapshot={agentStatus?.market_snapshot} />
               <PositionsPanel positions={agentStatus?.active_positions || []} />
               <DecisionHistory decisions={agentStatus?.recent_decisions || []} onShowThoughts={() => setShowThoughts(!showThoughts)} />
-            </div>
-            <div className="space-y-4">
+            </Stack>
+            <Stack spacing={2}>
               <MarketSnapshotCard snapshot={agentStatus?.market_snapshot} />
               <EventFeed events={agentStatus?.event_feed || []} filter={eventFilter} setFilter={setEventFilter} />
-            </div>
-          </div>
+            </Stack>
+          </Box>
 
           <AnimatePresence>{showThoughts && <ThoughtLogPanel key="thought-log" agentStatus={agentStatus} />}</AnimatePresence>
           <EvolvedParamsCard params={agentStatus?.evolved_params} performance={agentStatus?.performance} />
-        </div>
+        </Stack>
       ) : (
         <IdleView onLaunch={() => setShowConfig(true)} />
       )}

@@ -1,9 +1,15 @@
 // Options Hub — Black-Scholes Greeks Calculator
 import { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Info } from 'lucide-react';
-import { Card, Input, Select } from '../ui';
+import { Card, Input, Select, MenuItem } from '../ui';
 
 const GreeksCalculator = () => {
+  const theme = useTheme();
+
   const [inputs, setInputs] = useState({
     spotPrice: 24000,
     strikePrice: 24000,
@@ -12,7 +18,7 @@ const GreeksCalculator = () => {
     riskFreeRate: 6.5,
     optionType: 'CE',
   });
-  
+
   const [greeks, setGreeks] = useState(null);
 
   useEffect(() => {
@@ -29,7 +35,7 @@ const GreeksCalculator = () => {
 
     const cdf = (x) => 0.5 * (1 + Math.sign(x) * Math.sqrt(1 - Math.exp(-2 * x * x / Math.PI)));
     const pdf = (x) => Math.exp(-Math.pow(x, 2) / 2) / Math.sqrt(2 * Math.PI);
-    
+
     const delta = optionType === 'CE' ? cdf(d1) : cdf(d1) - 1;
     const gamma = pdf(d1) / (S * sigma * Math.sqrt(T));
     const theta = -(S * sigma * pdf(d1)) / (2 * Math.sqrt(T)) / 365;
@@ -52,85 +58,141 @@ const GreeksCalculator = () => {
   }, [inputs]);
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Option Parameters</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Spot Price</label>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Card sx={{ p: 3 }}>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+          Option Parameters
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Spot Price
+            </Typography>
             <Input type="number" value={inputs.spotPrice} onChange={(e) => setInputs({ ...inputs, spotPrice: +e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Strike Price</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Strike Price
+            </Typography>
             <Input type="number" value={inputs.strikePrice} onChange={(e) => setInputs({ ...inputs, strikePrice: +e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Days to Expiry</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Days to Expiry
+            </Typography>
             <Input type="number" value={inputs.daysToExpiry} onChange={(e) => setInputs({ ...inputs, daysToExpiry: +e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">IV (%)</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              IV (%)
+            </Typography>
             <Input type="number" value={inputs.volatility} onChange={(e) => setInputs({ ...inputs, volatility: +e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Risk-Free Rate (%)</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Risk-Free Rate (%)
+            </Typography>
             <Input type="number" value={inputs.riskFreeRate} onChange={(e) => setInputs({ ...inputs, riskFreeRate: +e.target.value })} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Option Type</label>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Option Type
+            </Typography>
             <Select value={inputs.optionType} onChange={(e) => setInputs({ ...inputs, optionType: e.target.value })}>
-              <option value="CE">Call (CE)</option>
-              <option value="PE">Put (PE)</option>
+              <MenuItem value="CE">Call (CE)</MenuItem>
+              <MenuItem value="PE">Put (PE)</MenuItem>
             </Select>
-          </div>
-        </div>
+          </Box>
+        </Box>
       </Card>
 
       {greeks && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Delta (Δ)</div>
-            <p className="text-2xl font-bold">{greeks.delta}</p>
-            <p className="text-xs text-muted-foreground">Price sensitivity</p>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' },
+            gap: 2,
+          }}
+        >
+          <Card sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Delta ({'\u0394'})
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>{greeks.delta}</Typography>
+            <Typography variant="caption" color="text.secondary">Price sensitivity</Typography>
           </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Gamma (Γ)</div>
-            <p className="text-2xl font-bold">{greeks.gamma}</p>
-            <p className="text-xs text-muted-foreground">Delta change rate</p>
+          <Card sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Gamma ({'\u0393'})
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>{greeks.gamma}</Typography>
+            <Typography variant="caption" color="text.secondary">Delta change rate</Typography>
           </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Theta (Θ)</div>
-            <p className="text-2xl font-bold text-bearish">{greeks.theta}</p>
-            <p className="text-xs text-muted-foreground">Time decay/day</p>
+          <Card sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Theta ({'\u0398'})
+            </Typography>
+            <Typography variant="h5" fontWeight={700} sx={{ color: 'error.main' }}>
+              {greeks.theta}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Time decay/day</Typography>
           </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Vega (ν)</div>
-            <p className="text-2xl font-bold">{greeks.vega}</p>
-            <p className="text-xs text-muted-foreground">IV sensitivity</p>
+          <Card sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Vega ({'\u03BD'})
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>{greeks.vega}</Typography>
+            <Typography variant="caption" color="text.secondary">IV sensitivity</Typography>
           </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Premium</div>
-            <p className="text-2xl font-bold text-primary">₹{greeks.premium}</p>
-            <p className="text-xs text-muted-foreground">Theoretical value</p>
+          <Card sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Premium
+            </Typography>
+            <Typography variant="h5" fontWeight={700} sx={{ color: 'primary.main' }}>
+              {'\u20B9'}{greeks.premium}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Theoretical value</Typography>
           </Card>
-        </div>
+        </Box>
       )}
 
-      <Card className="p-4 bg-primary/5 border-primary/20">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary mt-0.5" />
-          <div>
-            <h4 className="font-semibold mb-1">Understanding Greeks</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• <strong>Delta:</strong> How much option price changes for ₹1 spot move</li>
-              <li>• <strong>Gamma:</strong> Rate of change of Delta (acceleration)</li>
-              <li>• <strong>Theta:</strong> Time decay - value lost per day</li>
-              <li>• <strong>Vega:</strong> Sensitivity to 1% change in IV</li>
-            </ul>
-          </div>
-        </div>
+      <Card
+        sx={{
+          p: 2,
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.05),
+          borderColor: (t) => alpha(t.palette.primary.main, 0.2),
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <Info style={{ width: 20, height: 20, color: theme.palette.primary.main, marginTop: 2 }} />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
+              Understanding Greeks
+            </Typography>
+            <Box component="ul" sx={{ pl: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>Delta:</strong> How much option price changes for {'\u20B9'}1 spot move
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>Gamma:</strong> Rate of change of Delta (acceleration)
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>Theta:</strong> Time decay - value lost per day
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {'\u2022'} <strong>Vega:</strong> Sensitivity to 1% change in IV
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 };
 

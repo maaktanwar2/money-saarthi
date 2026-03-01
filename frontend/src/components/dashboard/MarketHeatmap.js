@@ -2,7 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, ExternalLink } from 'lucide-react';
-import { cn, fetchAPI } from '../../lib/utils';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
+import ButtonBase from '@mui/material/ButtonBase';
+import { useTheme, alpha } from '@mui/material/styles';
+import { fetchAPI } from '../../lib/utils';
 
 /* ─── NIFTY 50 approximate weightages (%) ─── */
 const NIFTY_WEIGHTS = {
@@ -33,78 +38,143 @@ const getWeight = (sym) => {
   return 0.15; // default small weight for unlisted F&O stocks
 };
 
-/* ─── No multi-span — uniform compact cards ─── */
-
 /* ─── Color helpers ─── */
-const getCardColors = (pct) => {
-  if (pct >= 3)    return { bg: 'from-emerald-600/30 to-emerald-700/20', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-emerald-500/10' };
-  if (pct >= 1.5)  return { bg: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-500/20', text: 'text-emerald-400', glow: 'shadow-emerald-500/5' };
-  if (pct >= 0.5)  return { bg: 'from-green-500/15 to-green-600/8', border: 'border-green-500/20', text: 'text-green-400', glow: '' };
-  if (pct >= 0)    return { bg: 'from-green-500/8 to-green-600/4', border: 'border-green-500/10', text: 'text-green-300', glow: '' };
-  if (pct >= -0.5) return { bg: 'from-rose-500/8 to-rose-600/4', border: 'border-rose-500/10', text: 'text-rose-300', glow: '' };
-  if (pct >= -1.5) return { bg: 'from-rose-500/15 to-rose-600/8', border: 'border-rose-500/20', text: 'text-rose-400', glow: '' };
-  if (pct >= -3)   return { bg: 'from-rose-500/20 to-rose-600/10', border: 'border-rose-500/20', text: 'text-rose-400', glow: 'shadow-rose-500/5' };
-  return { bg: 'from-red-600/30 to-red-700/20', border: 'border-red-500/30', text: 'text-red-400', glow: 'shadow-red-500/10' };
+const getCardColors = (pct, theme) => {
+  const success = theme.palette.success.main;
+  const error = theme.palette.error.main;
+  if (pct >= 3) return { bg: `linear-gradient(to bottom right, ${alpha(success, 0.30)}, ${alpha(success, 0.20)})`, border: alpha(success, 0.30), text: success, shadow: `0 2px 8px ${alpha(success, 0.10)}` };
+  if (pct >= 1.5) return { bg: `linear-gradient(to bottom right, ${alpha(success, 0.20)}, ${alpha(success, 0.10)})`, border: alpha(success, 0.20), text: success, shadow: `0 2px 6px ${alpha(success, 0.05)}` };
+  if (pct >= 0.5) return { bg: `linear-gradient(to bottom right, ${alpha(success, 0.15)}, ${alpha(success, 0.08)})`, border: alpha(success, 0.20), text: success, shadow: 'none' };
+  if (pct >= 0) return { bg: `linear-gradient(to bottom right, ${alpha(success, 0.08)}, ${alpha(success, 0.04)})`, border: alpha(success, 0.10), text: alpha(success, 0.85), shadow: 'none' };
+  if (pct >= -0.5) return { bg: `linear-gradient(to bottom right, ${alpha(error, 0.08)}, ${alpha(error, 0.04)})`, border: alpha(error, 0.10), text: alpha(error, 0.85), shadow: 'none' };
+  if (pct >= -1.5) return { bg: `linear-gradient(to bottom right, ${alpha(error, 0.15)}, ${alpha(error, 0.08)})`, border: alpha(error, 0.20), text: error, shadow: 'none' };
+  if (pct >= -3) return { bg: `linear-gradient(to bottom right, ${alpha(error, 0.20)}, ${alpha(error, 0.10)})`, border: alpha(error, 0.20), text: error, shadow: `0 2px 6px ${alpha(error, 0.05)}` };
+  return { bg: `linear-gradient(to bottom right, ${alpha(error, 0.30)}, ${alpha(error, 0.20)})`, border: alpha(error, 0.30), text: error, shadow: `0 2px 8px ${alpha(error, 0.10)}` };
 };
 
-const getAccentBar = (pct) => {
-  if (pct >= 2) return 'bg-emerald-400';
-  if (pct >= 0) return 'bg-green-400';
-  if (pct >= -2) return 'bg-rose-400';
-  return 'bg-red-400';
+const getAccentBarColor = (pct, theme) => {
+  const success = theme.palette.success.main;
+  const error = theme.palette.error.main;
+  if (pct >= 2) return success;
+  if (pct >= 0) return alpha(success, 0.8);
+  if (pct >= -2) return alpha(error, 0.8);
+  return error;
 };
 
 /* ─── Compact Stock Card ─── */
 const StockCard = ({ stock, weight, index }) => {
+  const theme = useTheme();
   const pct = stock.price_change ?? 0;
   const isUp = pct >= 0;
-  const colors = getCardColors(pct);
+  const colors = getCardColors(pct, theme);
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.94 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.01, type: 'spring', stiffness: 320, damping: 26 }}
-      className={cn(
-        'relative group cursor-pointer rounded-lg border overflow-hidden',
-        'bg-gradient-to-br backdrop-blur-sm',
-        'hover:-translate-y-0.5 hover:shadow-md transition-all duration-200',
-        colors.bg, colors.border, colors.glow
-      )}
-      onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
     >
-      {/* Top accent bar */}
-      <div className={cn('absolute top-0 inset-x-0 h-[2px]', getAccentBar(pct))} />
+      <Box
+        onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=NSE:${stock.symbol}`, '_blank')}
+        sx={{
+          position: 'relative',
+          cursor: 'pointer',
+          borderRadius: 2,
+          border: 1,
+          borderColor: colors.border,
+          overflow: 'hidden',
+          background: colors.bg,
+          backdropFilter: 'blur(8px)',
+          boxShadow: colors.shadow,
+          transition: 'all 0.2s',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: (t) => `0 4px 12px ${alpha(t.palette.common.black, 0.15)}`,
+          },
+          '&:hover .external-icon': {
+            opacity: 0.6,
+          },
+        }}
+      >
+        {/* Top accent bar */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            bgcolor: getAccentBarColor(pct, theme),
+          }}
+        />
 
-      {/* Content — compact */}
-      <div className="px-2.5 py-2 flex flex-col gap-0.5">
-        {/* Symbol row */}
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold tracking-tight text-foreground/90 truncate">
-            {stock.symbol}
-          </span>
-          <ExternalLink className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0" />
-        </div>
+        {/* Content — compact */}
+        <Box sx={{ px: 1.25, py: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          {/* Symbol row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 800,
+                letterSpacing: '-0.01em',
+                color: (t) => alpha(t.palette.text.primary, 0.9),
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {stock.symbol}
+            </Typography>
+            <ExternalLink
+              className="external-icon"
+              style={{
+                width: 10,
+                height: 10,
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                flexShrink: 0,
+                color: theme.palette.text.secondary,
+              }}
+            />
+          </Box>
 
-        {/* Price + Change on same row */}
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[11px] font-semibold text-foreground/70">
-            ₹{stock.price?.toFixed(stock.price >= 1000 ? 0 : 2)}
-          </span>
-          <span className={cn(
-            'flex items-center gap-0.5 text-[10px] font-bold',
-            colors.text
-          )}>
-            {isUp ? <TrendingUp className="w-2.5 h-2.5 flex-shrink-0" /> : <TrendingDown className="w-2.5 h-2.5 flex-shrink-0" />}
-            {isUp ? '+' : ''}{pct.toFixed(2)}%
-          </span>
-        </div>
-      </div>
+          {/* Price + Change on same row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5 }}>
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                color: (t) => alpha(t.palette.text.primary, 0.7),
+              }}
+            >
+              {'\u20B9'}{stock.price?.toFixed(stock.price >= 1000 ? 0 : 2)}
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.25,
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                color: colors.text,
+              }}
+            >
+              {isUp
+                ? <TrendingUp style={{ width: 10, height: 10, flexShrink: 0 }} />
+                : <TrendingDown style={{ width: 10, height: 10, flexShrink: 0 }} />
+              }
+              {isUp ? '+' : ''}{pct.toFixed(2)}%
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
     </motion.div>
   );
 };
 
 const MarketHeatmap = () => {
+  const theme = useTheme();
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all | gainers | losers
@@ -149,13 +219,25 @@ const MarketHeatmap = () => {
   const gainers = stocks.filter(s => (s.price_change ?? 0) > 0).length;
   const losers = stocks.filter(s => (s.price_change ?? 0) < 0).length;
 
-  if (loading) return <div className="h-[350px] skeleton rounded-2xl" />;
+  if (loading) return <Skeleton variant="rectangular" sx={{ height: 350, borderRadius: 4 }} animation="wave" />;
 
   if (!sortedStocks.length) {
     return (
-      <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm p-8 text-center text-muted-foreground text-sm">
+      <Box
+        sx={{
+          borderRadius: 4,
+          border: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          backdropFilter: 'blur(8px)',
+          p: 4,
+          textAlign: 'center',
+          color: 'text.secondary',
+          fontSize: '0.875rem',
+        }}
+      >
         Heatmap data unavailable
-      </div>
+      </Box>
     );
   }
 
@@ -170,59 +252,143 @@ const MarketHeatmap = () => {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-      className="relative rounded-2xl border border-border/40 bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm overflow-hidden"
     >
-      {/* Accent strip */}
-      <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-emerald-500 via-yellow-400 to-rose-500 opacity-80" />
+      <Box
+        sx={{
+          position: 'relative',
+          borderRadius: 4,
+          border: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          backdropFilter: 'blur(8px)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Accent strip */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            opacity: 0.8,
+          }}
+          style={{
+            background: `linear-gradient(to right, ${theme.palette.success.main}, ${theme.palette.warning.main}, ${theme.palette.error.main})`,
+          }}
+        />
 
-      {/* Header with filter pills */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-muted-foreground">{gainers} Gaining</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-400" />
-            <span className="text-muted-foreground">{losers} Declining</span>
-          </span>
-        </div>
+        {/* Header with filter pills */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 2,
+            pt: 2,
+            pb: 1.5,
+            flexWrap: 'wrap',
+            gap: 1,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: '0.75rem' }}>
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+              <Typography variant="caption" color="text.secondary">{gainers} Gaining</Typography>
+            </Box>
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
+              <Typography variant="caption" color="text.secondary">{losers} Declining</Typography>
+            </Box>
+          </Box>
 
-        {/* Filter tabs */}
-        <div className="flex items-center gap-1 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
-          {filters.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={cn(
-                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all',
-                filter === f.key
-                  ? 'bg-primary/15 text-primary border border-primary/20'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Card grid — compact */}
-      <div className="px-3 pb-3">
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-1.5 auto-rows-auto">
-          <AnimatePresence mode="popLayout">
-            {sortedStocks.map((stock, i) => (
-              <StockCard key={stock.symbol} stock={stock} weight={stock.weight} index={i} />
+          {/* Filter tabs */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              bgcolor: (t) => alpha(t.palette.text.primary, 0.03),
+              borderRadius: 2,
+              p: 0.25,
+              border: 1,
+              borderColor: (t) => alpha(t.palette.text.primary, 0.06),
+            }}
+          >
+            {filters.map(f => (
+              <ButtonBase
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                sx={{
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1.5,
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  ...(filter === f.key
+                    ? {
+                        bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
+                        color: 'primary.main',
+                        border: 1,
+                        borderColor: (t) => alpha(t.palette.primary.main, 0.2),
+                      }
+                    : {
+                        color: 'text.secondary',
+                        border: 1,
+                        borderColor: 'transparent',
+                        '&:hover': { color: 'text.primary' },
+                      }),
+                }}
+              >
+                {f.label}
+              </ButtonBase>
             ))}
-          </AnimatePresence>
-        </div>
-      </div>
+          </Box>
+        </Box>
 
-      {/* Footer note */}
-      <div className="px-4 pb-2.5 flex items-center justify-between text-[10px] text-muted-foreground/50">
-        <span>Sorted by day performance · Click to open chart</span>
-        <span>{sortedStocks.length} stocks</span>
-      </div>
+        {/* Card grid — compact */}
+        <Box sx={{ px: 1.5, pb: 1.5 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(4, 1fr)',
+                sm: 'repeat(5, 1fr)',
+                md: 'repeat(6, 1fr)',
+                lg: 'repeat(8, 1fr)',
+              },
+              gap: 0.75,
+              gridAutoRows: 'auto',
+            }}
+          >
+            <AnimatePresence mode="popLayout">
+              {sortedStocks.map((stock, i) => (
+                <StockCard key={stock.symbol} stock={stock} weight={stock.weight} index={i} />
+              ))}
+            </AnimatePresence>
+          </Box>
+        </Box>
+
+        {/* Footer note */}
+        <Box
+          sx={{
+            px: 2,
+            pb: 1.25,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography sx={{ fontSize: '0.625rem', color: (t) => alpha(t.palette.text.secondary, 0.5) }}>
+            Sorted by day performance · Click to open chart
+          </Typography>
+          <Typography sx={{ fontSize: '0.625rem', color: (t) => alpha(t.palette.text.secondary, 0.5) }}>
+            {sortedStocks.length} stocks
+          </Typography>
+        </Box>
+      </Box>
     </motion.div>
   );
 };

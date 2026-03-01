@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Alert from '@mui/material/Alert';
+import IconButton from '@mui/material/IconButton';
+import { useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
-import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge, Tabs } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Tabs } from '../components/ui';
 import { formatINR } from '../lib/utils';
 import { Trash2 } from 'lucide-react';
 
@@ -26,6 +40,7 @@ export default function TradingJournal() {
   const [trades, setTrades] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
+  const theme = useTheme();
 
   useEffect(() => { setTrades(loadTrades()); }, []);
 
@@ -44,7 +59,7 @@ export default function TradingJournal() {
       winRate: trades.length > 0 ? ((wins.length / trades.length) * 100).toFixed(1) : 0,
       avgWin,
       avgLoss,
-      profitFactor: grossLosses > 0 ? (grossWins / grossLosses).toFixed(2) : grossWins > 0 ? '∞' : '0',
+      profitFactor: grossLosses > 0 ? (grossWins / grossLosses).toFixed(2) : grossWins > 0 ? '\u221E' : '0',
       totalPnL,
     };
   }, [trades]);
@@ -113,113 +128,124 @@ export default function TradingJournal() {
       <SEO {...getSeoConfig('/journal')} path="/journal" />
       <PageHeader
         title="Trading Journal"
-        subtitle="Track, analyze, and improve your trading performance"
+        description="Track, analyze, and improve your trading performance"
       />
 
       {/* Stats Overview — derived from real trades */}
       <Section>
         {stats ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <Card className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold">{stats.totalTrades}</div>
-              <div className="text-xs text-muted-foreground">Total Trades</div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2, mb: 4 }}>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700}>{stats.totalTrades}</Typography>
+              <Typography variant="caption" color="text.secondary">Total Trades</Typography>
             </Card>
-            <Card className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-profit">{stats.winRate}%</div>
-              <div className="text-xs text-muted-foreground">Win Rate</div>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700} color="success.main">{stats.winRate}%</Typography>
+              <Typography variant="caption" color="text.secondary">Win Rate</Typography>
             </Card>
-            <Card className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-profit">{formatINR(stats.avgWin)}</div>
-              <div className="text-xs text-muted-foreground">Avg Win</div>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700} color="success.main">{formatINR(stats.avgWin)}</Typography>
+              <Typography variant="caption" color="text.secondary">Avg Win</Typography>
             </Card>
-            <Card className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-loss">{formatINR(stats.avgLoss)}</div>
-              <div className="text-xs text-muted-foreground">Avg Loss</div>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700} color="error.main">{formatINR(stats.avgLoss)}</Typography>
+              <Typography variant="caption" color="text.secondary">Avg Loss</Typography>
             </Card>
-            <Card className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold">{stats.profitFactor}</div>
-              <div className="text-xs text-muted-foreground">Profit Factor</div>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700}>{stats.profitFactor}</Typography>
+              <Typography variant="caption" color="text.secondary">Profit Factor</Typography>
             </Card>
-            <Card className="glass-card p-4 text-center">
-              <div className={`text-2xl font-bold ${stats.totalPnL >= 0 ? 'text-profit' : 'text-loss'}`}>
+            <Card sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight={700} sx={{ color: stats.totalPnL >= 0 ? 'success.main' : 'error.main' }}>
                 {formatINR(stats.totalPnL)}
-              </div>
-              <div className="text-xs text-muted-foreground">Total P&L</div>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">Total P&L</Typography>
             </Card>
-          </div>
+          </Box>
         ) : (
-          <Card className="glass-card p-8 text-center mb-8">
-            <p className="text-muted-foreground mb-2">No trades logged yet.</p>
+          <Card sx={{ p: 4, textAlign: 'center', mb: 4 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>No trades logged yet.</Typography>
             <Button onClick={() => setActiveTab('add')}>Log Your First Trade</Button>
           </Card>
         )}
 
         {/* Tabs */}
-        <Tabs 
+        <Tabs
           tabs={[
             { id: 'trades', label: `Recent Trades (${trades.length})` },
             { id: 'add', label: '+ Add Trade' },
             { id: 'analysis', label: 'Analysis' },
           ]}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onChange={setActiveTab}
         />
 
         {/* Trades Table */}
         {activeTab === 'trades' && (
-          <Card className="glass-card mt-6">
-            <CardContent className="p-0">
+          <Card sx={{ mt: 3 }}>
+            <CardContent sx={{ p: 0 }}>
               {trades.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  No trades yet. Click "+ Add Trade" to log your first trade.
-                </div>
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography color="text.secondary">
+                    No trades yet. Click "+ Add Trade" to log your first trade.
+                  </Typography>
+                </Box>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Date</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Symbol</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Type</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Entry</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Exit</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Qty</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">P&L</th>
-                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Notes</th>
-                        <th className="p-4"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Symbol</TableCell>
+                        <TableCell>Type</TableCell>
+                        <TableCell align="right">Entry</TableCell>
+                        <TableCell align="right">Exit</TableCell>
+                        <TableCell align="right">Qty</TableCell>
+                        <TableCell align="right">P&L</TableCell>
+                        <TableCell>Notes</TableCell>
+                        <TableCell padding="checkbox" />
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                       {trades.map(trade => (
-                        <tr key={trade.id} className="border-b border-border/50 hover:bg-card/50">
-                          <td className="p-4 text-sm">{trade.date}</td>
-                          <td className="p-4 text-sm font-medium">{trade.symbol}</td>
-                          <td className="p-4">
+                        <TableRow key={trade.id} hover>
+                          <TableCell>{trade.date}</TableCell>
+                          <TableCell sx={{ fontWeight: 500 }}>{trade.symbol}</TableCell>
+                          <TableCell>
                             <Badge variant={trade.type === 'BUY' ? 'success' : 'error'}>
                               {trade.type}
                             </Badge>
-                          </td>
-                          <td className="p-4 text-sm text-right">{formatINR(trade.entry)}</td>
-                          <td className="p-4 text-sm text-right">{trade.exit !== null ? formatINR(trade.exit) : '—'}</td>
-                          <td className="p-4 text-sm text-right">{trade.qty}</td>
-                          <td className={`p-4 text-sm text-right font-medium ${trade.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
+                          </TableCell>
+                          <TableCell align="right">{formatINR(trade.entry)}</TableCell>
+                          <TableCell align="right">{trade.exit !== null ? formatINR(trade.exit) : '\u2014'}</TableCell>
+                          <TableCell align="right">{trade.qty}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              fontWeight: 500,
+                              color: trade.pnl >= 0 ? 'success.main' : 'error.main',
+                            }}
+                          >
                             {trade.exit !== null ? formatINR(trade.pnl) : 'Open'}
-                          </td>
-                          <td className="p-4 text-sm text-muted-foreground max-w-[200px] truncate">{trade.notes}</td>
-                          <td className="p-4">
-                            <button 
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary' }}>
+                            {trade.notes}
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
                               onClick={() => handleDelete(trade.id)}
-                              className="text-muted-foreground hover:text-red-500 transition-colors"
+                              size="small"
                               title="Delete trade"
+                              sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
+                              <Trash2 style={{ width: 16, height: 16 }} />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               )}
             </CardContent>
           </Card>
@@ -227,132 +253,165 @@ export default function TradingJournal() {
 
         {/* Add Trade Form — fully functional */}
         {activeTab === 'add' && (
-          <Card className="glass-card mt-6">
+          <Card sx={{ mt: 3 }}>
             <CardHeader>
               <CardTitle>Add New Trade</CardTitle>
             </CardHeader>
             <CardContent>
               {formError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">
+                <Alert severity="error" sx={{ mb: 2 }}>
                   {formError}
-                </div>
+                </Alert>
               )}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Date *</label>
-                  <Input 
-                    type="date" 
-                    value={form.date} 
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Date *</Typography>
+                  <TextField
+                    type="date"
+                    size="small"
+                    fullWidth
+                    value={form.date}
                     onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Symbol *</label>
-                  <Input 
-                    placeholder="e.g. NIFTY 22500 CE" 
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Symbol *</Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="e.g. NIFTY 22500 CE"
                     value={form.symbol}
                     onChange={(e) => setForm(f => ({ ...f, symbol: e.target.value }))}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Type</label>
-                  <select 
-                    className="input w-full"
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Type</Typography>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
                     value={form.type}
                     onChange={(e) => setForm(f => ({ ...f, type: e.target.value }))}
                   >
-                    <option>BUY</option>
-                    <option>SELL</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Entry Price *</label>
-                  <Input 
-                    type="number" 
-                    placeholder="0.00" 
+                    <MenuItem value="BUY">BUY</MenuItem>
+                    <MenuItem value="SELL">SELL</MenuItem>
+                  </TextField>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Entry Price *</Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    placeholder="0.00"
                     value={form.entry}
                     onChange={(e) => setForm(f => ({ ...f, entry: e.target.value }))}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Exit Price (leave blank if open)</label>
-                  <Input 
-                    type="number" 
-                    placeholder="0.00" 
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Exit Price (leave blank if open)</Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    placeholder="0.00"
                     value={form.exit}
                     onChange={(e) => setForm(f => ({ ...f, exit: e.target.value }))}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground block mb-2">Quantity *</label>
-                  <Input 
-                    type="number" 
-                    placeholder="0" 
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Quantity *</Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    placeholder="0"
                     value={form.qty}
                     onChange={(e) => setForm(f => ({ ...f, qty: e.target.value }))}
                   />
-                </div>
-                <div className="md:col-span-2 lg:col-span-3">
-                  <label className="text-sm text-muted-foreground block mb-2">Notes</label>
-                  <textarea 
-                    className="input w-full h-24 resize-none"
+                </Box>
+                <Box sx={{ gridColumn: { md: 'span 2', lg: 'span 3' } }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Notes</Typography>
+                  <TextField
+                    multiline
+                    rows={3}
+                    size="small"
+                    fullWidth
                     placeholder="Trade rationale, observations, lessons learned..."
                     value={form.notes}
                     onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
                   />
-                </div>
-              </div>
-              <Button className="mt-4" onClick={handleSave}>Save Trade</Button>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Button onClick={handleSave}>Save Trade</Button>
+              </Box>
             </CardContent>
           </Card>
         )}
 
         {/* Analysis — derived from real trades only */}
         {activeTab === 'analysis' && (
-          <div className="grid md:grid-cols-2 gap-6 mt-6">
-            <Card className="glass-card">
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3, mt: 3 }}>
+            <Card>
               <CardHeader>
                 <CardTitle>Win Rate by Day</CardTitle>
               </CardHeader>
               <CardContent>
                 {trades.length < 3 ? (
-                  <p className="text-muted-foreground text-sm">Log at least 3 trades to see day-wise analysis.</p>
+                  <Typography variant="body2" color="text.secondary">
+                    Log at least 3 trades to see day-wise analysis.
+                  </Typography>
                 ) : (
-                  <div className="space-y-3">
+                  <Stack spacing={1.5}>
                     {dayAnalysis.map(({ day, winRate, trades: count }) => (
-                      <div key={day} className="flex items-center justify-between">
-                        <span className="text-sm">{day}</span>
+                      <Stack key={day} direction="row" alignItems="center" justifyContent="space-between">
+                        <Typography variant="body2">{day}</Typography>
                         {count > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-32 h-2 bg-border rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full ${winRate > 50 ? 'bg-profit' : 'bg-loss'}`}
-                                style={{ width: `${winRate}%` }}
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Box
+                              sx={{
+                                width: 128,
+                                height: 8,
+                                borderRadius: 4,
+                                bgcolor: 'divider',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  bgcolor: winRate > 50 ? 'success.main' : 'error.main',
+                                  width: `${winRate}%`,
+                                }}
                               />
-                            </div>
-                            <span className="text-sm text-muted-foreground w-16 text-right">
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ width: 64, textAlign: 'right' }}>
                               {winRate}% ({count})
-                            </span>
-                          </div>
+                            </Typography>
+                          </Stack>
                         ) : (
-                          <span className="text-xs text-muted-foreground">No trades</span>
+                          <Typography variant="caption" color="text.secondary">No trades</Typography>
                         )}
-                      </div>
+                      </Stack>
                     ))}
-                  </div>
+                  </Stack>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Top Symbols</CardTitle>
               </CardHeader>
               <CardContent>
                 {trades.length < 3 ? (
-                  <p className="text-muted-foreground text-sm">Log more trades to see symbol-level analysis.</p>
+                  <Typography variant="body2" color="text.secondary">
+                    Log more trades to see symbol-level analysis.
+                  </Typography>
                 ) : (
-                  <div className="space-y-3">
+                  <Stack spacing={1.5}>
                     {(() => {
                       const grouped = {};
                       trades.forEach(t => {
@@ -365,27 +424,39 @@ export default function TradingJournal() {
                         .sort((a, b) => b[1].pnl - a[1].pnl)
                         .slice(0, 5)
                         .map(([symbol, data]) => (
-                          <div key={symbol} className="flex items-center justify-between p-3 rounded-lg bg-background">
-                            <div>
-                              <div className="font-medium">{symbol}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {data.count} trades — {Math.round((data.wins / data.count) * 100)}% win
-                              </div>
-                            </div>
-                            <span className={`font-semibold ${data.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
+                          <Box
+                            key={symbol}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              p: 1.5,
+                              borderRadius: 2,
+                              bgcolor: 'background.default',
+                            }}
+                          >
+                            <Box>
+                              <Typography fontWeight={500}>{symbol}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {data.count} trades \u2014 {Math.round((data.wins / data.count) * 100)}% win
+                              </Typography>
+                            </Box>
+                            <Typography
+                              fontWeight={600}
+                              sx={{ color: data.pnl >= 0 ? 'success.main' : 'error.main' }}
+                            >
                               {formatINR(data.pnl)}
-                            </span>
-                          </div>
+                            </Typography>
+                          </Box>
                         ));
                     })()}
-                  </div>
+                  </Stack>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </Box>
         )}
       </Section>
     </PageLayout>
   );
 }
-

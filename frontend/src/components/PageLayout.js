@@ -1,11 +1,19 @@
-// Page Layout Component - Main layout wrapper
+// Page Layout Component - Main layout wrapper (MUI)
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Drawer from '@mui/material/Drawer';
+import Typography from '@mui/material/Typography';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
+import Chip from '@mui/material/Chip';
+import { useTheme } from '@mui/material/styles';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { cn, storage } from '../lib/utils';
+import { storage } from '../lib/utils';
 
 export const PageLayout = ({ children }) => {
+  const theme = useTheme();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => storage.get('sidebarCollapsed', false)
   );
@@ -19,7 +27,7 @@ export const PageLayout = ({ children }) => {
     const handleSidebarToggle = (e) => {
       setSidebarCollapsed(e.detail.collapsed);
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('sidebarToggle', handleSidebarToggle);
 
@@ -30,153 +38,270 @@ export const PageLayout = ({ children }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block">
+      <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
         <Sidebar />
-      </div>
+      </Box>
 
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 z-50 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <motion.div
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Sidebar />
-          </motion.div>
-        </motion.div>
-      )}
+      {/* Mobile Menu Overlay - MUI Drawer (temporary) */}
+      <Drawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        variant="temporary"
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { lg: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 256,
+          },
+        }}
+      >
+        <Sidebar />
+      </Drawer>
 
       {/* Main Content */}
-      <main
-        className={cn(
-          'min-h-screen transition-all duration-300',
-          sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64'
-        )}
+      <Box
+        component="main"
+        sx={{
+          minHeight: '100vh',
+          transition: theme.transitions.create(['padding-left'], {
+            duration: theme.transitions.duration.standard,
+          }),
+          pl: { xs: 0, lg: sidebarCollapsed ? '72px' : '256px' },
+        }}
       >
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
-        
-        <div className="p-4">
+
+        <Box sx={{ p: 2 }}>
           {children}
-        </div>
-      </main>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
 // Page Header Component
-export const PageHeader = ({ 
-  title, 
-  description, 
+export const PageHeader = ({
+  title,
+  description,
   icon: Icon,
   badge,
   accuracy,
   trades,
   actions,
-  breadcrumbs = []
-}) => (
-  <div className="mb-5">
-    {/* Breadcrumbs */}
-    {breadcrumbs.length > 0 && (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-        {breadcrumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-2">
-            {i > 0 && <span>/</span>}
-            {crumb.link ? (
-              <a href={crumb.link} className="hover:text-foreground transition-colors">
-                {crumb.label}
-              </a>
-            ) : (
-              <span className="text-foreground">{crumb.label}</span>
-            )}
-          </span>
-        ))}
-      </div>
-    )}
+  breadcrumbs = [],
+}) => {
+  const theme = useTheme();
 
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <div>
-        <div className="flex items-center gap-2.5">
-          {Icon && (
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Icon className="w-4.5 h-4.5 text-primary" />
-            </div>
+  // Map badge text to color config
+  const getBadgeProps = (badgeText) => {
+    switch (badgeText) {
+      case 'AI':
+        return {
+          sx: {
+            bgcolor: 'rgba(139,92,246,0.2)',
+            color: theme.palette.mode === 'dark' ? '#a78bfa' : '#7c3aed',
+            fontWeight: 700,
+            fontSize: '0.75rem',
+          },
+        };
+      case 'Pro':
+        return {
+          sx: {
+            bgcolor: 'rgba(245,158,11,0.2)',
+            color: theme.palette.mode === 'dark' ? '#fbbf24' : '#d97706',
+            fontWeight: 700,
+            fontSize: '0.75rem',
+          },
+        };
+      case 'New':
+        return {
+          color: 'primary',
+          sx: { fontWeight: 700, fontSize: '0.75rem' },
+        };
+      default:
+        return {
+          color: 'default',
+          sx: { fontWeight: 700, fontSize: '0.75rem' },
+        };
+    }
+  };
+
+  // Accuracy dot color
+  const getAccuracyColor = (val) => {
+    if (val >= 70) return theme.palette.success.main;
+    if (val >= 50) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  };
+
+  return (
+    <Box sx={{ mb: 2.5 }}>
+      {/* Breadcrumbs */}
+      {breadcrumbs.length > 0 && (
+        <Breadcrumbs
+          separator="/"
+          sx={{
+            mb: 1.5,
+            '& .MuiBreadcrumbs-separator': {
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+            },
+          }}
+        >
+          {breadcrumbs.map((crumb, i) =>
+            crumb.link ? (
+              <Link
+                key={i}
+                href={crumb.link}
+                underline="hover"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  '&:hover': { color: 'text.primary' },
+                }}
+              >
+                {crumb.label}
+              </Link>
+            ) : (
+              <Typography
+                key={i}
+                sx={{ color: 'text.primary', fontSize: '0.75rem' }}
+              >
+                {crumb.label}
+              </Typography>
+            )
           )}
-          <h1 className="text-xl font-bold">{title}</h1>
-          {badge && (
-            <span className={cn(
-              'px-2 py-0.5 text-xs font-semibold rounded',
-              badge === 'AI' && 'bg-violet-500/20 text-violet-400',
-              badge === 'Pro' && 'bg-amber-500/20 text-amber-400',
-              badge === 'New' && 'bg-primary/20 text-primary',
-              !['AI', 'Pro', 'New'].includes(badge) && 'bg-secondary text-secondary-foreground'
-            )}>
-              {badge}
-            </span>
-          )}
-        </div>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-        )}
-        
-        {/* Accuracy Stats */}
-        {(accuracy !== undefined || trades !== undefined) && (
-          <div className="flex items-center gap-3 mt-2">
-            {accuracy !== undefined && (
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  'w-2 h-2 rounded-full',
-                  accuracy >= 70 ? 'bg-bullish' : accuracy >= 50 ? 'bg-amber-500' : 'bg-bearish'
-                )} />
-                <span className="text-sm">
-                  <span className="font-semibold">{accuracy}%</span>
-                  <span className="text-muted-foreground ml-1">Accuracy</span>
-                </span>
-              </div>
-            )}
-            {trades !== undefined && (
-              <span className="text-sm text-muted-foreground">
-                {trades.toLocaleString()} backtested trades
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-      
-      {actions && (
-        <div className="flex items-center gap-2">
-          {actions}
-        </div>
+        </Breadcrumbs>
       )}
-    </div>
-  </div>
-);
+
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        alignItems={{ md: 'center' }}
+        justifyContent="space-between"
+        spacing={1.5}
+      >
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1.25}>
+            {Icon && (
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: (t) => `${t.palette.primary.main}1A`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon
+                  size={18}
+                  color={theme.palette.primary.main}
+                />
+              </Box>
+            )}
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+              {title}
+            </Typography>
+            {badge && (
+              <Chip
+                label={badge}
+                size="small"
+                variant="filled"
+                {...getBadgeProps(badge)}
+              />
+            )}
+          </Stack>
+          {description && (
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary', mt: 0.25 }}
+            >
+              {description}
+            </Typography>
+          )}
+
+          {/* Accuracy Stats */}
+          {(accuracy !== undefined || trades !== undefined) && (
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 1 }}>
+              {accuracy !== undefined && (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: getAccuracyColor(accuracy),
+                    }}
+                  />
+                  <Typography variant="body2">
+                    <Box component="span" sx={{ fontWeight: 600 }}>
+                      {accuracy}%
+                    </Box>
+                    <Box component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                      Accuracy
+                    </Box>
+                  </Typography>
+                </Stack>
+              )}
+              {trades !== undefined && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {trades.toLocaleString()} backtested trades
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Box>
+
+        {actions && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {actions}
+          </Stack>
+        )}
+      </Stack>
+    </Box>
+  );
+};
 
 // Section Component
 export const Section = ({ title, description, children, className, action }) => (
-  <section className={cn('mb-5', className)}>
+  <Box
+    component="section"
+    className={className}
+    sx={{ mb: 2.5 }}
+  >
     {(title || action) && (
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          {title && <h2 className="text-base font-semibold">{title}</h2>}
-          {description && (
-            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 1.5 }}
+      >
+        <Box>
+          {title && (
+            <Typography
+              variant="subtitle1"
+              component="h2"
+              sx={{ fontWeight: 600, fontSize: '1rem' }}
+            >
+              {title}
+            </Typography>
           )}
-        </div>
+          {description && (
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.secondary', mt: 0.25, display: 'block' }}
+            >
+              {description}
+            </Typography>
+          )}
+        </Box>
         {action}
-      </div>
+      </Stack>
     )}
     {children}
-  </section>
+  </Box>
 );
 
 export default PageLayout;

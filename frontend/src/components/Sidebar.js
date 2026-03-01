@@ -1,7 +1,17 @@
-// Sidebar Component - Professional navigation sidebar
+// Sidebar Component - MUI-based professional navigation sidebar
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Box from '@mui/material/Box';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import { useTheme as useMuiTheme, alpha } from '@mui/material/styles';
 import {
   LayoutDashboard,
   ScanSearch,
@@ -28,7 +38,7 @@ import {
   Layers,
   Star,
 } from 'lucide-react';
-import { cn, storage, isAdmin as isAdminCheck } from '../lib/utils';
+import { storage, isAdmin as isAdminCheck } from '../lib/utils';
 
 // Check if user has pro access
 const checkProAccess = () => {
@@ -47,150 +57,43 @@ const checkProAccess = () => {
 // Navigation Items grouped by section
 const NAV_SECTIONS = [
   {
-    label: null, // no header for top items
+    label: null,
     items: [
-      {
-        id: 'dashboard',
-        label: 'Dashboard',
-        icon: LayoutDashboard,
-        path: '/',
-      },
-      {
-        id: 'scanners',
-        label: 'Scanners',
-        icon: ScanSearch,
-        path: '/signals',
-        badge: '15+',
-        badgeColor: 'emerald',
-        description: 'Stock screeners & filters',
-      },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { id: 'scanners', label: 'Scanners', icon: ScanSearch, path: '/signals', badge: '15+', badgeColor: 'emerald', description: 'Stock screeners & filters' },
     ],
   },
   {
     label: 'Markets',
     items: [
-      {
-        id: 'options',
-        label: 'Options Lab',
-        icon: LineChart,
-        path: '/options',
-        badge: 'Pro',
-        isPro: true,
-        description: 'Options chain & analytics',
-      },
-      {
-        id: 'market',
-        label: 'Market Pulse',
-        icon: Activity,
-        path: '/market',
-        badge: 'Pro',
-        isPro: true,
-        description: 'FII/DII, sectors, breadth',
-      },
-      {
-        id: 'sectors',
-        label: 'Sectors',
-        icon: Layers,
-        path: '/sectors',
-        badge: 'Pro',
-        isPro: true,
-        description: 'Sectoral indices & stocks by sector',
-      },
+      { id: 'options', label: 'Options Lab', icon: LineChart, path: '/options', badge: 'Pro', isPro: true, description: 'Options chain & analytics' },
+      { id: 'market', label: 'Market Pulse', icon: Activity, path: '/market', badge: 'Pro', isPro: true, description: 'FII/DII, sectors, breadth' },
+      { id: 'sectors', label: 'Sectors', icon: Layers, path: '/sectors', badge: 'Pro', isPro: true, description: 'Sectoral indices & stocks by sector' },
     ],
   },
   {
     label: 'AI & Automation',
     items: [
-      {
-        id: 'ai-agent',
-        label: 'AI Agent',
-        icon: Brain,
-        path: '/ai-agent',
-        badge: 'New',
-        badgeColor: 'cyan',
-        isPro: true,
-        description: 'Self-thinking autonomous trading',
-      },
-      {
-        id: 'algo',
-        label: 'Algo Trading',
-        icon: Bot,
-        path: '/algo',
-        badge: 'Live',
-        badgeColor: 'live',
-        isPro: true,
-        description: 'AI bots that trade for you',
-      },
+      { id: 'ai-agent', label: 'AI Agent', icon: Brain, path: '/ai-agent', badge: 'New', badgeColor: 'cyan', isPro: true, description: 'Self-thinking autonomous trading' },
+      { id: 'algo', label: 'Algo Trading', icon: Bot, path: '/algo', badge: 'Live', badgeColor: 'live', isPro: true, description: 'AI bots that trade for you' },
     ],
   },
   {
     label: 'Tools',
     items: [
-      {
-        id: 'ltp-calculator',
-        label: 'LTP Calculator',
-        icon: Target,
-        path: '/ltp-calculator',
-        badge: 'New',
-        badgeColor: 'cyan',
-        description: 'P&L, Option Chain, COA Analysis',
-      },
-      {
-        id: 'trade-finder',
-        label: 'Trade Finder',
-        icon: Zap,
-        path: '/trade-finder',
-        badge: 'New',
-        badgeColor: 'cyan',
-        description: 'Auto strategy suggestions from OI data',
-      },
-      {
-        id: 'calculators',
-        label: 'Calculators',
-        icon: Calculator,
-        path: '/calculators',
-      },
-      {
-        id: 'journal',
-        label: 'Trade Journal',
-        icon: BookOpen,
-        path: '/journal',
-        badge: 'Pro',
-        isPro: true,
-      },
-      {
-        id: 'backtest',
-        label: 'Backtesting',
-        icon: BarChart3,
-        path: '/backtest',
-        badge: 'Pro',
-        isPro: true,
-        description: 'Strategy backtesting',
-      },
-      {
-        id: 'watchlist',
-        label: 'Watchlist',
-        icon: Star,
-        path: '/watchlist',
-        description: 'Track favorite stocks',
-      },
+      { id: 'ltp-calculator', label: 'LTP Calculator', icon: Target, path: '/ltp-calculator', badge: 'New', badgeColor: 'cyan', description: 'P&L, Option Chain, COA Analysis' },
+      { id: 'trade-finder', label: 'Trade Finder', icon: Zap, path: '/trade-finder', badge: 'New', badgeColor: 'cyan', description: 'Auto strategy suggestions from OI data' },
+      { id: 'calculators', label: 'Calculators', icon: Calculator, path: '/calculators' },
+      { id: 'journal', label: 'Trade Journal', icon: BookOpen, path: '/journal', badge: 'Pro', isPro: true },
+      { id: 'backtest', label: 'Backtesting', icon: BarChart3, path: '/backtest', badge: 'Pro', isPro: true, description: 'Strategy backtesting' },
+      { id: 'watchlist', label: 'Watchlist', icon: Star, path: '/watchlist', description: 'Track favorite stocks' },
     ],
   },
 ];
 
 const BOTTOM_ITEMS = [
-  {
-    id: 'profile',
-    label: 'Profile',
-    icon: User,
-    path: '/profile',
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    path: '/settings',
-  },
+  { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 const isUserAdmin = () => {
@@ -204,11 +107,32 @@ const isUserAdmin = () => {
   return false;
 };
 
+// Badge style helper
+const getBadgeStyles = (item, isLocked, theme) => {
+  if (item.badge === 'Pro' && isLocked) {
+    return { bgcolor: alpha('#f59e0b', 0.15), color: '#fbbf24', borderColor: alpha('#f59e0b', 0.25) };
+  }
+  if (item.badge === 'Pro' && !isLocked) {
+    return { bgcolor: alpha(theme.palette.success.main, 0.15), color: theme.palette.success.light, borderColor: alpha(theme.palette.success.main, 0.25) };
+  }
+  if (item.badgeColor === 'cyan') {
+    return { bgcolor: alpha('#06b6d4', 0.15), color: '#22d3ee', borderColor: alpha('#06b6d4', 0.25) };
+  }
+  if (item.badgeColor === 'emerald') {
+    return { bgcolor: alpha(theme.palette.success.main, 0.15), color: theme.palette.success.light, borderColor: alpha(theme.palette.success.main, 0.25) };
+  }
+  if (item.badgeColor === 'live') {
+    return { bgcolor: alpha('#22c55e', 0.15), color: '#4ade80', borderColor: alpha('#22c55e', 0.25) };
+  }
+  return {};
+};
+
 // NavItem Component
 const NavItem = ({ item, collapsed, hasPro }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isActive = location.pathname === item.path || 
+  const theme = useMuiTheme();
+  const isActive = location.pathname === item.path ||
     (item.path !== '/' && location.pathname.startsWith(item.path));
   const isLocked = item.isPro && !hasPro;
 
@@ -219,131 +143,161 @@ const NavItem = ({ item, collapsed, hasPro }) => {
     }
   };
 
-  return (
-    <NavLink
+  const badgeStyles = item.badge ? getBadgeStyles(item, isLocked, theme) : null;
+
+  const buttonContent = (
+    <ListItemButton
+      component={NavLink}
       to={item.path}
       onClick={handleClick}
-      className={cn(
-        'group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg transition-all duration-200',
-        'hover:bg-white/[0.06]',
-        isActive && !isLocked && 'bg-primary/10 text-primary',
-        isLocked && 'opacity-60'
-      )}
+      selected={isActive && !isLocked}
+      sx={{
+        borderRadius: 2,
+        py: 0.75,
+        px: 1.25,
+        minHeight: 38,
+        mb: 0.25,
+        opacity: isLocked ? 0.6 : 1,
+        position: 'relative',
+        '&.Mui-selected': {
+          bgcolor: alpha(theme.palette.primary.main, 0.1),
+          '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) },
+        },
+        '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+      }}
     >
       {/* Active Indicator */}
       {isActive && !isLocked && (
         <motion.div
           layoutId="activeIndicator"
-          className="absolute left-0 w-1 h-5 bg-gradient-to-b from-primary to-primary/60 rounded-full shadow-sm shadow-primary/30"
+          style={{
+            position: 'absolute',
+            left: 0,
+            width: 3,
+            height: 20,
+            borderRadius: 4,
+            background: `linear-gradient(to bottom, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.main, 0.6)})`,
+            boxShadow: `0 0 8px ${alpha(theme.palette.primary.main, 0.3)}`,
+          }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       )}
-      
+
       {/* Icon */}
-      <div className={cn(
-        'w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-200',
-        isActive ? 'bg-primary/15 shadow-sm shadow-primary/10' : 'group-hover:bg-white/[0.05]'
-      )}>
-        <item.icon className={cn(
-          'w-4 h-4 transition-colors',
-          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-        )} />
-      </div>
-      
-      {/* Label */}
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            exit={{ opacity: 0, width: 0 }}
-            className={cn(
-              'text-[13px] font-medium whitespace-nowrap overflow-hidden',
-              isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-            )}
+      <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36 }}>
+        <Box sx={{
+          width: 28,
+          height: 28,
+          borderRadius: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: isActive ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+          transition: 'all 0.2s',
+        }}>
+          <item.icon
+            size={16}
+            style={{ color: isActive ? theme.palette.primary.main : theme.palette.text.secondary }}
+          />
+        </Box>
+      </ListItemIcon>
+
+      {/* Label + Badge */}
+      {!collapsed && (
+        <>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: isActive ? 600 : 500,
+              fontSize: '0.8125rem',
+              color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              flex: 1,
+            }}
           >
             {item.label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-      
-      {/* Badge */}
-      {!collapsed && item.badge && (
-        <motion.span
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={cn(
-            'ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded-md flex items-center gap-1 border',
-            item.badge === 'Pro' && isLocked && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-            item.badge === 'Pro' && !isLocked && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-            item.badgeColor === 'cyan' && 'bg-cyan-500/15 text-cyan-400 border-cyan-500/25',
-            item.badgeColor === 'emerald' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-            item.badgeColor === 'live' && 'bg-green-500/15 text-green-400 border-green-500/25 animate-pulse'
-          )}
-        >
-          {isLocked && <Lock className="w-2.5 h-2.5" />}
-          {item.badgeColor === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />}
-          {item.badge}
-        </motion.span>
-      )}
-      
-      {/* Tooltip for collapsed state */}
-      {collapsed && (
-        <div className="absolute left-full ml-2 px-3 py-2 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 whitespace-nowrap shadow-2xl shadow-black/30">
-          <p className="font-medium text-sm">{item.label}</p>
-          {item.description && (
-            <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
-          )}
+          </Typography>
+
           {item.badge && (
-            <span className={cn(
-              'inline-block mt-1 px-1.5 py-0.5 text-[9px] font-bold rounded border',
-              item.badge === 'Pro' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-              item.badgeColor === 'cyan' && 'bg-cyan-500/15 text-cyan-400 border-cyan-500/25',
-              item.badgeColor === 'emerald' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-              item.badgeColor === 'live' && 'bg-green-500/15 text-green-400 border-green-500/25'
-            )}>{item.badge}</span>
+            <Chip
+              size="small"
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {isLocked && <Lock size={10} />}
+                  {item.badgeColor === 'live' && (
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4ade80', boxShadow: '0 0 4px rgba(74,222,128,0.5)' }} />
+                  )}
+                  {item.badge}
+                </Box>
+              }
+              variant="outlined"
+              sx={{
+                height: 20,
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                borderRadius: 1.5,
+                ...badgeStyles,
+                ...(item.badgeColor === 'live' && { animation: 'pulse 2s infinite' }),
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.7 },
+                },
+              }}
+            />
           )}
-        </div>
+        </>
       )}
-    </NavLink>
+    </ListItemButton>
   );
+
+  // Wrap with Tooltip when collapsed
+  if (collapsed) {
+    return (
+      <Tooltip
+        title={
+          <Box sx={{ p: 0.5 }}>
+            <Typography variant="body2" fontWeight={600}>{item.label}</Typography>
+            {item.description && (
+              <Typography variant="caption" color="text.secondary">{item.description}</Typography>
+            )}
+          </Box>
+        }
+        placement="right"
+        arrow
+      >
+        {buttonContent}
+      </Tooltip>
+    );
+  }
+
+  return buttonContent;
 };
 
 // Main Sidebar Component
-const sidebarScrollCSS = `
-.sidebar-scroll::-webkit-scrollbar { width: 3px; }
-.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-`;
-
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(() => storage.get('sidebarCollapsed', false));
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPro, setHasPro] = useState(false);
   const navigate = useNavigate();
+  const theme = useMuiTheme();
 
   useEffect(() => {
     storage.set('sidebarCollapsed', collapsed);
-    // Dispatch custom event so PageLayout can sync without polling
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { collapsed } }));
   }, [collapsed]);
 
   useEffect(() => {
-    // Check admin status and pro access on mount and when storage changes
     const updateStatus = () => {
       setIsAdmin(isUserAdmin());
       setHasPro(checkProAccess());
     };
-    
+
     updateStatus();
-    
-    // Listen for storage changes (when user logs in/out)
+
     window.addEventListener('storage', updateStatus);
-    
-    // Also check periodically in case of same-tab changes (60s is plenty)
     const interval = setInterval(() => { if (!document.hidden) updateStatus(); }, 60000);
-    
+
     return () => {
       window.removeEventListener('storage', updateStatus);
       clearInterval(interval);
@@ -354,158 +308,260 @@ export const Sidebar = () => {
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 72 : 256 }}
-      className={cn(
-        'fixed left-0 top-0 h-screen z-40',
-        'flex flex-col',
-        'border-r border-border',
-        'bg-background/80 backdrop-blur-xl'
-      )}
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        zIndex: theme.zIndex.drawer,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: `1px solid ${theme.palette.divider}`,
+        backgroundColor: alpha(theme.palette.background.default, 0.8),
+        backdropFilter: 'blur(20px) saturate(180%)',
+        overflow: 'hidden',
+      }}
     >
-      <style>{sidebarScrollCSS}</style>
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-white/[0.06]">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
-          {/* Logo with glow ring */}
-          <div className="relative flex-shrink-0">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/20 blur-md opacity-60 group-hover:opacity-90 transition-opacity" />
-            <img 
-              src="/logo.png" 
-              alt="Money Saarthi" 
-              className="relative w-10 h-10 object-contain rounded-xl ring-1 ring-white/10 group-hover:ring-amber-500/30 transition-all duration-300"
-              style={{ background: 'transparent' }}
+      <Box sx={{
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        px: 2,
+        borderBottom: 1,
+        borderColor: 'divider',
+        flexShrink: 0,
+      }}>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}
+          onClick={() => navigate('/')}
+        >
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            <Box sx={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 2.5,
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(249,115,22,0.2))',
+              filter: 'blur(8px)',
+              opacity: 0.6,
+            }} />
+            <img
+              src="/logo.png"
+              alt="Money Saarthi"
+              style={{
+                position: 'relative',
+                width: 40,
+                height: 40,
+                objectFit: 'contain',
+                borderRadius: 12,
+                border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+              }}
             />
-          </div>
+          </Box>
           <AnimatePresence>
             {!collapsed && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                className="overflow-hidden"
+                style={{ overflow: 'hidden' }}
               >
-                <h1 className="font-extrabold text-base tracking-tight leading-tight bg-gradient-to-r from-amber-300 via-orange-300 to-amber-400 bg-clip-text text-transparent">
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    lineHeight: 1.2,
+                    background: 'linear-gradient(to right, #fcd34d, #fb923c, #fcd34d)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
                   Money Saarthi
-                </h1>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="px-1.5 py-[1px] rounded text-[9px] font-bold bg-violet-500/15 text-violet-400 border border-violet-500/20 tracking-wide">
-                    AI
-                  </span>
-                  <span className="text-[10px] font-medium text-muted-foreground tracking-wide">
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                  <Chip
+                    label="AI"
+                    size="small"
+                    sx={{
+                      height: 16,
+                      fontSize: '0.5625rem',
+                      fontWeight: 700,
+                      bgcolor: alpha('#8b5cf6', 0.15),
+                      color: '#a78bfa',
+                      border: `1px solid ${alpha('#8b5cf6', 0.2)}`,
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', fontWeight: 500 }}>
                     Market Intelligence
-                  </span>
-                </div>
+                  </Typography>
+                </Box>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2.5 space-y-0 sidebar-scroll">
-        {NAV_SECTIONS.map((section, sIdx) => (
-          <div key={sIdx}>
-            {/* Section divider + label */}
-            {section.label && !collapsed && (
-              <div className="flex items-center gap-2 pt-3 pb-1 px-2.5">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">{section.label}</span>
-                <div className="flex-1 h-px bg-white/[0.04]" />
-              </div>
-            )}
-            {section.label && collapsed && (
-              <div className="my-2 mx-3 h-px bg-white/[0.06]" />
-            )}
-            {section.items.map((item) => (
-              <NavItem key={item.id} item={item} collapsed={collapsed} hasPro={hasPro} />
-            ))}
-          </div>
-        ))}
-        
-        {/* Upgrade CTA - Only show for non-pro users */}
+      <Box sx={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        py: 1,
+        px: 1.25,
+        '&::-webkit-scrollbar': { width: 3 },
+        '&::-webkit-scrollbar-track': { background: 'transparent' },
+        '&::-webkit-scrollbar-thumb': {
+          background: alpha(theme.palette.text.primary, 0.08),
+          borderRadius: 10,
+        },
+      }}>
+        <List disablePadding>
+          {NAV_SECTIONS.map((section, sIdx) => (
+            <Box key={sIdx}>
+              {section.label && !collapsed && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 2, pb: 0.5, px: 1.25 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      color: alpha(theme.palette.text.secondary, 0.5),
+                      letterSpacing: '0.1em',
+                    }}
+                  >
+                    {section.label}
+                  </Typography>
+                  <Box sx={{ flex: 1, height: '1px', bgcolor: alpha(theme.palette.divider, 0.5) }} />
+                </Box>
+              )}
+              {section.label && collapsed && (
+                <Divider sx={{ my: 1, mx: 1.5 }} />
+              )}
+              {section.items.map((item) => (
+                <NavItem key={item.id} item={item} collapsed={collapsed} hasPro={hasPro} />
+              ))}
+            </Box>
+          ))}
+        </List>
+
+        {/* Upgrade CTA */}
         {!hasPro && !collapsed && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 mx-1"
+            style={{ marginTop: 16, marginLeft: 4, marginRight: 4 }}
           >
-            <button
+            <Paper
+              elevation={0}
               onClick={() => navigate('/pricing')}
-              className="w-full p-4 rounded-xl bg-gradient-to-br from-primary/20 via-amber-500/10 to-primary/20 border border-primary/30 hover:border-primary/50 transition-all group"
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                cursor: 'pointer',
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)}, ${alpha('#f59e0b', 0.1)}, ${alpha(theme.palette.primary.main, 0.2)})`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
+                transition: 'all 0.2s',
+              }}
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <Crown className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
-                  <p className="text-xs text-muted-foreground">₹899/mo or ₹4,999/yr</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-primary group-hover:gap-2 transition-all">
-                <Sparkles className="w-3 h-3" />
-                Unlock all features
-              </div>
-            </button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <Box sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.primary.main, 0.2),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Crown size={16} style={{ color: theme.palette.primary.main }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>Upgrade to Pro</Typography>
+                  <Typography variant="caption" color="text.secondary">₹899/mo or ₹4,999/yr</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: theme.palette.primary.main }}>
+                <Sparkles size={12} />
+                <Typography variant="caption" fontWeight={500}>Unlock all features</Typography>
+              </Box>
+            </Paper>
           </motion.div>
         )}
-        
-        {/* Pro Badge - Show for pro users */}
+
+        {/* Pro Badge */}
         {hasPro && !isAdmin && !collapsed && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 mx-1"
+            style={{ marginTop: 16, marginLeft: 4, marginRight: 4 }}
           >
-            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30">
-              <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-medium text-green-500">Pro Member</span>
-              </div>
-            </div>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                background: `linear-gradient(135deg, ${alpha('#22c55e', 0.1)}, ${alpha(theme.palette.success.main, 0.1)})`,
+                border: `1px solid ${alpha('#22c55e', 0.3)}`,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Crown size={16} style={{ color: theme.palette.success.main }} />
+                <Typography variant="body2" fontWeight={500} sx={{ color: theme.palette.success.main }}>
+                  Pro Member
+                </Typography>
+              </Box>
+            </Paper>
           </motion.div>
         )}
-      </nav>
+      </Box>
 
       {/* Bottom Section */}
-      <div className="border-t border-white/[0.06] py-2 px-2.5 space-y-0">
-        {BOTTOM_ITEMS.map((item) => (
-          <NavItem key={item.id} item={item} collapsed={collapsed} />
-        ))}
-        
-        {/* Collapse Button */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            'group relative w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg',
-            'text-muted-foreground hover:text-foreground hover:bg-white/[0.06]',
-            'transition-all duration-200'
-          )}
-        >
-          <div className="w-7 h-7 rounded-md flex items-center justify-center group-hover:bg-white/[0.05] transition-all">
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
-            )}
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                className="text-sm font-medium whitespace-nowrap overflow-hidden"
-              >
-                Collapse
-              </motion.span>
-            )}
-          </AnimatePresence>
-          {collapsed && (
-            <div className="absolute left-full ml-2 px-3 py-2 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 whitespace-nowrap shadow-2xl shadow-black/30">
-              <p className="font-medium text-sm">Collapse</p>
-            </div>
-          )}
-        </button>
-      </div>
+      <Box sx={{ borderTop: 1, borderColor: 'divider', py: 1, px: 1.25, flexShrink: 0 }}>
+        <List disablePadding>
+          {BOTTOM_ITEMS.map((item) => (
+            <NavItem key={item.id} item={item} collapsed={collapsed} />
+          ))}
+
+          {/* Collapse Button */}
+          <Tooltip title={collapsed ? 'Expand' : ''} placement="right" arrow disableHoverListener={!collapsed}>
+            <ListItemButton
+              onClick={() => setCollapsed(!collapsed)}
+              sx={{
+                borderRadius: 2,
+                py: 0.75,
+                px: 1.25,
+                minHeight: 38,
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  color: theme.palette.text.primary,
+                  bgcolor: alpha(theme.palette.text.primary, 0.04),
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36 }}>
+                <Box sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </Box>
+              </ListItemIcon>
+              {!collapsed && (
+                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                  Collapse
+                </Typography>
+              )}
+            </ListItemButton>
+          </Tooltip>
+        </List>
+      </Box>
     </motion.aside>
   );
 };

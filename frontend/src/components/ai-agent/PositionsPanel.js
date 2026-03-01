@@ -1,66 +1,97 @@
 // AI Agent — Active Positions panel
-import { STRATEGY_INFO } from './constants';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
+import { STRATEGY_INFO, COLOR_MAP } from './constants';
 import { Activity } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui';
-import { cn, formatINR } from '../../lib/utils';
+import { formatINR } from '../../lib/utils';
 
-const PositionsPanel = ({ positions }) => (
-  <Card className="bg-slate-800/60 border-slate-700/50">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-        <Activity className="w-4 h-4 text-emerald-400" />
-        Active Positions ({positions.length})
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="p-4 pt-0">
-      {positions.length === 0 ? (
-        <p className="text-xs text-slate-500 py-4 text-center">No active positions</p>
-      ) : (
-        <div className="space-y-2">
-          {positions.map((pos, i) => {
-            const stratInfo = STRATEGY_INFO[pos.strategy] || STRATEGY_INFO.no_trade;
-            const pnl = pos.current_pnl || 0;
-            return (
-              <div key={pos.id || i} className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/30">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <span>{stratInfo.icon}</span>
-                    <span className="text-xs font-medium text-white">{stratInfo.name}</span>
-                    <span className="text-[10px] text-slate-500">{pos.id}</span>
-                  </div>
-                  <span className={cn("text-sm font-bold", pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                    {pnl >= 0 ? '+' : ''}{formatINR(pnl)}
-                  </span>
-                </div>
-                {/* Legs */}
-                <div className="flex flex-wrap gap-1.5">
-                  {(pos.legs || []).map((leg, j) => (
-                    <span key={j} className={cn(
-                      "text-[10px] px-2 py-0.5 rounded-full",
-                      leg.type?.includes('SELL') ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'
-                    )}>
-                      {leg.type} {leg.strike} @ ₹{leg.premium?.toFixed(1)}
-                    </span>
-                  ))}
-                </div>
-                {/* Progress bar */}
-                <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
-                  <span>SL: {formatINR(pos.stoploss_pnl || 0)}</span>
-                  <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all", pnl >= 0 ? "bg-emerald-500" : "bg-red-500")}
-                      style={{ width: `${Math.min(100, Math.abs(pnl / (pos.target_pnl || 1)) * 100)}%` }}
-                    />
-                  </div>
-                  <span>Target: {formatINR(pos.target_pnl || 0)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+const PositionsPanel = ({ positions }) => {
+  const theme = useTheme();
+
+  return (
+    <Card sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6), borderColor: alpha(theme.palette.divider, 0.5) }}>
+      <CardHeader sx={{ pb: 1 }}>
+        <CardTitle sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Activity size={16} color={theme.palette.success.main} />
+          Active Positions ({positions.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent sx={{ p: 2, pt: 0 }}>
+        {positions.length === 0 ? (
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', py: 2, textAlign: 'center' }}>
+            No active positions
+          </Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {positions.map((pos, i) => {
+              const stratInfo = STRATEGY_INFO[pos.strategy] || STRATEGY_INFO.no_trade;
+              const pnl = pos.current_pnl || 0;
+              return (
+                <Box key={pos.id || i} sx={{
+                  bgcolor: alpha(theme.palette.background.default, 0.4),
+                  borderRadius: 2, p: 1.5,
+                  border: 1, borderColor: alpha(theme.palette.divider, 0.3),
+                }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box component="span">{stratInfo.icon}</Box>
+                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.primary' }}>
+                        {stratInfo.name}
+                      </Typography>
+                      <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
+                        {pos.id}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{
+                      fontSize: '0.875rem', fontWeight: 700,
+                      color: pnl >= 0 ? 'success.main' : 'error.main',
+                    }}>
+                      {pnl >= 0 ? '+' : ''}{formatINR(pnl)}
+                    </Typography>
+                  </Box>
+
+                  {/* Legs */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {(pos.legs || []).map((leg, j) => {
+                      const isSell = leg.type?.includes('SELL');
+                      const legColor = isSell ? theme.palette.error.main : theme.palette.success.main;
+                      return (
+                        <Box key={j} component="span" sx={{
+                          fontSize: 10, px: 1, py: 0.25, borderRadius: 10,
+                          bgcolor: alpha(legColor, 0.1),
+                          color: legColor,
+                        }}>
+                          {leg.type} {leg.strike} @ ₹{leg.premium?.toFixed(1)}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  {/* Progress bar */}
+                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, fontSize: 10, color: 'text.disabled' }}>
+                    <Box component="span">SL: {formatINR(pos.stoploss_pnl || 0)}</Box>
+                    <Box sx={{
+                      flex: 1, height: 6, borderRadius: 10, overflow: 'hidden',
+                      bgcolor: alpha(theme.palette.divider, 0.5),
+                    }}>
+                      <Box sx={{
+                        height: '100%', borderRadius: 10, transition: 'all 0.3s',
+                        bgcolor: pnl >= 0 ? 'success.main' : 'error.main',
+                        width: `${Math.min(100, Math.abs(pnl / (pos.target_pnl || 1)) * 100)}%`,
+                      }} />
+                    </Box>
+                    <Box component="span">Target: {formatINR(pos.target_pnl || 0)}</Box>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default PositionsPanel;

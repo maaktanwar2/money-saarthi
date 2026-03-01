@@ -1,12 +1,17 @@
 // Options Hub - Real-time Options chain, Greeks, OI analytics, IV Skew, Payoff charts
 import { useState, useEffect, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, Clock } from 'lucide-react';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
-import { Card, Badge, Select } from '../components/ui';
-import { cn, fetchAPI, isMarketHours } from '../lib/utils';
+import { Card, Badge, Select, MenuItem } from '../components/ui';
+import { fetchAPI, isMarketHours } from '../lib/utils';
 
 // Sub-components
 import { INDICES, TOOLS } from '../components/options/constants';
@@ -17,6 +22,8 @@ import PayoffChart from '../components/options/PayoffChart';
 import GreeksCalculator from '../components/options/GreeksCalculator';
 
 const OptionsHub = () => {
+  const theme = useTheme();
+
   const [symbol, setSymbol] = useState('NIFTY');
   const [expiry, setExpiry] = useState('');
   const [expiries, setExpiries] = useState([]);
@@ -60,58 +67,102 @@ const OptionsHub = () => {
         ]}
       />
 
-      <Section className="mb-6">
-        <Card className="p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="w-full md:w-48">
-              <label className="text-xs text-muted-foreground mb-1 block">Index</label>
-              <Select value={symbol} onChange={(e) => { setSymbol(e.target.value); setExpiry(''); setExpiries([]); }}>
+      <Section sx={{ mb: 3 }}>
+        <Card sx={{ p: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'flex-start', md: 'center' },
+              gap: 2,
+            }}
+          >
+            {/* Index Selector */}
+            <Box sx={{ width: { xs: '100%', md: 192 } }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                Index
+              </Typography>
+              <Select
+                value={symbol}
+                onChange={(e) => { setSymbol(e.target.value); setExpiry(''); setExpiries([]); }}
+              >
                 {INDICES.map((idx) => (
-                  <option key={idx.value} value={idx.value}>{idx.label}</option>
+                  <MenuItem key={idx.value} value={idx.value}>{idx.label}</MenuItem>
                 ))}
               </Select>
-            </div>
-            <div className="w-full md:w-48">
-              <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
+            </Box>
+
+            {/* Expiry Selector */}
+            <Box sx={{ width: { xs: '100%', md: 192 } }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                Expiry
+              </Typography>
               <Select value={expiry} onChange={(e) => setExpiry(e.target.value)}>
-                {expiries.length === 0 && <option value="">Loading...</option>}
+                {expiries.length === 0 && <MenuItem value="">Loading...</MenuItem>}
                 {expiries.map((exp) => (
-                  <option key={exp} value={exp}>{exp}</option>
+                  <MenuItem key={exp} value={exp}>{exp}</MenuItem>
                 ))}
               </Select>
-            </div>
-            <div className="flex items-center gap-2 md:ml-2">
+            </Box>
+
+            {/* Market Status Badge */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: { md: 1 } }}>
               {isMarketHours() ? (
-                <Badge variant="success" className="flex items-center gap-1">
-                  <Wifi className="w-3 h-3 animate-pulse" /> Market Open - Auto-refresh ON
+                <Badge variant="success">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Wifi style={{ width: 12, height: 12, animation: 'pulse 2s infinite' }} />
+                    Market Open - Auto-refresh ON
+                  </Box>
                 </Badge>
               ) : (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Market Closed
+                <Badge variant="outline">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Clock style={{ width: 12, height: 12 }} />
+                    Market Closed
+                  </Box>
                 </Badge>
               )}
-            </div>
-            <div className="flex-1 w-full">
-              <label className="text-xs text-muted-foreground mb-1 block">Tool</label>
-              <div className="flex gap-1 flex-wrap">
+            </Box>
+
+            {/* Tool Selector */}
+            <Box sx={{ flex: 1, width: '100%' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                Tool
+              </Typography>
+              <ToggleButtonGroup
+                value={activeTool}
+                exclusive
+                onChange={(_, val) => { if (val) setActiveTool(val); }}
+                size="small"
+                sx={{
+                  flexWrap: 'wrap',
+                  '& .MuiToggleButton-root': {
+                    textTransform: 'none',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    px: 1.5,
+                    py: 0.75,
+                    gap: 0.75,
+                    borderColor: 'divider',
+                    '&.Mui-selected': {
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      '&:hover': {
+                        bgcolor: 'primary.dark',
+                      },
+                    },
+                  },
+                }}
+              >
                 {TOOLS.map((tool) => (
-                  <button
-                    key={tool.id}
-                    onClick={() => setActiveTool(tool.id)}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
-                      activeTool === tool.id
-                        ? 'bg-primary text-white'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-surface-1'
-                    )}
-                  >
-                    <tool.icon className="w-4 h-4" />
+                  <ToggleButton key={tool.id} value={tool.id}>
+                    <tool.icon style={{ width: 16, height: 16 }} />
                     {tool.label}
-                  </button>
+                  </ToggleButton>
                 ))}
-              </div>
-            </div>
-          </div>
+              </ToggleButtonGroup>
+            </Box>
+          </Box>
         </Card>
       </Section>
 

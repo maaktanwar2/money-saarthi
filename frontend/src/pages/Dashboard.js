@@ -2,11 +2,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Brain, Sparkles, Sun, Moon, CloudSun, Lock, Crown, ArrowRight } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { useTheme, alpha } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, Section } from '../components/PageLayout';
 import { Card, Badge, Button } from '../components/ui';
-import { cn, getMarketSession } from '../lib/utils';
+import { getMarketSession } from '../lib/utils';
 
 // Sub-components (extracted)
 import MarketOverview from '../components/dashboard/MarketOverview';
@@ -32,9 +36,9 @@ const getUserFirstName = () => {
 
 const getGreeting = () => {
   const h = new Date().getHours();
-  if (h < 12) return { text: 'Good Morning', icon: Sun, color: 'from-amber-400 to-orange-400' };
-  if (h < 17) return { text: 'Good Afternoon', icon: CloudSun, color: 'from-sky-400 to-blue-400' };
-  return { text: 'Good Evening', icon: Moon, color: 'from-indigo-400 to-violet-400' };
+  if (h < 12) return { text: 'Good Morning', icon: Sun, gradient: 'linear-gradient(to right, #fbbf24, #f97316)' };
+  if (h < 17) return { text: 'Good Afternoon', icon: CloudSun, gradient: 'linear-gradient(to right, #38bdf8, #3b82f6)' };
+  return { text: 'Good Evening', icon: Moon, gradient: 'linear-gradient(to right, #818cf8, #8b5cf6)' };
 };
 
 // Check if current user has active pro subscription
@@ -50,43 +54,92 @@ const hasProAccess = () => {
 };
 
 // Locked section overlay for non-pro users
-const LockedOverlay = ({ label, navigate }) => (
-  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px]">
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="text-center"
+const LockedOverlay = ({ label, navigate }) => {
+  const theme = useTheme();
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 3,
+        bgcolor: alpha('#000', 0.4),
+        backdropFilter: 'blur(2px)',
+      }}
     >
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500/30 to-primary/30 border border-amber-500/30 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-amber-500/10">
-        <Lock className="w-4 h-4 text-amber-400" />
-      </div>
-      <p className="text-sm font-semibold text-white mb-1">{label}</p>
-      <button
-        onClick={() => navigate('/pricing')}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/90 hover:bg-primary text-white text-xs font-semibold transition-all shadow-lg shadow-primary/20"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={{ textAlign: 'center' }}
       >
-        <Crown className="w-3 h-3" />
-        Unlock Pro
-        <ArrowRight className="w-3 h-3" />
-      </button>
-    </motion.div>
-  </div>
-);
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.3)}, ${alpha(theme.palette.primary.main, 0.3)})`,
+            border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 1,
+            boxShadow: `0 4px 14px ${alpha(theme.palette.warning.main, 0.1)}`,
+          }}
+        >
+          <Lock style={{ width: 16, height: 16, color: theme.palette.warning.light }} />
+        </Box>
+        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff', mb: 0.5 }}>
+          {label}
+        </Typography>
+        <Box
+          component="button"
+          onClick={() => navigate('/pricing')}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            px: 1.5,
+            py: 0.75,
+            borderRadius: 2,
+            bgcolor: alpha(theme.palette.primary.main, 0.9),
+            '&:hover': { bgcolor: 'primary.main' },
+            color: '#fff',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.2)}`,
+          }}
+        >
+          <Crown style={{ width: 12, height: 12 }} />
+          Unlock Pro
+          <ArrowRight style={{ width: 12, height: 12 }} />
+        </Box>
+      </motion.div>
+    </Box>
+  );
+};
 
 // Wrapper that blurs content and shows lock for non-pro users
 const ProSection = ({ children, isPro, label, navigate }) => {
   if (isPro) return children;
   return (
-    <div className="relative">
-      <div className="filter blur-[6px] pointer-events-none select-none" aria-hidden="true">
+    <Box sx={{ position: 'relative' }}>
+      <Box aria-hidden="true" sx={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>
         {children}
-      </div>
+      </Box>
       <LockedOverlay label={label} navigate={navigate} />
-    </div>
+    </Box>
   );
 };
 
 const Dashboard = () => {
+  const theme = useTheme();
   const marketSession = getMarketSession();
   const seo = getSeoConfig('/dashboard');
   const navigate = useNavigate();
@@ -96,80 +149,187 @@ const Dashboard = () => {
   const GreetIcon = greeting.icon;
   const firstName = getUserFirstName();
 
+  const getMarketStatusSx = () => {
+    if (marketSession.status === 'open') {
+      return {
+        borderColor: alpha(theme.palette.success.main, 0.3),
+        bgcolor: alpha(theme.palette.success.main, 0.1),
+        color: theme.palette.success.light,
+        dotBg: theme.palette.success.light,
+        pulse: true,
+      };
+    }
+    if (marketSession.status === 'pre-market') {
+      return {
+        borderColor: alpha(theme.palette.warning.main, 0.3),
+        bgcolor: alpha(theme.palette.warning.main, 0.1),
+        color: theme.palette.warning.light,
+        dotBg: theme.palette.warning.light,
+        pulse: true,
+      };
+    }
+    return {
+      borderColor: alpha(theme.palette.divider, 0.5),
+      bgcolor: alpha(theme.palette.text.primary, 0.03),
+      color: theme.palette.text.secondary,
+      dotBg: theme.palette.text.secondary,
+      pulse: false,
+    };
+  };
+
+  const mStatus = getMarketStatusSx();
+
   return (
     <PageLayout>
       <SEO title={seo.title} description={seo.description} keywords={seo.keywords} path="/dashboard" jsonLd={seo.jsonLd} />
+
       {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-        className="relative mb-5 rounded-xl border border-border/40 bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm overflow-hidden p-3.5"
       >
-        {/* Accent strip */}
-        <div className={cn('absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r', greeting.color)} />
-        {/* Background glow */}
-        <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-[0.06] pointer-events-none bg-primary" />
+        <Box
+          sx={{
+            position: 'relative',
+            mb: 2.5,
+            borderRadius: 3,
+            border: 1,
+            borderColor: alpha(theme.palette.divider, 0.4),
+            background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+            backdropFilter: 'blur(8px)',
+            overflow: 'hidden',
+            p: 1.75,
+          }}
+        >
+          {/* Accent strip */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              background: greeting.gradient,
+            }}
+          />
+          {/* Background glow */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -64,
+              right: -64,
+              width: 192,
+              height: 192,
+              borderRadius: '50%',
+              filter: 'blur(48px)',
+              opacity: 0.06,
+              pointerEvents: 'none',
+              bgcolor: 'primary.main',
+            }}
+          />
 
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            {/* Greeting icon */}
-            <div className={cn(
-              'w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br shadow-lg',
-              greeting.color
-            )}>
-              <GreetIcon className="w-5 h-5 text-white" />
-            </div>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            gap={2}
+            sx={{ position: 'relative' }}
+          >
+            <Stack direction="row" alignItems="center" spacing={2}>
+              {/* Greeting icon */}
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: greeting.gradient,
+                  boxShadow: 3,
+                }}
+              >
+                <GreetIcon style={{ width: 20, height: 20, color: '#fff' }} />
+              </Box>
 
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-extrabold tracking-tight">
-                  {greeting.text},
-                </h1>
-                <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-amber-300 via-orange-300 to-amber-400 bg-clip-text text-transparent">
-                  {firstName}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Here's your market snapshot for today
-              </p>
-            </div>
-          </div>
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                  <Typography sx={{ fontSize: '1.125rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+                    {greeting.text},
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: '1.125rem',
+                      fontWeight: 800,
+                      letterSpacing: '-0.025em',
+                      background: 'linear-gradient(to right, #fcd34d, #fdba74, #fcd34d)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    {firstName}
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
+                  Here's your market snapshot for today
+                </Typography>
+              </Box>
+            </Stack>
 
-          {/* Market status pill */}
-          <div className={cn(
-            'flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold',
-            marketSession.status === 'open'
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-              : marketSession.status === 'pre-market'
-                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                : 'border-border/50 bg-white/[0.03] text-muted-foreground'
-          )}>
-            <span className={cn(
-              'w-2 h-2 rounded-full',
-              marketSession.status === 'open' ? 'bg-emerald-400 animate-pulse'
-                : marketSession.status === 'pre-market' ? 'bg-amber-400 animate-pulse'
-                : 'bg-muted-foreground'
-            )} />
-            {marketSession.label}
-          </div>
-        </div>
+            {/* Market status pill */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 50,
+                border: 1,
+                borderColor: mStatus.borderColor,
+                bgcolor: mStatus.bgcolor,
+                color: mStatus.color,
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: mStatus.dotBg,
+                  ...(mStatus.pulse && {
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': { opacity: 1 },
+                      '50%': { opacity: 0.5 },
+                    },
+                  }),
+                }}
+              />
+              {marketSession.label}
+            </Box>
+          </Stack>
+        </Box>
       </motion.div>
 
       {/* Market Overview */}
-      <Section title="Market Overview" className="mb-5">
+      <Section title="Market Overview">
         <MarketOverview />
       </Section>
 
-      {/* Market Pulse — PCR, IV, Basis, Rollover */}
-      <Section title="Market Pulse" description="Key derivatives indicators at a glance" className="mb-5">
+      {/* Market Pulse -- PCR, IV, Basis, Rollover */}
+      <Section title="Market Pulse" description="Key derivatives indicators at a glance">
         <ProSection isPro={isPro} label="Market Pulse" navigate={navigate}>
           <MarketPulseCards />
         </ProSection>
       </Section>
 
       {/* Advance-Decline Breadth */}
-      <Section title="Market Breadth" className="mb-5">
+      <Section title="Market Breadth">
         <ProSection isPro={isPro} label="Market Breadth" navigate={navigate}>
           <AdvanceDeclineBar />
         </ProSection>
@@ -179,18 +339,16 @@ const Dashboard = () => {
       <Section
         title="Sector Performance"
         description="Click any sector to see its top stocks — momentum movers & healthy pullbacks"
-        className="mb-5"
       >
         <ProSection isPro={isPro} label="Sector Performance" navigate={navigate}>
           <SectorPerformance />
         </ProSection>
       </Section>
 
-      {/* OI Scans — OI Up + OI Down */}
+      {/* OI Scans -- OI Up + OI Down */}
       <Section
         title="OI Scans"
         description="Top stocks by Open Interest change — buildup & unwinding"
-        className="mb-5"
       >
         <ProSection isPro={isPro} label="OI Scans" navigate={navigate}>
           <OIScans />
@@ -201,7 +359,6 @@ const Dashboard = () => {
       <Section
         title="Market Heatmap"
         description="F&O stocks treemap — size by impact, color by change"
-        className="mb-5"
       >
         <ProSection isPro={isPro} label="Market Heatmap" navigate={navigate}>
           <MarketHeatmap />
@@ -209,7 +366,7 @@ const Dashboard = () => {
       </Section>
 
       {/* FII/DII Data */}
-      <Section title="FII / DII Activity" description="Institutional money flow — foreign & domestic" className="mb-5">
+      <Section title="FII / DII Activity" description="Institutional money flow — foreign & domestic">
         <ProSection isPro={isPro} label="FII / DII Activity" navigate={navigate}>
           <FIIDIIData />
         </ProSection>
@@ -220,34 +377,65 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="mt-5"
       >
-        <Card className="p-4 bg-gradient-to-r from-violet-500/10 to-primary/10 border-violet-500/20">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                <Brain className="w-5 h-5 text-violet-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold flex items-center gap-2">
-                  AI Trade Advisor
-                  <Badge variant="default" className="bg-violet-500/20 text-violet-400 border-violet-500/30">
-                    AI
-                  </Badge>
-                </h3>
-                <p className="text-muted-foreground">
-                  Get AI-powered recommendations based on your trades and market sentiment
-                </p>
-              </div>
-            </div>
-            <Link to="/algo">
-              <Button variant="gradient" className="whitespace-nowrap">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Open Advisor
-              </Button>
-            </Link>
-          </div>
-        </Card>
+        <Box sx={{ mt: 2.5 }}>
+          <Card
+            sx={{
+              p: 2,
+              background: `linear-gradient(to right, ${alpha(theme.palette.secondary.main, 0.1)}, ${alpha(theme.palette.primary.main, 0.1)})`,
+              borderColor: alpha(theme.palette.secondary.main, 0.2),
+            }}
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={2}
+            >
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 3,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Brain style={{ width: 20, height: 20, color: theme.palette.secondary.light }} />
+                </Box>
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                      AI Trade Advisor
+                    </Typography>
+                    <Badge
+                      variant="default"
+                      sx={{
+                        bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                        color: theme.palette.secondary.light,
+                        borderColor: alpha(theme.palette.secondary.main, 0.3),
+                      }}
+                    >
+                      AI
+                    </Badge>
+                  </Stack>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Get AI-powered recommendations based on your trades and market sentiment
+                  </Typography>
+                </Box>
+              </Stack>
+              <Link to="/algo">
+                <Button variant="gradient" sx={{ whiteSpace: 'nowrap' }}>
+                  <Sparkles style={{ width: 16, height: 16, marginRight: 8 }} />
+                  Open Advisor
+                </Button>
+              </Link>
+            </Stack>
+          </Card>
+        </Box>
       </motion.div>
     </PageLayout>
   );

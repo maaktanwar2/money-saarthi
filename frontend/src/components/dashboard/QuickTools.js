@@ -6,7 +6,9 @@ import {
   ChevronRight, Target
 } from 'lucide-react';
 import { Card, Badge } from '../ui';
-import { cn } from '../../lib/utils';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { useTheme, alpha } from '@mui/material/styles';
 
 const QUICK_TOOLS = [
   {
@@ -15,7 +17,7 @@ const QUICK_TOOLS = [
     description: '15+ pre-built scanners for gainers, breakouts, momentum',
     icon: ScanSearch,
     path: '/scanners',
-    color: 'emerald',
+    color: 'success',
   },
   {
     id: 'options',
@@ -23,7 +25,7 @@ const QUICK_TOOLS = [
     description: 'Chain analysis, Greeks, OI analytics, payoff charts',
     icon: LineChart,
     path: '/options',
-    color: 'cyan',
+    color: 'info',
     badge: 'Pro',
   },
   {
@@ -32,7 +34,7 @@ const QUICK_TOOLS = [
     description: 'Autonomous AI trading agent with OODA cycle',
     icon: Brain,
     path: '/ai-agent',
-    color: 'violet',
+    color: 'secondary',
     badge: 'AI',
   },
   {
@@ -41,7 +43,7 @@ const QUICK_TOOLS = [
     description: 'AI-generated buy/sell signals with confidence scores',
     icon: Zap,
     path: '/signals',
-    color: 'amber',
+    color: 'warning',
   },
   {
     id: 'market',
@@ -49,7 +51,7 @@ const QUICK_TOOLS = [
     description: 'FII/DII flows, sector performance, market breadth',
     icon: Activity,
     path: '/market',
-    color: 'blue',
+    color: 'primary',
   },
   {
     id: 'backtest',
@@ -57,69 +59,154 @@ const QUICK_TOOLS = [
     description: 'Test your strategies against historical data',
     icon: BarChart3,
     path: '/backtest',
-    color: 'rose',
+    color: 'error',
   },
 ];
 
-const QuickTools = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {QUICK_TOOLS.map((tool, i) => (
-      <motion.div
-        key={tool.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 + i * 0.05 }}
-      >
-        <Link to={tool.path}>
-          <Card className="p-5 h-full group hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-            <div className="flex items-start justify-between mb-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center',
-                tool.color === 'emerald' && 'bg-emerald-500/15 text-emerald-500',
-                tool.color === 'cyan' && 'bg-cyan-500/15 text-cyan-500',
-                tool.color === 'violet' && 'bg-violet-500/15 text-violet-500',
-                tool.color === 'amber' && 'bg-amber-500/15 text-amber-500',
-                tool.color === 'blue' && 'bg-blue-500/15 text-blue-500',
-                tool.color === 'rose' && 'bg-rose-500/15 text-rose-500',
-              )}>
-                <tool.icon className="w-6 h-6" />
-              </div>
-              {tool.badge && (
-                <Badge variant={tool.badge === 'AI' ? 'default' : 'warning'}>
-                  {tool.badge}
-                </Badge>
-              )}
-            </div>
+const QuickTools = () => {
+  const theme = useTheme();
 
-            <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors">
-              {tool.title}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              {tool.description}
-            </p>
+  const getToolColor = (colorKey) => {
+    const paletteColor = theme.palette[colorKey];
+    return paletteColor?.main || theme.palette.primary.main;
+  };
 
-            {tool.accuracy && (
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1">
-                  <Target className="w-3 h-3 text-primary" />
-                  <span className="font-semibold text-primary">{tool.accuracy}%</span>
-                  <span className="text-muted-foreground">accuracy</span>
-                </span>
-                <span className="text-muted-foreground">
-                  {tool.trades?.toLocaleString()} trades
-                </span>
-              </div>
-            )}
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+        gap: 2,
+      }}
+    >
+      {QUICK_TOOLS.map((tool, i) => {
+        const toolColor = getToolColor(tool.color);
 
-            <div className="flex items-center text-sm text-primary mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <span>Open Tool</span>
-              <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </Card>
-        </Link>
-      </motion.div>
-    ))}
-  </div>
-);
+        return (
+          <motion.div
+            key={tool.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 + i * 0.05 }}
+          >
+            <Box
+              component={Link}
+              to={tool.path}
+              sx={{ textDecoration: 'none', display: 'block' }}
+            >
+              <Card
+                sx={{
+                  p: 2.5,
+                  height: '100%',
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    borderColor: (t) => alpha(t.palette.primary.main, 0.3),
+                    boxShadow: (t) => `0 8px 24px ${alpha(t.palette.primary.main, 0.05)}`,
+                  },
+                  '&:hover .tool-title': {
+                    color: 'primary.main',
+                  },
+                  '&:hover .tool-cta': {
+                    opacity: 1,
+                  },
+                  '&:hover .tool-chevron': {
+                    transform: 'translateX(4px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: alpha(toolColor, 0.15),
+                      color: toolColor,
+                    }}
+                  >
+                    <tool.icon style={{ width: 24, height: 24 }} />
+                  </Box>
+                  {tool.badge && (
+                    <Badge variant={tool.badge === 'AI' ? 'default' : 'warning'}>
+                      {tool.badge}
+                    </Badge>
+                  )}
+                </Box>
+
+                <Typography
+                  className="tool-title"
+                  sx={{
+                    fontSize: '1.125rem',
+                    fontWeight: 600,
+                    mb: 0.5,
+                    transition: 'color 0.2s',
+                    color: 'text.primary',
+                  }}
+                >
+                  {tool.title}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    mb: 1.5,
+                  }}
+                >
+                  {tool.description}
+                </Typography>
+
+                {tool.accuracy && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: '0.75rem' }}>
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Target style={{ width: 12, height: 12, color: theme.palette.primary.main }} />
+                      <Typography component="span" sx={{ fontWeight: 600, color: 'primary.main', fontSize: '0.75rem' }}>
+                        {tool.accuracy}%
+                      </Typography>
+                      <Typography component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                        accuracy
+                      </Typography>
+                    </Box>
+                    <Typography component="span" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                      {tool.trades?.toLocaleString()} trades
+                    </Typography>
+                  </Box>
+                )}
+
+                <Box
+                  className="tool-cta"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '0.875rem',
+                    color: 'primary.main',
+                    mt: 2,
+                    opacity: 0,
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  <Typography component="span" sx={{ fontSize: '0.875rem', color: 'inherit' }}>
+                    Open Tool
+                  </Typography>
+                  <ChevronRight
+                    className="tool-chevron"
+                    style={{
+                      width: 16,
+                      height: 16,
+                      marginLeft: 4,
+                      transition: 'transform 0.2s',
+                    }}
+                  />
+                </Box>
+              </Card>
+            </Box>
+          </motion.div>
+        );
+      })}
+    </Box>
+  );
+};
 
 export default QuickTools;

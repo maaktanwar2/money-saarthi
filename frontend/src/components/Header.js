@@ -1,13 +1,27 @@
-// Header Component - Top navigation bar with market info
-import { useState, useEffect } from 'react';
+// Header Component - Top navigation bar with market info (MUI)
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, Bell, Sun, Moon, User, Menu,
+import {
+  Search, Bell, Sun, Moon, User, Menu as MenuIcon,
   TrendingUp, TrendingDown, Activity, LogOut, Coins, Crown, Settings
 } from 'lucide-react';
-import { cn, formatNumber, formatPercent, getMarketSession, fetchAPI } from '../lib/utils';
-import { Button, Input, Badge } from './ui';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import MuiBadge from '@mui/material/Badge';
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
+import MuiAvatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Skeleton from '@mui/material/Skeleton';
+import { formatNumber, formatPercent, getMarketSession, fetchAPI } from '../lib/utils';
+import { Input } from './ui';
 import { useTheme } from './ThemeProvider';
 
 // Market Ticker Component
@@ -38,60 +52,97 @@ const MarketTicker = () => {
     };
 
     fetchIndices();
-    const interval = setInterval(() => { if (!document.hidden) fetchIndices(); }, 60000); // Update every minute
+    const interval = setInterval(() => { if (!document.hidden) fetchIndices(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
-    return <div className="h-6 w-full skeleton rounded" />;
+    return <Skeleton variant="rectangular" height={24} sx={{ width: '100%', borderRadius: 1 }} />;
   }
 
   // Duplicate for seamless scroll
   const tickerItems = [...indices, ...indices];
 
   return (
-    <div className="relative overflow-hidden flex-1 mx-3">
+    <Box sx={{ position: 'relative', overflow: 'hidden', flex: 1, mx: 1.5 }}>
       {/* Left fade mask */}
-      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/95 to-transparent z-10 pointer-events-none" />
+      <Box
+        sx={{
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 1,
+          pointerEvents: 'none',
+          background: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(to right, rgba(10,14,23,0.95), transparent)'
+              : 'linear-gradient(to right, rgba(255,255,255,0.95), transparent)',
+        }}
+      />
       {/* Right fade mask */}
-      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/95 to-transparent z-10 pointer-events-none" />
+      <Box
+        sx={{
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 1,
+          pointerEvents: 'none',
+          background: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(to left, rgba(10,14,23,0.95), transparent)'
+              : 'linear-gradient(to left, rgba(255,255,255,0.95), transparent)',
+        }}
+      />
 
-      <div className="ticker-wrapper">
-        <div className="ticker-content animate-ticker flex items-center gap-5">
+      <Box sx={{ overflow: 'hidden' }}>
+        <Box
+          className="animate-ticker"
+          sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}
+        >
           {tickerItems.map((index, i) => {
             const pct = index.pChange || 0;
             const isUp = pct >= 0;
             return (
-              <div
+              <Box
                 key={`${index.symbol || index.name}-${i}`}
-                className="flex items-center gap-1.5 text-[13px] whitespace-nowrap px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] transition-colors"
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 0.75,
+                  fontSize: '13px', whiteSpace: 'nowrap',
+                  px: 1.25, py: 0.5, borderRadius: 2,
+                  bgcolor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  transition: 'background-color 0.2s',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+                }}
               >
-                <span className="font-semibold text-foreground/90">
+                <Typography
+                  component="span"
+                  sx={{ fontWeight: 600, fontSize: '13px', color: 'text.primary', opacity: 0.9 }}
+                >
                   {(index.symbol || index.name || '').replace('NIFTY ', '').replace('INDIA ', '')}
-                </span>
-                <span className="text-muted-foreground font-medium">
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{ fontWeight: 500, fontSize: '13px', color: 'text.secondary' }}
+                >
                   {formatNumber(index.last || index.lastPrice, { decimals: (index.last || 0) < 100 ? 2 : 0 })}
-                </span>
-                <span className={cn(
-                  'flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md border',
-                  isUp
-                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                    : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
-                )}>
-                  {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {isUp ? '+' : ''}{pct.toFixed(2)}%
-                </span>
-              </div>
+                </Typography>
+                <Chip
+                  size="small"
+                  icon={isUp ? <TrendingUp style={{ width: 12, height: 12 }} /> : <TrendingDown style={{ width: 12, height: 12 }} />}
+                  label={`${isUp ? '+' : ''}${pct.toFixed(2)}%`}
+                  sx={{
+                    height: 22, fontSize: '11px', fontWeight: 700,
+                    '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
+                    '& .MuiChip-label': { px: 0.5 },
+                    ...(isUp
+                      ? { color: '#34d399', bgcolor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' }
+                      : { color: '#f87171', bgcolor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.2)' }),
+                    border: '1px solid',
+                  }}
+                />
+              </Box>
             );
           })}
-        </div>
-      </div>
-      
+        </Box>
+      </Box>
+
       {/* CSS for ticker animation */}
       <style>{`
-        .ticker-wrapper {
-          overflow: hidden;
-        }
         .animate-ticker {
           animation: ticker 35s linear infinite;
         }
@@ -103,7 +154,7 @@ const MarketTicker = () => {
           100% { transform: translateX(-50%); }
         }
       `}</style>
-    </div>
+    </Box>
   );
 };
 
@@ -116,6 +167,7 @@ export const Header = ({ onMenuClick }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(null);
   const marketSession = getMarketSession();
+  const userMenuAnchorRef = useRef(null);
 
   // Get user info (must be before useEffect that references it)
   const user = (() => {
@@ -133,7 +185,7 @@ export const Header = ({ onMenuClick }) => {
     const loadTokens = async () => {
       try {
         const data = await fetchAPI('/ai/tokens/balance', { headers: { 'X-User-Id': userEmail } });
-        if (!cancelled) setTokenBalance(data?.unlimited ? '∞' : (data?.balance ?? null));
+        if (!cancelled) setTokenBalance(data?.unlimited ? '\u221e' : (data?.balance ?? null));
       } catch { /* ignore */ }
     };
     loadTokens();
@@ -148,233 +200,395 @@ export const Header = ({ onMenuClick }) => {
     navigate('/login');
   };
 
-  return (
-    <header className="h-16 border-b border-border bg-background/95 backdrop-blur-xl sticky top-0 z-30">
-      <div className="h-full flex items-center justify-between px-4 gap-2">
-        {/* Left: Mobile Menu + Logo + Market Status */}
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
+  const handleUserMenuClose = () => {
+    setUserMenuOpen(false);
+  };
 
-          {/* Mobile logo — visible only on small screens when sidebar is hidden */}
-          <div className="flex lg:hidden items-center gap-2">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-amber-500/25 to-orange-500/15 blur-sm" />
-              <img 
-                src="/logo.png" 
-                alt="Money Saarthi" 
-                className="relative w-8 h-8 object-contain rounded-lg ring-1 ring-white/10"
+  return (
+    <AppBar position="sticky" sx={{ zIndex: 30 }}>
+      <Toolbar
+        sx={{
+          height: 64, minHeight: '64px !important',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          px: { xs: 2, sm: 2 }, gap: 1,
+        }}
+      >
+        {/* Left: Mobile Menu + Logo + Market Status */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+          <IconButton
+            aria-label="Open navigation menu"
+            onClick={onMenuClick}
+            size="medium"
+            sx={{ display: { lg: 'none' } }}
+          >
+            <MenuIcon style={{ width: 20, height: 20 }} />
+          </IconButton>
+
+          {/* Mobile logo -- visible only on small screens when sidebar is hidden */}
+          <Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 1 }}>
+            <Box sx={{ position: 'relative' }}>
+              <Box
+                sx={{
+                  position: 'absolute', inset: 0, borderRadius: 2,
+                  background: 'linear-gradient(to bottom right, rgba(245,158,11,0.25), rgba(249,115,22,0.15))',
+                  filter: 'blur(4px)',
+                }}
               />
-            </div>
-            <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-amber-300 via-orange-300 to-amber-400 bg-clip-text text-transparent">
+              <Box
+                component="img"
+                src="/logo.png"
+                alt="Money Saarthi"
+                sx={{
+                  position: 'relative', width: 32, height: 32,
+                  objectFit: 'contain', borderRadius: 2,
+                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+                }}
+              />
+            </Box>
+            <Typography
+              sx={{
+                fontWeight: 800, fontSize: '0.875rem', letterSpacing: '-0.025em',
+                background: 'linear-gradient(to right, #fcd34d, #fdba74, #fbbf24)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}
+            >
               Money Saarthi
-            </span>
-          </div>
-          
+            </Typography>
+          </Box>
+
           {/* Market Status */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-            <span className={cn(
-              'w-2 h-2 rounded-full animate-pulse',
-              marketSession.status === 'open' ? 'bg-bullish' : 
-              marketSession.status === 'pre-market' ? 'bg-amber-500' : 'bg-muted-foreground'
-            )} />
-            <span className="text-xs font-semibold whitespace-nowrap">
+          <Box
+            sx={{
+              display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1,
+              px: 1.5, py: 0.75, borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <Box
+              sx={{
+                width: 8, height: 8, borderRadius: '50%',
+                animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+                bgcolor:
+                  marketSession.status === 'open' ? 'success.main'
+                  : marketSession.status === 'pre-market' ? 'warning.main'
+                  : 'text.disabled',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.5 },
+                },
+              }}
+            />
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
               {marketSession.label}
-            </span>
-          </div>
-        </div>
-        
+            </Typography>
+          </Box>
+        </Box>
+
         {/* Center: Running Ticker Banner */}
-        <div className="hidden md:flex flex-1 min-w-0">
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, minWidth: 0 }}>
           <MarketTicker />
-        </div>
+        </Box>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
           {/* Search */}
-          <div className="relative">
+          <Box sx={{ position: 'relative' }}>
             {searchOpen ? (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: 280, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2"
+                style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
               >
                 <Input
                   placeholder="Search stocks, tools..."
                   autoFocus
                   onBlur={() => setSearchOpen(false)}
-                  className="pr-10 h-9 rounded-xl bg-secondary/80 border-white/10"
+                  size="small"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      height: 36, borderRadius: 3,
+                      bgcolor: 'action.hover',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+                    },
+                  }}
                 />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </motion.div>
             ) : (
-              <button
-                onClick={() => setSearchOpen(true)}
+              <IconButton
                 aria-label="Search stocks and tools"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all"
+                onClick={() => setSearchOpen(true)}
+                size="small"
+                sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
               >
-                <Search className="w-4 h-4" />
-              </button>
+                <Search style={{ width: 16, height: 16 }} />
+              </IconButton>
             )}
-          </div>
+          </Box>
 
           {/* Theme Toggle */}
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          <IconButton
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            size="small"
+            sx={{ color: 'text.secondary', '&:hover': { color: '#fbbf24', bgcolor: 'rgba(245,158,11,0.1)' } }}
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4" />
+              <Sun style={{ width: 16, height: 16 }} />
             ) : (
-              <Moon className="w-4 h-4" />
+              <Moon style={{ width: 16, height: 16 }} />
             )}
-          </button>
+          </IconButton>
 
           {/* Token Balance */}
           {tokenBalance !== null && (
-            <button
+            <Chip
+              icon={<Coins style={{ width: 12, height: 12, color: '#a78bfa' }} />}
+              label={tokenBalance}
+              size="small"
               onClick={() => navigate('/profile')}
-              className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 hover:border-violet-500/30 transition-all"
               title="AI Tokens"
-            >
-              <Coins className="w-3 h-3 text-violet-400" />
-              <span className="text-[11px] font-bold text-violet-400">{tokenBalance}</span>
-            </button>
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                height: 26, fontSize: '11px', fontWeight: 700,
+                color: '#a78bfa',
+                bgcolor: 'rgba(139,92,246,0.1)',
+                border: '1px solid rgba(139,92,246,0.2)',
+                '&:hover': { bgcolor: 'rgba(139,92,246,0.2)', borderColor: 'rgba(139,92,246,0.3)' },
+                cursor: 'pointer',
+                '& .MuiChip-icon': { ml: 0.5 },
+                '& .MuiChip-label': { px: 0.5 },
+              }}
+            />
           )}
 
           {/* Notifications */}
-          <button
+          <IconButton
             aria-label="Notifications"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all relative"
+            size="small"
+            sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
           >
-            <Bell className="w-4 h-4" />
-            {notifications > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-background">
-                {notifications}
-              </span>
-            )}
-          </button>
+            <MuiBadge
+              badgeContent={notifications}
+              color="error"
+              sx={{
+                '& .MuiBadge-badge': {
+                  fontSize: '9px', fontWeight: 700,
+                  minWidth: 16, height: 16,
+                  boxShadow: (t) => `0 0 0 2px ${t.palette.background.default}`,
+                },
+              }}
+            >
+              <Bell style={{ width: 16, height: 16 }} />
+            </MuiBadge>
+          </IconButton>
 
           {/* Divider */}
-          <div className="w-px h-7 bg-border/50 mx-1.5" />
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 'auto', height: 28, alignSelf: 'center' }} />
 
           {/* User Menu */}
-          <div className="relative">
-            <button
+          <Box>
+            <IconButton
+              ref={userMenuAnchorRef}
+              aria-label="User menu"
+              aria-controls={userMenuOpen ? 'user-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={userMenuOpen ? 'true' : undefined}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 pl-0.5 pr-1.5 py-0.5 rounded-xl hover:bg-white/[0.04] transition-all group"
+              disableRipple
+              sx={{
+                display: 'flex', alignItems: 'center', gap: 1,
+                pl: 0.25, pr: 0.75, py: 0.25, borderRadius: 3,
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
             >
               {/* Avatar with ring */}
-              <div className="relative">
-                {photoURL ? (
-                  <img src={photoURL} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-primary/30 transition-all" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-2 ring-white/10 group-hover:ring-emerald-500/30 transition-all">
-                    <span className="text-[11px] font-bold text-white">{initials}</span>
-                  </div>
-                )}
+              <Box sx={{ position: 'relative' }}>
+                <MuiAvatar
+                  src={photoURL || undefined}
+                  alt={user.name || 'User'}
+                  sx={{
+                    width: 32, height: 32, fontSize: '11px', fontWeight: 700,
+                    background: photoURL ? 'transparent' : 'linear-gradient(to bottom right, #10b981, #0d9488)',
+                    color: '#fff',
+                    border: '2px solid',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    transition: 'border-color 0.2s',
+                    '.MuiIconButton-root:hover &': { borderColor: 'primary.main' },
+                  }}
+                >
+                  {!photoURL && initials}
+                </MuiAvatar>
                 {/* Pro indicator dot */}
                 {user.subscription?.plan === 'pro' && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-background flex items-center justify-center">
-                    <Crown className="w-2 h-2 text-white" />
-                  </span>
+                  <Box
+                    sx={{
+                      position: 'absolute', bottom: -2, right: -2,
+                      width: 14, height: 14, borderRadius: '50%',
+                      bgcolor: '#f59e0b',
+                      boxShadow: (t) => `0 0 0 2px ${t.palette.background.default}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Crown style={{ width: 8, height: 8, color: '#fff' }} />
+                  </Box>
                 )}
-              </div>
+              </Box>
 
               {/* Name + badge */}
-              <div className="hidden sm:flex flex-col items-start">
-                <span className="text-[12px] font-semibold leading-tight truncate max-w-[90px] text-foreground/90">
-                  {(user.name || 'User').split(' ')[0]}
-                </span>
-                {user.subscription?.plan === 'pro' ? (
-                  <span className="text-[9px] font-bold text-amber-400 leading-tight flex items-center gap-0.5">
-                    <Crown className="w-2 h-2" /> PRO
-                  </span>
-                ) : (
-                  <span className="text-[9px] text-muted-foreground leading-tight">Free</span>
-                )}
-              </div>
-            </button>
-
-            {/* Dropdown */}
-            {userMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  className="absolute right-0 mt-2 w-60 z-50 rounded-2xl border border-white/[0.08] bg-card/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
+              <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Typography
+                  sx={{
+                    fontSize: '12px', fontWeight: 600, lineHeight: 1.2,
+                    maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    color: 'text.primary', opacity: 0.9,
+                  }}
                 >
-                  {/* User card */}
-                  <div className="p-4 border-b border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent">
-                    <div className="flex items-center gap-3">
-                      {photoURL ? (
-                        <img src={photoURL} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center ring-2 ring-white/10">
-                          <span className="text-sm font-bold text-white">{initials}</span>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{user.name || 'User'}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{user.email || ''}</p>
-                      </div>
-                    </div>
-                    {/* Plan badge */}
-                    {user.subscription?.plan === 'pro' && (
-                      <div className="mt-2.5 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 w-fit">
-                        <Crown className="w-3 h-3 text-amber-400" />
-                        <span className="text-[10px] font-bold text-amber-400">Pro Member</span>
-                      </div>
-                    )}
-                    {/* Token balance in dropdown */}
-                    {tokenBalance !== null && (
-                      <div className="mt-2 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 w-fit">
-                        <Coins className="w-3 h-3 text-violet-400" />
-                        <span className="text-[10px] font-bold text-violet-400">{tokenBalance} AI Tokens</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1.5">
-                    <button
-                      onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/[0.06] transition-colors"
-                    >
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      Profile & Tokens
-                    </button>
-                    <button
-                      onClick={() => { setUserMenuOpen(false); navigate('/settings'); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/[0.06] transition-colors"
-                    >
-                      <Settings className="w-4 h-4 text-muted-foreground" />
-                      Settings
-                    </button>
-                    <div className="my-1 h-px bg-white/[0.06]" />
-                    <button
-                      onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
+                  {(user.name || 'User').split(' ')[0]}
+                </Typography>
+                {user.subscription?.plan === 'pro' ? (
+                  <Typography
+                    sx={{
+                      fontSize: '9px', fontWeight: 700, lineHeight: 1.2,
+                      color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 0.25,
+                    }}
+                  >
+                    <Crown style={{ width: 8, height: 8 }} /> PRO
+                  </Typography>
+                ) : (
+                  <Typography sx={{ fontSize: '9px', lineHeight: 1.2, color: 'text.secondary' }}>
+                    Free
+                  </Typography>
+                )}
+              </Box>
+            </IconButton>
+
+            {/* User Dropdown Menu */}
+            <MuiMenu
+              id="user-menu"
+              anchorEl={userMenuAnchorRef.current}
+              open={userMenuOpen}
+              onClose={handleUserMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    width: 240, mt: 1, overflow: 'visible',
+                    borderRadius: 4,
+                  },
+                },
+              }}
+            >
+              {/* User card header */}
+              <Box
+                sx={{
+                  p: 2, borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  background: (t) =>
+                    t.palette.mode === 'dark'
+                      ? 'linear-gradient(to bottom right, rgba(255,255,255,0.03), transparent)'
+                      : 'linear-gradient(to bottom right, rgba(0,0,0,0.02), transparent)',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <MuiAvatar
+                    src={photoURL || undefined}
+                    alt={user.name || 'User'}
+                    sx={{
+                      width: 40, height: 40, fontSize: '0.875rem', fontWeight: 700,
+                      background: photoURL ? 'transparent' : 'linear-gradient(to bottom right, #10b981, #0d9488)',
+                      color: '#fff',
+                      border: '2px solid',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    {!photoURL && initials}
+                  </MuiAvatar>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }} noWrap>
+                      {user.name || 'User'}
+                    </Typography>
+                    <Typography sx={{ fontSize: '11px', color: 'text.secondary' }} noWrap>
+                      {user.email || ''}
+                    </Typography>
+                  </Box>
+                </Box>
+                {/* Plan badge */}
+                {user.subscription?.plan === 'pro' && (
+                  <Chip
+                    icon={<Crown style={{ width: 12, height: 12, color: '#fbbf24' }} />}
+                    label="Pro Member"
+                    size="small"
+                    sx={{
+                      mt: 1.25, height: 24, fontSize: '10px', fontWeight: 700,
+                      color: '#fbbf24',
+                      bgcolor: 'rgba(245,158,11,0.1)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                      '& .MuiChip-icon': { ml: 0.5 },
+                    }}
+                  />
+                )}
+                {/* Token balance in dropdown */}
+                {tokenBalance !== null && (
+                  <Chip
+                    icon={<Coins style={{ width: 12, height: 12, color: '#a78bfa' }} />}
+                    label={`${tokenBalance} AI Tokens`}
+                    size="small"
+                    sx={{
+                      mt: 1, height: 24, fontSize: '10px', fontWeight: 700,
+                      color: '#a78bfa',
+                      bgcolor: 'rgba(139,92,246,0.1)',
+                      border: '1px solid rgba(139,92,246,0.2)',
+                      '& .MuiChip-icon': { ml: 0.5 },
+                    }}
+                  />
+                )}
+              </Box>
+
+              {/* Menu items */}
+              <Box sx={{ py: 0.75 }}>
+                <MuiMenuItem
+                  onClick={() => { handleUserMenuClose(); navigate('/profile'); }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <User style={{ width: 16, height: 16 }} />
+                  </ListItemIcon>
+                  <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>
+                    Profile &amp; Tokens
+                  </ListItemText>
+                </MuiMenuItem>
+                <MuiMenuItem
+                  onClick={() => { handleUserMenuClose(); navigate('/settings'); }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <Settings style={{ width: 16, height: 16 }} />
+                  </ListItemIcon>
+                  <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>
+                    Settings
+                  </ListItemText>
+                </MuiMenuItem>
+
+                <Divider sx={{ my: 0.5 }} />
+
+                <MuiMenuItem
+                  onClick={() => { handleUserMenuClose(); handleLogout(); }}
+                  sx={{ color: 'error.main' }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
+                    <LogOut style={{ width: 16, height: 16 }} />
+                  </ListItemIcon>
+                  <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>
+                    Logout
+                  </ListItemText>
+                </MuiMenuItem>
+              </Box>
+            </MuiMenu>
+          </Box>
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 };
 

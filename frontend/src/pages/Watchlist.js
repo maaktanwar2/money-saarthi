@@ -1,5 +1,12 @@
 // Watchlist Page - Track favorite stocks with live prices
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,7 +19,7 @@ import {
   Card, CardHeader, CardTitle, CardContent,
   Button, Badge
 } from '../components/ui';
-import { cn, fetchAPI, formatINR, getChangeColor } from '../lib/utils';
+import { fetchAPI, formatINR } from '../lib/utils';
 import { fetchWithAuth } from '../config/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -38,6 +45,7 @@ const StockSearch = ({ onAdd, existingSymbols }) => {
   const [searching, setSearching] = useState(false);
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const theme = useTheme();
 
   const filteredPopular = POPULAR_STOCKS.filter(
     s => s.toLowerCase().includes(query.toLowerCase()) && !existingSymbols.includes(s)
@@ -84,22 +92,69 @@ const StockSearch = ({ onAdd, existingSymbols }) => {
     : filteredPopular;
 
   return (
-    <div className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
+    <Box sx={{ position: 'relative' }}>
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          component="span"
+          sx={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            color: 'text.secondary',
+            zIndex: 1,
+          }}
+        >
+          <Search style={{ width: 16, height: 16 }} />
+        </Box>
+        <Box
+          component="input"
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           placeholder="Search stocks to add... (e.g. RELIANCE, TCS)"
-          className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+          sx={{
+            width: '100%',
+            pl: 5,
+            pr: 2,
+            py: 1.5,
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 3,
+            fontSize: '0.875rem',
+            color: 'text.primary',
+            outline: 'none',
+            transition: 'all 0.2s',
+            fontFamily: 'inherit',
+            '&:focus': {
+              borderColor: 'primary.main',
+              boxShadow: (t) => `0 0 0 2px ${alpha(t.palette.primary.main, 0.25)}`,
+            },
+            '&::placeholder': {
+              color: 'text.secondary',
+              opacity: 0.7,
+            },
+          }}
         />
         {searching && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          <Box
+            sx={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              color: 'text.secondary',
+            }}
+          >
+            <CircularProgress size={16} color="inherit" />
+          </Box>
         )}
-      </div>
+      </Box>
 
       <AnimatePresence>
         {focused && (query || suggestions.length > 0) && (
@@ -108,36 +163,79 @@ const StockSearch = ({ onAdd, existingSymbols }) => {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            className="absolute top-full mt-1 w-full bg-card border border-border rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto"
+            style={{ position: 'absolute', top: '100%', marginTop: 4, width: '100%', zIndex: 50 }}
           >
-            {!query && (
-              <p className="px-3 py-2 text-xs text-muted-foreground font-medium border-b border-border">
-                Popular Stocks
-              </p>
-            )}
-            {suggestions.length === 0 && query && !searching && (
-              <p className="px-3 py-4 text-sm text-muted-foreground text-center">
-                No stocks found for "{query}"
-              </p>
-            )}
-            {suggestions.map((symbol) => (
-              <button
-                key={symbol}
-                onClick={() => {
-                  onAdd(symbol);
-                  setQuery('');
-                  setFocused(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06] transition-colors text-left"
-              >
-                <span className="text-sm font-medium">{symbol}</span>
-                <Plus className="w-4 h-4 text-primary" />
-              </button>
-            ))}
+            <Box
+              sx={{
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 3,
+                boxShadow: 24,
+                maxHeight: 256,
+                overflowY: 'auto',
+              }}
+            >
+              {!query && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    px: 1.5,
+                    py: 1,
+                    fontWeight: 500,
+                    color: 'text.secondary',
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                  }}
+                >
+                  Popular Stocks
+                </Typography>
+              )}
+              {suggestions.length === 0 && query && !searching && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ px: 1.5, py: 2, textAlign: 'center' }}
+                >
+                  No stocks found for &quot;{query}&quot;
+                </Typography>
+              )}
+              {suggestions.map((symbol) => (
+                <Box
+                  key={symbol}
+                  component="button"
+                  onClick={() => {
+                    onAdd(symbol);
+                    setQuery('');
+                    setFocused(false);
+                  }}
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 1.5,
+                    py: 1.25,
+                    bgcolor: 'transparent',
+                    border: 'none',
+                    color: 'text.primary',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.06) },
+                    transition: 'background-color 0.15s',
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={500}>{symbol}</Typography>
+                  <Plus style={{ width: 16, height: 16, color: theme.palette.primary.main }} />
+                </Box>
+              ))}
+            </Box>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Box>
   );
 };
 
@@ -157,53 +255,101 @@ const WatchlistRow = ({ item, onRemove, isRemoving }) => {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20, height: 0 }}
-      className="group flex items-center justify-between p-4 border-b border-border/50 last:border-0 hover:bg-white/[0.03] transition-colors"
     >
-      {/* Symbol & Name */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
-          isPositive ? 'bg-emerald-500/10 text-emerald-500' :
-          isNegative ? 'bg-red-500/10 text-red-500' :
-          'bg-muted text-muted-foreground'
-        )}>
-          {item.symbol?.slice(0, 2) || '??'}
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-sm truncate">{item.symbol}</p>
-          <p className="text-xs text-muted-foreground">NSE</p>
-        </div>
-      </div>
-
-      {/* Price */}
-      <div className="text-right mr-4">
-        <p className="font-semibold text-sm tabular-nums">
-          {price > 0 ? formatINR(price) : item.price || '—'}
-        </p>
-        <div className={cn(
-          'flex items-center justify-end gap-1 text-xs font-medium',
-          isPositive ? 'text-emerald-500' : isNegative ? 'text-red-500' : 'text-muted-foreground'
-        )}>
-          {isPositive ? <ArrowUpRight className="w-3 h-3" /> :
-           isNegative ? <ArrowDownRight className="w-3 h-3" /> :
-           <Minus className="w-3 h-3" />}
-          <span>{item.change || '0.00%'}</span>
-        </div>
-      </div>
-
-      {/* Remove Button */}
-      <button
-        onClick={() => onRemove(item.id)}
-        disabled={isRemoving}
-        className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
-        title="Remove from watchlist"
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: 1,
+          borderColor: (t) => alpha(t.palette.divider, 0.5),
+          '&:last-child': { borderBottom: 0 },
+          '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.03) },
+          transition: 'background-color 0.15s',
+          '& .remove-btn': { opacity: 0, transition: 'all 0.2s' },
+          '&:hover .remove-btn': { opacity: 1 },
+        }}
       >
-        {isRemoving ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Trash2 className="w-4 h-4" />
-        )}
-      </button>
+        {/* Symbol & Name */}
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              flexShrink: 0,
+              ...(isPositive
+                ? { bgcolor: (t) => alpha(t.palette.success.main, 0.1), color: 'success.main' }
+                : isNegative
+                  ? { bgcolor: (t) => alpha(t.palette.error.main, 0.1), color: 'error.main' }
+                  : { bgcolor: (t) => alpha(t.palette.text.primary, 0.08), color: 'text.secondary' }),
+            }}
+          >
+            {item.symbol?.slice(0, 2) || '??'}
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" fontWeight={600} noWrap>
+              {item.symbol}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              NSE
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Price */}
+        <Box sx={{ textAlign: 'right', mr: 2 }}>
+          <Typography variant="body2" fontWeight={600} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+            {price > 0 ? formatINR(price) : item.price || '\u2014'}
+          </Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="flex-end"
+            spacing={0.5}
+            sx={{
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: isPositive ? 'success.main' : isNegative ? 'error.main' : 'text.secondary',
+            }}
+          >
+            {isPositive ? <ArrowUpRight style={{ width: 12, height: 12 }} /> :
+             isNegative ? <ArrowDownRight style={{ width: 12, height: 12 }} /> :
+             <Minus style={{ width: 12, height: 12 }} />}
+            <Typography variant="caption" sx={{ color: 'inherit', fontWeight: 'inherit' }}>
+              {item.change || '0.00%'}
+            </Typography>
+          </Stack>
+        </Box>
+
+        {/* Remove Button */}
+        <IconButton
+          className="remove-btn"
+          onClick={() => onRemove(item.id)}
+          disabled={isRemoving}
+          size="small"
+          title="Remove from watchlist"
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              bgcolor: (t) => alpha(t.palette.error.main, 0.1),
+              color: 'error.main',
+            },
+          }}
+        >
+          {isRemoving ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <Trash2 style={{ width: 16, height: 16 }} />
+          )}
+        </IconButton>
+      </Box>
     </motion.div>
   );
 };
@@ -212,38 +358,71 @@ const WatchlistRow = ({ item, onRemove, isRemoving }) => {
 // WATCHLIST SKELETON
 // ═══════════════════════════════════════════════════════════════════════════════
 const WatchlistSkeleton = () => (
-  <div className="space-y-0">
+  <Box>
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex items-center justify-between p-4 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="skeleton w-10 h-10 rounded-xl" />
-          <div className="space-y-1.5">
-            <div className="skeleton h-4 w-24 rounded" />
-            <div className="skeleton h-3 w-12 rounded" />
-          </div>
-        </div>
-        <div className="space-y-1.5 text-right">
-          <div className="skeleton h-4 w-20 rounded ml-auto" />
-          <div className="skeleton h-3 w-14 rounded ml-auto" />
-        </div>
-      </div>
+      <Box
+        key={i}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: 1,
+          borderColor: (t) => alpha(t.palette.divider, 0.5),
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Skeleton variant="rounded" width={40} height={40} sx={{ borderRadius: 3 }} />
+          <Stack spacing={0.75}>
+            <Skeleton variant="rounded" width={96} height={16} />
+            <Skeleton variant="rounded" width={48} height={12} />
+          </Stack>
+        </Stack>
+        <Stack spacing={0.75} alignItems="flex-end">
+          <Skeleton variant="rounded" width={80} height={16} />
+          <Skeleton variant="rounded" width={56} height={12} />
+        </Stack>
+      </Box>
     ))}
-  </div>
+  </Box>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EMPTY STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 const EmptyWatchlist = () => (
-  <div className="flex flex-col items-center justify-center py-16 px-4">
-    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-      <Eye className="w-10 h-10 text-primary" />
-    </div>
-    <h3 className="text-lg font-semibold mb-2">Your watchlist is empty</h3>
-    <p className="text-muted-foreground text-sm text-center max-w-sm">
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      py: 8,
+      px: 2,
+    }}
+  >
+    <Box
+      sx={{
+        width: 80,
+        height: 80,
+        borderRadius: '50%',
+        bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        mb: 2,
+        color: 'primary.main',
+      }}
+    >
+      <Eye style={{ width: 40, height: 40, color: 'currentColor' }} />
+    </Box>
+    <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+      Your watchlist is empty
+    </Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 360 }}>
       Search and add stocks above to start tracking their prices in real-time.
-    </p>
-  </div>
+    </Typography>
+  </Box>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -260,20 +439,32 @@ const MarketSummary = ({ items }) => {
   if (items.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-3 gap-3 mb-6">
-      <Card className="p-3 text-center">
-        <p className="text-xs text-muted-foreground mb-1">Gainers</p>
-        <p className="text-xl font-bold text-emerald-500">{gainers}</p>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 3 }}>
+      <Card sx={{ p: 1.5, textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          Gainers
+        </Typography>
+        <Typography variant="h5" fontWeight={700} color="success.main">
+          {gainers}
+        </Typography>
       </Card>
-      <Card className="p-3 text-center">
-        <p className="text-xs text-muted-foreground mb-1">Losers</p>
-        <p className="text-xl font-bold text-red-500">{losers}</p>
+      <Card sx={{ p: 1.5, textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          Losers
+        </Typography>
+        <Typography variant="h5" fontWeight={700} color="error.main">
+          {losers}
+        </Typography>
       </Card>
-      <Card className="p-3 text-center">
-        <p className="text-xs text-muted-foreground mb-1">Unchanged</p>
-        <p className="text-xl font-bold text-muted-foreground">{unchanged}</p>
+      <Card sx={{ p: 1.5, textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          Unchanged
+        </Typography>
+        <Typography variant="h5" fontWeight={700} color="text.secondary">
+          {unchanged}
+        </Typography>
       </Card>
-    </div>
+    </Box>
   );
 };
 
@@ -287,6 +478,7 @@ const Watchlist = () => {
   const [removing, setRemoving] = useState(null);
   const [adding, setAdding] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const theme = useTheme();
 
   // Fetch watchlist from backend
   const fetchWatchlist = useCallback(async (silent = false) => {
@@ -344,7 +536,7 @@ const Watchlist = () => {
       const localItem = {
         id: `local_${Date.now()}`,
         symbol,
-        price: '—',
+        price: '\u2014',
         change: '0.00%',
         timestamp: new Date().toISOString(),
       };
@@ -381,51 +573,74 @@ const Watchlist = () => {
             size="sm"
             onClick={() => fetchWatchlist(true)}
             disabled={refreshing}
+            sx={{
+              ...(refreshing && {
+                '@keyframes spin': {
+                  from: { transform: 'rotate(0deg)' },
+                  to: { transform: 'rotate(360deg)' },
+                },
+                '& svg:first-of-type': { animation: 'spin 1s linear infinite' },
+              }),
+            }}
           >
-            <RefreshCw className={cn('w-4 h-4 mr-2', refreshing && 'animate-spin')} />
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} />
             Refresh
           </Button>
         }
       />
 
       {/* Search Bar */}
-      <div className="mb-6">
+      <Box sx={{ mb: 3 }}>
         <StockSearch onAdd={handleAdd} existingSymbols={existingSymbols} />
         {adding && (
-          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" /> Adding stock...
-          </p>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 1 }}>
+            <CircularProgress size={12} sx={{ color: 'text.secondary' }} />
+            <Typography variant="caption" color="text.secondary">
+              Adding stock...
+            </Typography>
+          </Stack>
         )}
-      </div>
+      </Box>
 
       {/* Market Summary */}
       <MarketSummary items={items} />
 
       {/* Watchlist Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">My Stocks</CardTitle>
+        <CardHeader sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, p: 2.5, pb: 1.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Star style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+            <CardTitle>My Stocks</CardTitle>
             {items.length > 0 && (
-              <Badge variant="outline" className="ml-2">{items.length}</Badge>
+              <Badge variant="outline">{items.length}</Badge>
             )}
-          </div>
+          </Stack>
           {refreshing && (
-            <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+            <CircularProgress size={16} sx={{ color: 'text.secondary' }} />
           )}
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent sx={{ p: 0 }}>
           {loading ? (
             <WatchlistSkeleton />
           ) : error && items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-              <p className="text-sm text-red-500 mb-4">{error}</p>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 6,
+                px: 2,
+              }}
+            >
+              <AlertCircle style={{ width: 40, height: 40, color: theme.palette.error.main, marginBottom: 12 }} />
+              <Typography variant="body2" color="error.main" sx={{ mb: 2 }}>
+                {error}
+              </Typography>
               <Button variant="outline" size="sm" onClick={() => fetchWatchlist()}>
                 Try Again
               </Button>
-            </div>
+            </Box>
           ) : items.length === 0 ? (
             <EmptyWatchlist />
           ) : (
@@ -445,9 +660,9 @@ const Watchlist = () => {
 
       {/* Quick Info */}
       {items.length > 0 && (
-        <p className="text-xs text-muted-foreground mt-4 text-center">
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
           Prices auto-refresh every 30 seconds during market hours
-        </p>
+        </Typography>
       )}
     </PageLayout>
   );

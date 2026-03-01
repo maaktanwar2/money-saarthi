@@ -1,27 +1,7 @@
 // Centralized chart color theme for Recharts / SVG components
-// These read CSS custom properties at runtime so they respect light/dark mode.
+// Supports MUI theme integration for automatic light/dark mode
 
-const getCSSVar = (name) => {
-  if (typeof window === 'undefined') return '';
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-};
-
-/** Returns current theme-aware chart colors (call inside render / useEffect) */
-export const getChartColors = () => ({
-  bullish:   getCSSVar('--chart-bullish')   || '#10b981',
-  bearish:   getCSSVar('--chart-bearish')   || '#ef4444',
-  neutral:   getCSSVar('--chart-neutral')   || '#6366f1',
-  warning:   getCSSVar('--chart-warning')   || '#f59e0b',
-  axis:      getCSSVar('--chart-axis')      || '#6b7280',
-  grid:      getCSSVar('--chart-grid')      || '#374151',
-  bg:        getCSSVar('--chart-bg')        || '#1f2937',
-  text:      getCSSVar('--chart-text')      || '#e5e7eb',
-  primary:   getCSSVar('--chart-bullish')   || '#10b981',
-  secondary: getCSSVar('--chart-secondary') || '#14b8a6',
-  spot:      getCSSVar('--chart-spot')      || '#f97316',
-});
-
-// Static dark-mode defaults (for cases where CSS vars aren't available)
+// Static dark-mode defaults
 export const CHART_COLORS = {
   bullish:   '#10b981',
   bearish:   '#ef4444',
@@ -34,4 +14,25 @@ export const CHART_COLORS = {
   primary:   '#10b981',
   secondary: '#14b8a6',
   spot:      '#f97316',
+};
+
+/** Returns theme-aware chart colors from an MUI theme object */
+export const getChartColorsFromTheme = (theme) => {
+  if (!theme?.palette) return CHART_COLORS;
+
+  const isDark = theme.palette.mode === 'dark';
+
+  return {
+    bullish:   theme.palette.success?.main   || CHART_COLORS.bullish,
+    bearish:   theme.palette.error?.main     || CHART_COLORS.bearish,
+    neutral:   theme.palette.info?.main      || CHART_COLORS.neutral,
+    warning:   theme.palette.warning?.main   || CHART_COLORS.warning,
+    axis:      theme.palette.text?.secondary  || CHART_COLORS.axis,
+    grid:      theme.palette.divider          || CHART_COLORS.grid,
+    bg:        theme.palette.background?.paper || CHART_COLORS.bg,
+    text:      theme.palette.text?.primary    || CHART_COLORS.text,
+    primary:   theme.palette.primary?.main    || CHART_COLORS.primary,
+    secondary: isDark ? '#14b8a6' : '#0d9488',
+    spot:      '#f97316',
+  };
 };

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout } from '../components/PageLayout';
 import { Card, CardContent, Button, Badge } from '../components/ui';
-import { cn } from '../lib/utils';
 import { updateUser } from '../services/adminService';
 import { fetchWithAuth } from '../config/api';
-import { 
-  Check, 
-  X, 
-  Crown, 
-  Zap, 
-  Shield, 
+import {
+  Check,
+  X,
+  Crown,
+  Zap,
+  Shield,
   Sparkles,
   Clock,
   Users,
@@ -109,10 +113,10 @@ export const isSubscriptionActive = () => {
 export const hasProAccess = () => {
   const sub = getUserSubscription();
   const user = JSON.parse(localStorage.getItem('ms_user') || '{}');
-  
+
   // Admins always have pro access
   if (user.isAdmin) return true;
-  
+
   return sub.plan === 'pro' && isSubscriptionActive();
 };
 
@@ -135,6 +139,7 @@ export const saveSubscription = (subscriptionData) => {
 export default function Pricing() {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const requireSubscription = location.state?.requireSubscription || false;
   const [billingCycle, setBillingCycle] = useState('yearly');
   const [loading, setLoading] = useState(false);
@@ -256,133 +261,250 @@ export default function Pricing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+          }}
           onClick={() => setShowPaymentModal(false)}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 512 }}
           >
-            {/* Header */}
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold">Complete Payment</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPlan.name} Plan - {billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">{formatPrice(amount)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {billingCycle === 'yearly' ? 'per year' : 'per month'}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Box
+              sx={{
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 4,
+                boxShadow: 24,
+                maxHeight: '90vh',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Header */}
+              <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                      Complete Payment
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                      {selectedPlan.name} Plan - {billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'primary.main' }}>
+                      {formatPrice(amount)}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      {billingCycle === 'yearly' ? 'per year' : 'per month'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
 
-            {paymentSubmitted ? (
-              /* Success State */
-              <div className="p-8 text-center">
-                <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-10 h-10 text-green-500" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Payment Details Submitted!</h3>
-                <p className="text-muted-foreground mb-4">
-                  Your payment is being verified. You'll get access within a few hours.
-                </p>
-                <div className="bg-muted/50 rounded-lg p-4 text-left mb-6">
-                  <p className="text-sm"><strong>Transaction ID:</strong> {transactionId}</p>
-                  <p className="text-sm"><strong>Amount:</strong> {formatPrice(amount)}</p>
-                  <p className="text-sm"><strong>Status:</strong> <span className="text-amber-500">Pending Verification</span></p>
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    navigate(getPostSubscriptionRedirect());
-                  }}
-                >
-                  Go to Dashboard
-                </Button>
-              </div>
-            ) : (
-              /* UPI Payment Flow */
-              <div className="p-6">
-                <div className="space-y-4">
-                  {/* Step 1: Scan QR */}
-                  <div className="bg-muted/50 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">1</div>
-                      <p className="font-semibold">Scan QR code to pay {formatPrice(amount)}</p>
-                    </div>
-                    <div className="flex justify-center p-4 bg-white rounded-xl">
-                      <img
-                        src={getQrUrl(amount)}
-                        alt="UPI QR Code"
-                        className="w-56 h-56"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">
-                      Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code
-                    </p>
-                    <p className="text-xs text-muted-foreground text-center mt-1">
-                      UPI ID: <span className="font-mono font-semibold">{upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}</span>
-                    </p>
-                  </div>
-
-                  {/* Step 2: Enter UTR */}
-                  <div className="bg-muted/50 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">2</div>
-                      <p className="font-semibold">Enter Transaction ID / UTR</p>
-                    </div>
-                    <input
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      placeholder="Enter 12-digit UTR number"
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono"
-                    />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Find this in your UPI app's transaction history / receipt
-                    </p>
-                  </div>
-
-                  <Button
-                    className="w-full h-12 text-base"
-                    onClick={handlePaymentSubmit}
-                    disabled={loading || !transactionId.trim()}
+              {paymentSubmitted ? (
+                /* Success State */
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      bgcolor: alpha('#22c55e', 0.2),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                    }}
                   >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Submitting...
-                      </span>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 mr-2" />
-                        Submit Payment
-                      </>
-                    )}
+                    <CheckCircle2 style={{ width: 40, height: 40, color: '#22c55e' }} />
+                  </Box>
+                  <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, mb: 1 }}>
+                    Payment Details Submitted!
+                  </Typography>
+                  <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                    Your payment is being verified. You'll get access within a few hours.
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: alpha(theme.palette.background.default, 0.5),
+                      borderRadius: 2,
+                      p: 2,
+                      textAlign: 'left',
+                      mb: 3,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.875rem' }}>
+                      <Box component="span" sx={{ fontWeight: 700 }}>Transaction ID:</Box> {transactionId}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.875rem' }}>
+                      <Box component="span" sx={{ fontWeight: 700 }}>Amount:</Box> {formatPrice(amount)}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.875rem' }}>
+                      <Box component="span" sx={{ fontWeight: 700 }}>Status:</Box>{' '}
+                      <Box component="span" sx={{ color: 'warning.main' }}>Pending Verification</Box>
+                    </Typography>
+                  </Box>
+                  <Button
+                    sx={{ width: '100%' }}
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      navigate(getPostSubscriptionRedirect());
+                    }}
+                  >
+                    Go to Dashboard
                   </Button>
+                </Box>
+              ) : (
+                /* UPI Payment Flow */
+                <Box sx={{ p: 3 }}>
+                  <Stack spacing={2.5}>
+                    {/* Step 1: Scan QR */}
+                    <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), borderRadius: 3, p: 2.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.main',
+                            color: 'common.white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          1
+                        </Box>
+                        <Typography sx={{ fontWeight: 600 }}>
+                          Scan QR code to pay {formatPrice(amount)}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, bgcolor: '#fff', borderRadius: 3 }}>
+                        <Box
+                          component="img"
+                          src={getQrUrl(amount)}
+                          alt="UPI QR Code"
+                          sx={{ width: 224, height: 224 }}
+                        />
+                      </Box>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 1.5, textAlign: 'center' }}>
+                        Open PhonePe, Google Pay, Paytm or any UPI app and scan this QR code
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', textAlign: 'center', mt: 0.5 }}>
+                        UPI ID:{' '}
+                        <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                          {upiConfig.upi_id || `${upiConfig.upi_number}@ybl`}
+                        </Box>
+                      </Typography>
+                    </Box>
 
-                  <p className="text-xs text-center text-muted-foreground">
-                    Your subscription will be activated after payment verification.
-                  </p>
-                </div>
+                    {/* Step 2: Enter UTR */}
+                    <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), borderRadius: 3, p: 2.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.main',
+                            color: 'common.white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          2
+                        </Box>
+                        <Typography sx={{ fontWeight: 600 }}>Enter Transaction ID / UTR</Typography>
+                      </Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        placeholder="Enter 12-digit UTR number"
+                        sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
+                      />
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 1 }}>
+                        Find this in your UPI app's transaction history / receipt
+                      </Typography>
+                    </Box>
 
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+                    <Button
+                      sx={{ width: '100%', height: 48, fontSize: '1rem' }}
+                      onClick={handlePaymentSubmit}
+                      disabled={loading || !transactionId.trim()}
+                    >
+                      {loading ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              border: 2,
+                              borderColor: alpha(theme.palette.common.white, 0.3),
+                              borderTopColor: 'common.white',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite',
+                              '@keyframes spin': {
+                                '0%': { transform: 'rotate(0deg)' },
+                                '100%': { transform: 'rotate(360deg)' },
+                              },
+                            }}
+                          />
+                          Submitting...
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CheckCircle2 style={{ width: 20, height: 20 }} />
+                          Submit Payment
+                        </Box>
+                      )}
+                    </Button>
+
+                    <Typography sx={{ fontSize: '0.75rem', textAlign: 'center', color: 'text.secondary' }}>
+                      Your subscription will be activated after payment verification.
+                    </Typography>
+                  </Stack>
+
+                  <Box
+                    component="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    sx={{
+                      width: '100%',
+                      mt: 2,
+                      fontSize: '0.875rem',
+                      color: 'text.secondary',
+                      cursor: 'pointer',
+                      bgcolor: 'transparent',
+                      border: 'none',
+                      '&:hover': { color: 'text.primary' },
+                    }}
+                  >
+                    Cancel
+                  </Box>
+                </Box>
+              )}
+            </Box>
           </motion.div>
         </motion.div>
       </AnimatePresence>
@@ -393,8 +515,7 @@ export default function Pricing() {
   const featureCategories = [
     {
       title: 'Market Intelligence',
-      color: 'from-emerald-500 to-green-600',
-      iconBg: 'bg-emerald-500/15 text-emerald-400',
+      iconBg: { bgcolor: alpha('#10b981', 0.15), color: '#34d399' },
       features: [
         'Full Market Dashboard & Overview',
         'Real-time FII / DII Flows',
@@ -404,8 +525,7 @@ export default function Pricing() {
     },
     {
       title: 'AI & Automation',
-      color: 'from-violet-500 to-purple-600',
-      iconBg: 'bg-violet-500/15 text-violet-400',
+      iconBg: { bgcolor: alpha('#8b5cf6', 0.15), color: '#a78bfa' },
       features: [
         'AI Trade Signals & Recommendations',
         'Autonomous AI Agent Trading',
@@ -415,8 +535,7 @@ export default function Pricing() {
     },
     {
       title: 'Options & Analysis',
-      color: 'from-cyan-500 to-blue-600',
-      iconBg: 'bg-cyan-500/15 text-cyan-400',
+      iconBg: { bgcolor: alpha('#06b6d4', 0.15), color: '#22d3ee' },
       features: [
         'Options Chain & Greeks',
         'OI Analytics & Scans',
@@ -426,8 +545,7 @@ export default function Pricing() {
     },
     {
       title: 'Tools & Tracking',
-      color: 'from-amber-500 to-orange-600',
-      iconBg: 'bg-amber-500/15 text-amber-400',
+      iconBg: { bgcolor: alpha('#f59e0b', 0.15), color: '#fbbf24' },
       features: [
         'Trading Journal & Statistics',
         'Strategy Backtesting',
@@ -446,191 +564,388 @@ export default function Pricing() {
       {/* Payment Modal */}
       <PaymentModal />
 
-      <div className="min-h-screen">
+      <Box sx={{ minHeight: '100vh' }}>
         {/* Subscription Required Alert */}
         {requireSubscription && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl mx-auto px-4 pt-4"
           >
-            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">Subscription Required</p>
-                <p className="text-xs text-amber-400">Subscribe to access all features of Money Saarthi.</p>
-              </div>
-            </div>
+            <Box sx={{ maxWidth: 672, mx: 'auto', px: 2, pt: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  p: 1.75,
+                  borderRadius: 3,
+                  bgcolor: alpha('#f59e0b', 0.1),
+                  border: 1,
+                  borderColor: alpha('#f59e0b', 0.3),
+                  color: '#f59e0b',
+                }}
+              >
+                <AlertCircle style={{ width: 20, height: 20, flexShrink: 0 }} />
+                <Box>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    Subscription Required
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#fbbf24' }}>
+                    Subscribe to access all features of Money Saarthi.
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
           </motion.div>
         )}
 
-        {/* ── Hero Header ── */}
-        <div className="text-center pt-10 pb-6 px-4">
+        {/* Hero Header */}
+        <Box sx={{ textAlign: 'center', pt: 5, pb: 3, px: 2 }}>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-5 border border-primary/20"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            One plan. Everything unlocked.
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.75,
+                py: 0.75,
+                borderRadius: 20,
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                mb: 2.5,
+                border: 1,
+                borderColor: alpha(theme.palette.primary.main, 0.2),
+              }}
+            >
+              <Sparkles style={{ width: 14, height: 14 }} />
+              One plan. Everything unlocked.
+            </Box>
           </motion.div>
 
-          <motion.h1
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight"
           >
-            Money Saarthi{' '}
-            <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
-              Pro
-            </span>
-          </motion.h1>
+            <Typography
+              sx={{
+                fontSize: { xs: '1.875rem', md: '2.25rem' },
+                fontWeight: 800,
+                mb: 1.5,
+                letterSpacing: '-0.025em',
+              }}
+            >
+              Money Saarthi{' '}
+              <Box
+                component="span"
+                sx={{
+                  background: `linear-gradient(to right, ${theme.palette.primary.main}, #34d399, ${theme.palette.primary.main})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Pro
+              </Box>
+            </Typography>
+          </motion.div>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-muted-foreground text-sm max-w-md mx-auto"
           >
-            AI-powered market intelligence, real-time analytics, algo trading bots — 
-            everything a serious trader needs, in one subscription.
-          </motion.p>
-        </div>
+            <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', maxWidth: 448, mx: 'auto' }}>
+              AI-powered market intelligence, real-time analytics, algo trading bots —
+              everything a serious trader needs, in one subscription.
+            </Typography>
+          </motion.div>
+        </Box>
 
-        {/* ── Pricing Hero Card ── */}
+        {/* Pricing Hero Card */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="max-w-lg mx-auto px-4 mb-10"
         >
-          <Card className="relative overflow-hidden border-primary/40 shadow-2xl shadow-primary/10">
-            {/* Glow accents */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <Box sx={{ maxWidth: 512, mx: 'auto', px: 2, mb: 5 }}>
+            <Card
+              sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderColor: alpha(theme.palette.primary.main, 0.4),
+                boxShadow: `0 25px 50px -12px ${alpha(theme.palette.primary.main, 0.1)}`,
+              }}
+            >
+              {/* Glow accents */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -96,
+                  right: -96,
+                  width: 192,
+                  height: 192,
+                  bgcolor: alpha(theme.palette.primary.main, 0.2),
+                  borderRadius: '50%',
+                  filter: 'blur(48px)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -96,
+                  left: -96,
+                  width: 192,
+                  height: 192,
+                  bgcolor: alpha('#10b981', 0.1),
+                  borderRadius: '50%',
+                  filter: 'blur(48px)',
+                  pointerEvents: 'none',
+                }}
+              />
 
-            {isCurrentlyPro && (
-              <div className="absolute top-0 right-0 z-10">
-                <div className="bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
-                  <BadgeCheck className="w-3 h-3" />
-                  ACTIVE
-                </div>
-              </div>
-            )}
-
-            <CardContent className="relative p-6">
-              {/* Billing toggle — inline */}
-              <div className="flex items-center justify-center mb-6">
-                <div className="inline-flex items-center gap-1 p-1 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-                  <button
-                    onClick={() => setBillingCycle('monthly')}
-                    className={cn(
-                      'px-4 py-1.5 rounded-md text-xs font-semibold transition-all',
-                      billingCycle === 'monthly'
-                        ? 'bg-primary text-white shadow-md shadow-primary/30'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+              {isCurrentlyPro && (
+                <Box sx={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
+                  <Box
+                    sx={{
+                      bgcolor: 'success.main',
+                      color: 'common.white',
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      px: 1.5,
+                      py: 0.5,
+                      borderBottomLeftRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                    }}
                   >
-                    Monthly
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('yearly')}
-                    className={cn(
-                      'px-4 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5',
-                      billingCycle === 'yearly'
-                        ? 'bg-primary text-white shadow-md shadow-primary/30'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    Yearly
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
-                      -53%
-                    </span>
-                  </button>
-                </div>
-              </div>
+                    <BadgeCheck style={{ width: 12, height: 12 }} />
+                    ACTIVE
+                  </Box>
+                </Box>
+              )}
 
-              {/* Price */}
-              <div className="text-center mb-6">
-                <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-5xl font-extrabold tracking-tight">
-                    {formatPrice(proPrice)}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    /{billingCycle === 'yearly' ? 'year' : 'month'}
-                  </span>
-                </div>
-                <AnimatePresence mode="wait">
-                  {billingCycle === 'yearly' ? (
-                    <motion.p
-                      key="yearly-save"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="text-xs text-green-400 mt-1.5 flex items-center justify-center gap-1"
+              <CardContent sx={{ position: 'relative', p: 3 }}>
+                {/* Billing toggle */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      p: 0.5,
+                      borderRadius: 2,
+                      bgcolor: alpha(theme.palette.common.white, 0.04),
+                      border: 1,
+                      borderColor: alpha(theme.palette.common.white, 0.08),
+                    }}
+                  >
+                    <Box
+                      component="button"
+                      onClick={() => setBillingCycle('monthly')}
+                      sx={{
+                        px: 2,
+                        py: 0.75,
+                        borderRadius: 1.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        border: 'none',
+                        ...(billingCycle === 'monthly'
+                          ? {
+                              bgcolor: 'primary.main',
+                              color: 'common.white',
+                              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                            }
+                          : {
+                              bgcolor: 'transparent',
+                              color: 'text.secondary',
+                              '&:hover': { color: 'text.primary' },
+                            }),
+                      }}
                     >
-                      <Star className="w-3 h-3" />
-                      Save {formatPrice(899 * 12 - 4999)} vs monthly &bull; Just {formatPrice(Math.round(4999 / 12))}/mo
-                    </motion.p>
+                      Monthly
+                    </Box>
+                    <Box
+                      component="button"
+                      onClick={() => setBillingCycle('yearly')}
+                      sx={{
+                        px: 2,
+                        py: 0.75,
+                        borderRadius: 1.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        ...(billingCycle === 'yearly'
+                          ? {
+                              bgcolor: 'primary.main',
+                              color: 'common.white',
+                              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                            }
+                          : {
+                              bgcolor: 'transparent',
+                              color: 'text.secondary',
+                              '&:hover': { color: 'text.primary' },
+                            }),
+                      }}
+                    >
+                      Yearly
+                      <Box
+                        component="span"
+                        sx={{
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: 1,
+                          fontSize: '0.625rem',
+                          fontWeight: 700,
+                          bgcolor: alpha('#22c55e', 0.2),
+                          color: '#4ade80',
+                          border: 1,
+                          borderColor: alpha('#22c55e', 0.3),
+                        }}
+                      >
+                        -53%
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Price */}
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0.75 }}>
+                    <Typography sx={{ fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+                      {formatPrice(proPrice)}
+                    </Typography>
+                    <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                      /{billingCycle === 'yearly' ? 'year' : 'month'}
+                    </Typography>
+                  </Box>
+                  <AnimatePresence mode="wait">
+                    {billingCycle === 'yearly' ? (
+                      <motion.div
+                        key="yearly-save"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                      >
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: '#4ade80',
+                            mt: 0.75,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.5,
+                          }}
+                        >
+                          <Star style={{ width: 12, height: 12 }} />
+                          Save {formatPrice(899 * 12 - 4999)} vs monthly &bull; Just {formatPrice(Math.round(4999 / 12))}/mo
+                        </Typography>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="monthly-hint"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                      >
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.75 }}>
+                          or {formatPrice(4999)}/year — save 53%
+                        </Typography>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Box>
+
+                {/* CTA */}
+                <Button
+                  onClick={() => handleSubscribe('pro')}
+                  disabled={loading || isCurrentlyPro}
+                  sx={{
+                    width: '100%',
+                    height: 48,
+                    fontSize: '1rem',
+                    background: `linear-gradient(to right, ${theme.palette.primary.main}, #059669)`,
+                    '&:hover': {
+                      background: `linear-gradient(to right, ${alpha(theme.palette.primary.main, 0.9)}, #047857)`,
+                    },
+                    boxShadow: `0 10px 25px ${alpha(theme.palette.primary.main, 0.25)}`,
+                    mb: 2,
+                  }}
+                >
+                  {loading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 16,
+                          height: 16,
+                          border: 2,
+                          borderColor: alpha(theme.palette.common.white, 0.3),
+                          borderTopColor: 'common.white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                          '@keyframes spin': {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' },
+                          },
+                        }}
+                      />
+                      Processing...
+                    </Box>
+                  ) : isCurrentlyPro ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BadgeCheck style={{ width: 20, height: 20 }} />
+                      You're a Pro Member
+                    </Box>
                   ) : (
-                    <motion.p
-                      key="monthly-hint"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="text-xs text-muted-foreground mt-1.5"
-                    >
-                      or {formatPrice(4999)}/year — save 53%
-                    </motion.p>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Crown style={{ width: 20, height: 20 }} />
+                      Subscribe Now
+                      <ArrowRight style={{ width: 20, height: 20 }} />
+                    </Box>
                   )}
-                </AnimatePresence>
-              </div>
+                </Button>
 
-              {/* CTA */}
-              <Button
-                onClick={() => handleSubscribe('pro')}
-                disabled={loading || isCurrentlyPro}
-                className="w-full h-12 text-base bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-700 shadow-lg shadow-primary/25 mb-4"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Processing...
-                  </span>
-                ) : isCurrentlyPro ? (
-                  <span className="flex items-center gap-2">
-                    <BadgeCheck className="w-5 h-5" />
-                    You're a Pro Member
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Crown className="w-5 h-5" />
-                    Subscribe Now
-                    <ArrowRight className="w-5 h-5" />
-                  </span>
-                )}
-              </Button>
-
-              <p className="text-center text-[11px] text-muted-foreground">
-                7-day money-back guarantee &bull; Cancel anytime &bull; Instant access
-              </p>
-            </CardContent>
-          </Card>
+                <Typography sx={{ textAlign: 'center', fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  7-day money-back guarantee &bull; Cancel anytime &bull; Instant access
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
         </motion.div>
 
-        {/* ── Feature Categories Grid ── */}
-        <div className="max-w-3xl mx-auto px-4 pb-10">
-          <motion.h2
+        {/* Feature Categories Grid */}
+        <Box sx={{ maxWidth: 672, mx: 'auto', px: 2, pb: 5 }}>
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.25 }}
-            className="text-lg font-bold text-center mb-6"
           >
-            Everything included in Pro
-          </motion.h2>
+            <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, textAlign: 'center', mb: 3 }}>
+              Everything included in Pro
+            </Typography>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+              gap: 2,
+            }}
+          >
             {featureCategories.map((cat, ci) => (
               <motion.div
                 key={ci}
@@ -638,57 +953,127 @@ export default function Pricing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + ci * 0.07 }}
               >
-                <Card className="h-full border-white/[0.06] hover:border-white/[0.12] transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', cat.iconBg)}>
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <h3 className="text-sm font-bold">{cat.title}</h3>
-                    </div>
-                    <ul className="space-y-2">
+                <Card
+                  sx={{
+                    height: '100%',
+                    borderColor: alpha(theme.palette.common.white, 0.06),
+                    transition: 'border-color 0.2s',
+                    '&:hover': {
+                      borderColor: alpha(theme.palette.common.white, 0.12),
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          ...cat.iconBg,
+                        }}
+                      >
+                        <Zap style={{ width: 16, height: 16 }} />
+                      </Box>
+                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+                        {cat.title}
+                      </Typography>
+                    </Box>
+                    <Stack component="ul" spacing={1} sx={{ listStyle: 'none', p: 0, m: 0 }}>
                       {cat.features.map((f, fi) => (
-                        <li key={fi} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="w-4 h-4 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
-                            <Check className="w-2.5 h-2.5 text-green-500" />
-                          </div>
+                        <Box
+                          component="li"
+                          key={fi}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            fontSize: '0.75rem',
+                            color: 'text.secondary',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              bgcolor: alpha('#22c55e', 0.15),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check style={{ width: 10, height: 10, color: '#22c55e' }} />
+                          </Box>
                           {f}
-                        </li>
+                        </Box>
                       ))}
-                    </ul>
+                    </Stack>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
-          </div>
-        </div>
+          </Box>
+        </Box>
 
-        {/* ── Trust Strip ── */}
+        {/* Trust Strip */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="max-w-3xl mx-auto px-4 pb-10"
         >
-          <div className="flex flex-wrap items-center justify-center gap-6 py-4 px-6 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-            {[
-              { icon: Shield, text: 'SSL Encrypted Payments' },
-              { icon: Clock, text: 'Instant Activation' },
-              { icon: Star, text: '7-Day Refund Guarantee' },
-              { icon: Users, text: 'Trusted by Traders' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <item.icon className="w-3.5 h-3.5 text-primary" />
-                <span>{item.text}</span>
-              </div>
-            ))}
-          </div>
+          <Box sx={{ maxWidth: 672, mx: 'auto', px: 2, pb: 5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                py: 2,
+                px: 3,
+                borderRadius: 3,
+                border: 1,
+                borderColor: alpha(theme.palette.common.white, 0.06),
+                bgcolor: alpha(theme.palette.common.white, 0.02),
+              }}
+            >
+              {[
+                { icon: Shield, text: 'SSL Encrypted Payments' },
+                { icon: Clock, text: 'Instant Activation' },
+                { icon: Star, text: '7-Day Refund Guarantee' },
+                { icon: Users, text: 'Trusted by Traders' },
+              ].map((item, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '0.75rem',
+                    color: 'text.secondary',
+                  }}
+                >
+                  <item.icon style={{ width: 14, height: 14, color: theme.palette.primary.main }} />
+                  <Typography component="span" sx={{ fontSize: '0.75rem' }}>
+                    {item.text}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
         </motion.div>
 
-        {/* ── FAQ ── */}
-        <div className="max-w-2xl mx-auto px-4 pb-16">
-          <h2 className="text-lg font-bold text-center mb-5">Frequently Asked Questions</h2>
-          <div className="space-y-3">
+        {/* FAQ */}
+        <Box sx={{ maxWidth: 576, mx: 'auto', px: 2, pb: 8 }}>
+          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, textAlign: 'center', mb: 2.5 }}>
+            Frequently Asked Questions
+          </Typography>
+          <Stack spacing={1.5}>
             {[
               {
                 q: 'Can I cancel my subscription anytime?',
@@ -717,18 +1102,21 @@ export default function Pricing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.55 + i * 0.05 }}
               >
-                <Card className="border-white/[0.06]">
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-1">{faq.q}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{faq.a}</p>
+                <Card sx={{ borderColor: alpha(theme.palette.common.white, 0.06) }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', mb: 0.5 }}>
+                      {faq.q}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.6 }}>
+                      {faq.a}
+                    </Typography>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </div>
+          </Stack>
+        </Box>
+      </Box>
     </PageLayout>
   );
 }
-

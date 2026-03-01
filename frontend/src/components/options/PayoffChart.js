@@ -1,13 +1,18 @@
 // Options Hub — Interactive Payoff Chart / Strategy Builder
 import { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   Card, CardHeader, CardTitle, CardContent, CardDescription,
-  Button, Badge, Input, Select
+  Button, Badge, Input, Select, MenuItem
 } from '../ui';
 import { TradingAreaChart } from '../ui/Charts';
 import { formatINR, formatNumber } from '../../lib/utils';
 
 const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
+  const theme = useTheme();
+
   const [legs, setLegs] = useState([
     { type: 'call', strike: 0, premium: 100, quantity: 1 }
   ]);
@@ -61,67 +66,130 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
   }).map(d => d.price);
 
   return (
-    <div className="space-y-6">
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Strategy Legs</h3>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Spot:</label>
-              <Input type="number" value={spotPrice} onChange={(e) => setSpotPrice(+e.target.value)} className="w-28" />
-            </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Strategy Legs */}
+      <Card sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight={600}>Strategy Legs</Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="caption" color="text.secondary">Spot:</Typography>
+              <Input
+                type="number"
+                value={spotPrice}
+                onChange={(e) => setSpotPrice(+e.target.value)}
+                sx={{ width: 112 }}
+              />
+            </Box>
             <Button variant="outline" size="sm" onClick={addLeg}>+ Add Leg</Button>
-          </div>
-        </div>
-        <div className="space-y-3">
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {legs.map((leg, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20">
-              <Select value={leg.type} onChange={(e) => updateLeg(i, 'type', e.target.value)} className="w-24">
-                <option value="call">Call</option>
-                <option value="put">Put</option>
-              </Select>
-              <div>
-                <label className="text-[10px] text-muted-foreground">Strike</label>
-                <Input type="number" value={leg.strike || spotPrice} onChange={(e) => updateLeg(i, 'strike', +e.target.value)} className="w-24" />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground">Premium</label>
-                <Input type="number" value={leg.premium} onChange={(e) => updateLeg(i, 'premium', +e.target.value)} className="w-20" />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground">Qty (±)</label>
-                <Input type="number" value={leg.quantity} onChange={(e) => updateLeg(i, 'quantity', +e.target.value)} className="w-20" />
-              </div>
-              <Badge variant={leg.quantity > 0 ? 'success' : 'destructive'} className="text-xs">
+            <Box
+              key={i}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: (t) => alpha(t.palette.action.hover, 0.08),
+              }}
+            >
+              <Box sx={{ width: 96 }}>
+                <Select value={leg.type} onChange={(e) => updateLeg(i, 'type', e.target.value)}>
+                  <MenuItem value="call">Call</MenuItem>
+                  <MenuItem value="put">Put</MenuItem>
+                </Select>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.625rem' }}>
+                  Strike
+                </Typography>
+                <Input
+                  type="number"
+                  value={leg.strike || spotPrice}
+                  onChange={(e) => updateLeg(i, 'strike', +e.target.value)}
+                  sx={{ width: 96 }}
+                />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.625rem' }}>
+                  Premium
+                </Typography>
+                <Input
+                  type="number"
+                  value={leg.premium}
+                  onChange={(e) => updateLeg(i, 'premium', +e.target.value)}
+                  sx={{ width: 80 }}
+                />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.625rem' }}>
+                  Qty ({'\u00B1'})
+                </Typography>
+                <Input
+                  type="number"
+                  value={leg.quantity}
+                  onChange={(e) => updateLeg(i, 'quantity', +e.target.value)}
+                  sx={{ width: 80 }}
+                />
+              </Box>
+              <Badge variant={leg.quantity > 0 ? 'success' : 'destructive'}>
                 {leg.quantity > 0 ? 'BUY' : 'SELL'}
               </Badge>
               {legs.length > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => removeLeg(i)} className="text-muted-foreground hover:text-bearish">×</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeLeg(i)}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                >
+                  {'\u00D7'}
+                </Button>
               )}
-            </div>
+            </Box>
           ))}
-        </div>
+        </Box>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Max Profit</div>
-          <p className="text-lg font-bold text-bullish">{maxProfit >= 999999 ? 'Unlimited' : formatINR(maxProfit)}</p>
+      {/* Strategy Metrics */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 1.5,
+        }}
+      >
+        <Card sx={{ p: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">Max Profit</Typography>
+          <Typography variant="h6" fontWeight={700} sx={{ color: 'success.main' }}>
+            {maxProfit >= 999999 ? 'Unlimited' : formatINR(maxProfit)}
+          </Typography>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Max Loss</div>
-          <p className="text-lg font-bold text-bearish">{maxLoss <= -999999 ? 'Unlimited' : formatINR(maxLoss)}</p>
+        <Card sx={{ p: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">Max Loss</Typography>
+          <Typography variant="h6" fontWeight={700} sx={{ color: 'error.main' }}>
+            {maxLoss <= -999999 ? 'Unlimited' : formatINR(maxLoss)}
+          </Typography>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Breakeven(s)</div>
-          <p className="text-lg font-bold">{breakevens.length > 0 ? breakevens.map(b => formatNumber(b)).join(', ') : 'N/A'}</p>
+        <Card sx={{ p: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">Breakeven(s)</Typography>
+          <Typography variant="h6" fontWeight={700}>
+            {breakevens.length > 0 ? breakevens.map(b => formatNumber(b)).join(', ') : 'N/A'}
+          </Typography>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Risk-Reward</div>
-          <p className="text-lg font-bold">{maxLoss !== 0 ? Math.abs(maxProfit / maxLoss).toFixed(2) + 'x' : '∞'}</p>
+        <Card sx={{ p: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">Risk-Reward</Typography>
+          <Typography variant="h6" fontWeight={700}>
+            {maxLoss !== 0 ? Math.abs(maxProfit / maxLoss).toFixed(2) + 'x' : '\u221E'}
+          </Typography>
         </Card>
-      </div>
+      </Box>
 
+      {/* Payoff Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Strategy Payoff at Expiry</CardTitle>
@@ -131,7 +199,7 @@ const PayoffChart = ({ symbol, spotPrice: initialSpot }) => {
           <TradingAreaChart data={payoffData} dataKey="pnl" xAxisKey="price" height={300} />
         </CardContent>
       </Card>
-    </div>
+    </Box>
   );
 };
 

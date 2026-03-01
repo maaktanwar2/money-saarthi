@@ -1,15 +1,34 @@
 // Options Hub — Real-Time Option Chain Table
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import Stack from '@mui/material/Stack';
+import { alpha, useTheme } from '@mui/material/styles';
 import { RefreshCw, WifiOff, Wifi, Clock } from 'lucide-react';
 import {
   Card, CardHeader, CardTitle, CardContent, CardDescription,
   Button, Badge
 } from '../ui';
-import { cn, formatINR, formatNumber, fetchAPI, getChangeColor, isMarketHours } from '../../lib/utils';
+import { formatINR, formatNumber, fetchAPI, isMarketHours } from '../../lib/utils';
 import { OptionsChainSkeleton } from '../ui/Skeleton';
 import { REFRESH_INTERVAL, formatTime } from './constants';
 
+/** Returns a theme-aware MUI color string based on value sign */
+const changeColor = (value) => value > 0 ? 'success.main' : value < 0 ? 'error.main' : 'text.secondary';
+
+/** Dense cell padding for trading table */
+const densePx = 0.75;
+const densePy = 0.5;
+
 const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
+  const theme = useTheme();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [spotPrice, setSpotPrice] = useState(0);
@@ -55,135 +74,276 @@ const OptionsChain = ({ symbol, expiry, onChainLoaded }) => {
 
   if (error && data.length === 0) {
     return (
-      <Card className="p-8">
-        <div className="flex flex-col items-center justify-center gap-3">
-          <WifiOff className="w-12 h-12 text-muted-foreground" />
-          <p className="text-muted-foreground">{error}</p>
+      <Card sx={{ p: 4 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+          <WifiOff style={{ width: 48, height: 48, color: theme.palette.text.secondary }} />
+          <Typography color="text.secondary">{error}</Typography>
           <Button onClick={() => fetchChain(false)} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" /> Retry
+            <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} /> Retry
           </Button>
-        </div>
+        </Box>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <Stack spacing={2}>
       {/* Summary Bar */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Spot Price</div>
-            <p className="text-lg font-bold text-primary">{formatINR(spotPrice)}</p>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(6, 1fr)' },
+            gap: 1.5,
+          }}
+        >
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">Spot Price</Typography>
+            <Typography variant="h6" fontWeight={700} sx={{ color: 'primary.main' }}>{formatINR(spotPrice)}</Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">PCR (OI)</div>
-            <p className={cn('text-lg font-bold', summary.pcrOI > 1 ? 'text-bullish' : summary.pcrOI < 0.7 ? 'text-bearish' : 'text-amber-500')}>
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">PCR (OI)</Typography>
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              sx={{ color: summary.pcrOI > 1 ? 'success.main' : summary.pcrOI < 0.7 ? 'error.main' : 'warning.main' }}
+            >
               {summary.pcrOI?.toFixed(2)}
-            </p>
+            </Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Call OI</div>
-            <p className="text-lg font-bold">{formatNumber(summary.totalCallOI, { compact: true })}</p>
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">Total Call OI</Typography>
+            <Typography variant="h6" fontWeight={700}>{formatNumber(summary.totalCallOI, { compact: true })}</Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Put OI</div>
-            <p className="text-lg font-bold">{formatNumber(summary.totalPutOI, { compact: true })}</p>
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">Total Put OI</Typography>
+            <Typography variant="h6" fontWeight={700}>{formatNumber(summary.totalPutOI, { compact: true })}</Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">ATM IV</div>
-            <p className="text-lg font-bold">{summary.atmIV?.toFixed(1)}%</p>
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">ATM IV</Typography>
+            <Typography variant="h6" fontWeight={700}>{summary.atmIV?.toFixed(1)}%</Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">PCR (Vol)</div>
-            <p className="text-lg font-bold">{summary.pcrVolume?.toFixed(2)}</p>
+          <Card sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">PCR (Vol)</Typography>
+            <Typography variant="h6" fontWeight={700}>{summary.pcrVolume?.toFixed(2)}</Typography>
           </Card>
-        </div>
+        </Box>
       )}
 
+      {/* Main Chain Table */}
       <Card>
-        <CardHeader className="border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
+        <CardHeader sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
               <CardTitle>Options Chain - {symbol}</CardTitle>
               <CardDescription>
                 Spot: {formatINR(spotPrice)} | {data.length} strikes | Updated: {formatTime(lastUpdated)}
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isMarketHours() ? (
-                <Badge variant="success" className="flex items-center gap-1">
-                  <Wifi className="w-3 h-3" /> Live
+                <Badge variant="success">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Wifi style={{ width: 12, height: 12 }} /> Live
+                  </Box>
                 </Badge>
               ) : (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Closed
+                <Badge variant="outline">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Clock style={{ width: 12, height: 12 }} /> Closed
+                  </Box>
                 </Badge>
               )}
               <Button variant="outline" size="sm" onClick={() => fetchChain(true)} disabled={refreshing}>
-                <RefreshCw className={cn('w-4 h-4 mr-1', refreshing && 'animate-spin')} />
+                <RefreshCw
+                  style={{
+                    width: 16,
+                    height: 16,
+                    marginRight: refreshing ? 0 : 4,
+                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                  }}
+                />
                 {refreshing ? '' : 'Refresh'}
               </Button>
-            </div>
-          </div>
+            </Box>
+          </Box>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-1">
-                  <th colSpan={6} className="px-4 py-2 text-center text-bullish border-b border-border">CALLS</th>
-                  <th className="px-4 py-2 text-center border-x border-border bg-surface-1">Strike</th>
-                  <th colSpan={6} className="px-4 py-2 text-center text-bearish border-b border-border">PUTS</th>
-                </tr>
-                <tr className="text-xs text-muted-foreground">
-                  <th className="px-2 py-2 text-right">OI</th>
-                  <th className="px-2 py-2 text-right">Chng OI</th>
-                  <th className="px-2 py-2 text-right">Volume</th>
-                  <th className="px-2 py-2 text-right">IV</th>
-                  <th className="px-2 py-2 text-right">LTP</th>
-                  <th className="px-2 py-2 text-right">Chng%</th>
-                  <th className="px-2 py-2 text-center bg-surface-1"></th>
-                  <th className="px-2 py-2 text-left">Chng%</th>
-                  <th className="px-2 py-2 text-left">LTP</th>
-                  <th className="px-2 py-2 text-left">IV</th>
-                  <th className="px-2 py-2 text-left">Volume</th>
-                  <th className="px-2 py-2 text-left">Chng OI</th>
-                  <th className="px-2 py-2 text-left">OI</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.05]">
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table size="small" sx={{ minWidth: 900 }}>
+              <TableHead>
+                {/* Header row 1: CALLS / Strike / PUTS */}
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    align="center"
+                    sx={{
+                      color: 'success.main',
+                      fontWeight: 700,
+                      py: 0.75,
+                      bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
+                    CALLS
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      py: 0.75,
+                      bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
+                      borderLeft: 1,
+                      borderRight: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
+                    Strike
+                  </TableCell>
+                  <TableCell
+                    colSpan={6}
+                    align="center"
+                    sx={{
+                      color: 'error.main',
+                      fontWeight: 700,
+                      py: 0.75,
+                      bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
+                    PUTS
+                  </TableCell>
+                </TableRow>
+                {/* Header row 2: column labels */}
+                <TableRow>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>OI</TableCell>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Chng OI</TableCell>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Volume</TableCell>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>IV</TableCell>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>LTP</TableCell>
+                  <TableCell align="right" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Chng%</TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      px: densePx,
+                      py: densePy,
+                      bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
+                      borderLeft: 1,
+                      borderRight: 1,
+                      borderColor: 'divider',
+                    }}
+                  />
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Chng%</TableCell>
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>LTP</TableCell>
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>IV</TableCell>
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Volume</TableCell>
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>Chng OI</TableCell>
+                  <TableCell align="left" sx={{ px: densePx, py: densePy, fontSize: '0.7rem', color: 'text.secondary' }}>OI</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {data.map((row) => {
                   const isITM_CE = row.CE?.itm;
                   const isITM_PE = row.PE?.itm;
                   const isATM = row.isATM;
+
+                  const itmCeBg = isITM_CE
+                    ? { bgcolor: (t) => alpha(t.palette.success.main, 0.04) }
+                    : {};
+                  const itmPeBg = isITM_PE
+                    ? { bgcolor: (t) => alpha(t.palette.error.main, 0.04) }
+                    : {};
+                  const tabNums = { fontVariantNumeric: 'tabular-nums' };
+                  const cellBase = { px: densePx, py: densePy, fontSize: '0.8rem' };
+
                   return (
-                    <tr key={row.strikePrice} className={cn('hover:bg-surface-1 transition-colors', isATM && 'bg-primary/10 border-l-2 border-r-2 border-primary/40')}>
-                      <td className={cn('px-2 py-1.5 text-right tabular-nums', isITM_CE && 'bg-bullish/5')}>{formatNumber(row.CE?.openInterest, { compact: true })}</td>
-                      <td className={cn('px-2 py-1.5 text-right tabular-nums', isITM_CE && 'bg-bullish/5', getChangeColor(row.CE?.oiChange))}>{formatNumber(row.CE?.oiChange, { compact: true, showSign: true })}</td>
-                      <td className={cn('px-2 py-1.5 text-right tabular-nums', isITM_CE && 'bg-bullish/5')}>{formatNumber(row.CE?.volume, { compact: true })}</td>
-                      <td className={cn('px-2 py-1.5 text-right tabular-nums', isITM_CE && 'bg-bullish/5')}>{row.CE?.iv?.toFixed(1)}%</td>
-                      <td className={cn('px-2 py-1.5 text-right font-medium tabular-nums', isITM_CE && 'bg-bullish/5', getChangeColor(row.CE?.change))}>{formatINR(row.CE?.ltp)}</td>
-                      <td className={cn('px-2 py-1.5 text-right text-xs tabular-nums', isITM_CE && 'bg-bullish/5', getChangeColor(row.CE?.pctChange))}>{row.CE?.pctChange > 0 ? '+' : ''}{row.CE?.pctChange?.toFixed(1)}%</td>
-                      <td className={cn('px-3 py-1.5 text-center font-bold bg-surface-1 border-x border-border tabular-nums', isATM && 'text-primary')}>
+                    <TableRow
+                      key={row.strikePrice}
+                      hover
+                      sx={{
+                        transition: 'background-color 0.15s',
+                        ...(isATM && {
+                          bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                          borderLeft: 2,
+                          borderRight: 2,
+                          borderColor: (t) => alpha(t.palette.primary.main, 0.4),
+                        }),
+                      }}
+                    >
+                      {/* Call columns */}
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg }}>
+                        {formatNumber(row.CE?.openInterest, { compact: true })}
+                      </TableCell>
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg, color: changeColor(row.CE?.oiChange) }}>
+                        {formatNumber(row.CE?.oiChange, { compact: true, showSign: true })}
+                      </TableCell>
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg }}>
+                        {formatNumber(row.CE?.volume, { compact: true })}
+                      </TableCell>
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg }}>
+                        {row.CE?.iv?.toFixed(1)}%
+                      </TableCell>
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg, fontWeight: 500, color: changeColor(row.CE?.change) }}>
+                        {formatINR(row.CE?.ltp)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ ...cellBase, ...tabNums, ...itmCeBg, fontSize: '0.7rem', color: changeColor(row.CE?.pctChange) }}>
+                        {row.CE?.pctChange > 0 ? '+' : ''}{row.CE?.pctChange?.toFixed(1)}%
+                      </TableCell>
+
+                      {/* Strike column */}
+                      <TableCell
+                        align="center"
+                        sx={{
+                          ...cellBase,
+                          ...tabNums,
+                          fontWeight: 700,
+                          bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
+                          borderLeft: 1,
+                          borderRight: 1,
+                          borderColor: 'divider',
+                          ...(isATM && { color: 'primary.main' }),
+                        }}
+                      >
                         {row.strikePrice}
-                        {isATM && <span className="text-[10px] ml-1 text-primary/70">ATM</span>}
-                      </td>
-                      <td className={cn('px-2 py-1.5 text-left text-xs tabular-nums', isITM_PE && 'bg-bearish/5', getChangeColor(row.PE?.pctChange))}>{row.PE?.pctChange > 0 ? '+' : ''}{row.PE?.pctChange?.toFixed(1)}%</td>
-                      <td className={cn('px-2 py-1.5 text-left font-medium tabular-nums', isITM_PE && 'bg-bearish/5', getChangeColor(row.PE?.change))}>{formatINR(row.PE?.ltp)}</td>
-                      <td className={cn('px-2 py-1.5 text-left tabular-nums', isITM_PE && 'bg-bearish/5')}>{row.PE?.iv?.toFixed(1)}%</td>
-                      <td className={cn('px-2 py-1.5 text-left tabular-nums', isITM_PE && 'bg-bearish/5')}>{formatNumber(row.PE?.volume, { compact: true })}</td>
-                      <td className={cn('px-2 py-1.5 text-left tabular-nums', isITM_PE && 'bg-bearish/5', getChangeColor(row.PE?.oiChange))}>{formatNumber(row.PE?.oiChange, { compact: true, showSign: true })}</td>
-                      <td className={cn('px-2 py-1.5 text-left tabular-nums', isITM_PE && 'bg-bearish/5')}>{formatNumber(row.PE?.openInterest, { compact: true })}</td>
-                    </tr>
+                        {isATM && (
+                          <Typography
+                            component="span"
+                            sx={{ fontSize: '0.6rem', ml: 0.5, color: (t) => alpha(t.palette.primary.main, 0.7) }}
+                          >
+                            ATM
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      {/* Put columns */}
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg, fontSize: '0.7rem', color: changeColor(row.PE?.pctChange) }}>
+                        {row.PE?.pctChange > 0 ? '+' : ''}{row.PE?.pctChange?.toFixed(1)}%
+                      </TableCell>
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg, fontWeight: 500, color: changeColor(row.PE?.change) }}>
+                        {formatINR(row.PE?.ltp)}
+                      </TableCell>
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg }}>
+                        {row.PE?.iv?.toFixed(1)}%
+                      </TableCell>
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg }}>
+                        {formatNumber(row.PE?.volume, { compact: true })}
+                      </TableCell>
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg, color: changeColor(row.PE?.oiChange) }}>
+                        {formatNumber(row.PE?.oiChange, { compact: true, showSign: true })}
+                      </TableCell>
+                      <TableCell align="left" sx={{ ...cellBase, ...tabNums, ...itmPeBg }}>
+                        {formatNumber(row.PE?.openInterest, { compact: true })}
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TableContainer>
         </CardContent>
       </Card>
-    </div>
+    </Stack>
   );
 };
 

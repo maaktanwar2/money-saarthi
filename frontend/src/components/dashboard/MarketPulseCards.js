@@ -2,60 +2,151 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { cn, fetchAPI } from '../../lib/utils';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Skeleton from '@mui/material/Skeleton';
+import { useTheme, alpha } from '@mui/material/styles';
+import { fetchAPI } from '../../lib/utils';
 
 const PulseCard = ({ icon: Icon, label, value, change, changeLabel, color, glowColor, delay = 0 }) => {
+  const theme = useTheme();
   const isPositive = change >= 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 15, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay, type: 'spring', stiffness: 260, damping: 20 }}
-      className={cn(
-        'relative group overflow-hidden rounded-xl border transition-all duration-300',
-        'bg-gradient-to-br from-card/90 to-card/50 backdrop-blur-sm',
-        'border-border/40 hover:border-border/80',
-        'hover:shadow-lg hover:-translate-y-0.5'
-      )}
     >
-      {/* Top accent strip */}
-      <div className={cn('h-[2px] w-full', color.replace('bg-', 'bg-gradient-to-r from-') + '/40 via-' + color.replace('bg-', '') + ' to-' + color.replace('bg-', '') + '/40')} 
-        style={{ background: `linear-gradient(to right, ${glowColor}66, ${glowColor}, ${glowColor}66)` }}
-      />
+      <Box
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 3,
+          border: 1,
+          transition: 'all 0.3s ease',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+          backdropFilter: 'blur(8px)',
+          borderColor: alpha(theme.palette.divider, 0.4),
+          '&:hover': {
+            borderColor: alpha(theme.palette.divider, 0.8),
+            boxShadow: `0 10px 30px ${alpha(glowColor, 0.15)}`,
+            transform: 'translateY(-2px)',
+          },
+          '& .hover-glow': { opacity: 0, transition: 'opacity 0.5s ease' },
+          '&:hover .hover-glow': { opacity: 1 },
+          '& .icon-box': { transition: 'transform 0.2s ease' },
+          '&:hover .icon-box': { transform: 'scale(1.1)' },
+        }}
+      >
+        {/* Top accent strip */}
+        <Box
+          sx={{
+            height: 2,
+            width: '100%',
+            background: `linear-gradient(to right, ${glowColor}66, ${glowColor}, ${glowColor}66)`,
+          }}
+        />
 
-      {/* Background glow on hover */}
-      <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ backgroundColor: `${glowColor}15` }}
-      />
+        {/* Background glow on hover */}
+        <Box
+          className="hover-glow"
+          sx={{
+            position: 'absolute',
+            top: -24,
+            right: -24,
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            filter: 'blur(16px)',
+            bgcolor: alpha(glowColor, 0.08),
+          }}
+        />
 
-      <div className="flex items-center gap-2.5 p-2.5 relative">
-        <div className={cn(
-          'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110',
-          color
-        )}
-          style={{ boxShadow: `0 4px 14px ${glowColor}30` }}
-        >
-          <Icon className="w-4 h-4 text-white" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-base font-bold tabular-nums tracking-tight">{value}</span>
-            {change != null && (
-              <span className={cn(
-                'flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums',
-                isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-              )}>
-                {isPositive ? <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> : <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />}
-                {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : change}
-              </span>
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ p: 1.25, position: 'relative' }}>
+          <Box
+            className="icon-box"
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              bgcolor: color,
+              boxShadow: `0 4px 14px ${alpha(glowColor, 0.3)}`,
+            }}
+          >
+            <Icon style={{ width: 16, height: 16, color: '#fff' }} />
+          </Box>
+
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              sx={{
+                fontSize: '0.625rem',
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontWeight: 600,
+              }}
+            >
+              {label}
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25 }}>
+              <Typography
+                sx={{
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '-0.025em',
+                }}
+              >
+                {value}
+              </Typography>
+              {change != null && (
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 1.5,
+                    fontVariantNumeric: 'tabular-nums',
+                    bgcolor: isPositive
+                      ? alpha(theme.palette.success.main, 0.1)
+                      : alpha(theme.palette.error.main, 0.1),
+                    color: isPositive
+                      ? theme.palette.success.light
+                      : theme.palette.error.light,
+                  }}
+                >
+                  {isPositive
+                    ? <ArrowUpRight style={{ width: 10, height: 10, marginRight: 2 }} />
+                    : <ArrowDownRight style={{ width: 10, height: 10, marginRight: 2 }} />
+                  }
+                  {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : change}
+                </Box>
+              )}
+            </Stack>
+            {changeLabel && (
+              <Typography
+                sx={{
+                  fontSize: '0.5625rem',
+                  color: 'text.secondary',
+                  mt: 0.5,
+                  fontWeight: 500,
+                }}
+              >
+                {changeLabel}
+              </Typography>
             )}
-          </div>
-          {changeLabel && (
-            <div className="text-[9px] text-muted-foreground mt-1 font-medium">{changeLabel}</div>
-          )}
-        </div>
-      </div>
+          </Box>
+        </Stack>
+      </Box>
     </motion.div>
   );
 };
@@ -106,23 +197,25 @@ const MarketPulseCards = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-2">
-        {[...Array(2)].map((_, i) => <div key={i} className="h-[60px] skeleton rounded-xl" />)}
-      </div>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+        {[...Array(2)].map((_, i) => (
+          <Skeleton key={i} variant="rounded" height={60} sx={{ borderRadius: 3 }} />
+        ))}
+      </Box>
     );
   }
 
   if (!data) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
       <PulseCard
         icon={BarChart3}
         label="PCR"
         value={data.pcr}
         change={data.pcrChange}
         changeLabel={parseFloat(data.pcr) > 1 ? 'Bullish (Put heavy)' : parseFloat(data.pcr) < 0.7 ? 'Bearish (Call heavy)' : 'Neutral'}
-        color="bg-violet-500/80"
+        color="rgba(139,92,246,0.8)"
         glowColor="#8b5cf6"
         delay={0}
       />
@@ -132,11 +225,11 @@ const MarketPulseCards = () => {
         value={data.iv}
         change={data.ivChange}
         changeLabel={data.ivLevel || (parseFloat(data.iv) < 15 ? 'Low volatility' : parseFloat(data.iv) > 22 ? 'High volatility' : 'Normal')}
-        color="bg-amber-500/80"
+        color="rgba(245,158,11,0.8)"
         glowColor="#f59e0b"
         delay={0.05}
       />
-    </div>
+    </Box>
   );
 };
 

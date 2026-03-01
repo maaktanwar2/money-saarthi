@@ -1,9 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import InputAdornment from '@mui/material/InputAdornment';
+import Avatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
+import { alpha, useTheme } from '@mui/material/styles';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button, Badge, Tabs } from '../components/ui';
-import { formatINR, cn } from '../lib/utils';
+import { formatINR } from '../lib/utils';
 import { getUserFromStorage, isAdmin } from './UserProfile';
 import * as adminService from '../services/adminService';
 import { useConfirm } from '../hooks/useConfirm';
@@ -14,12 +29,13 @@ import {
   CreditCard, Calendar, Mail, Send, Database, Server, Globe, Lock, Clock
 } from 'lucide-react';
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
 // ADMIN PANEL - Enhanced Super Admin Dashboard with Real Data
-// ═══════════════════════════════════════════════════════════════════════════════
+// ===============================================================================
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [ConfirmEl, confirmAction] = useConfirm();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState(null);
@@ -60,7 +76,7 @@ export default function AdminPanel() {
     if (currentUser) {
       adminService.saveUserToList(currentUser);
     }
-    
+
     // Fetch users from backend API
     let fetchedUsers = [];
     try {
@@ -71,7 +87,7 @@ export default function AdminPanel() {
       fetchedUsers = adminService.getAllUsers();
       setUsers(fetchedUsers);
     }
-    
+
     // Fetch stats from backend
     const [userStats, revenueStats, pendingPayments, sysConfig, pmtConfig] = await Promise.all([
       adminService.getUserStats().catch(() => ({})),
@@ -81,7 +97,7 @@ export default function AdminPanel() {
       adminService.getPaymentConfig().catch(() => ({})),
     ]);
     const signalStats = adminService.getSignalStats();
-    
+
     setStats({
       ...userStats,
       ...signalStats,
@@ -217,7 +233,7 @@ export default function AdminPanel() {
   };
 
   // Filter users based on search
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -226,21 +242,37 @@ export default function AdminPanel() {
   if (!isAuthorized) {
     return (
       <PageLayout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Card className="glass-card p-8 text-center max-w-md">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
-              <Lock className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground mb-4">
-              You don't have permission to access the admin panel.
-              Only administrators can view this page.
-            </p>
-            <Button onClick={() => navigate('/')}>
-              Go to Dashboard
-            </Button>
+        <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Card>
+            <CardContent sx={{ p: 4, textAlign: 'center', maxWidth: 400, mx: 'auto' }}>
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  mx: 'auto',
+                  mb: 2,
+                  borderRadius: '50%',
+                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Lock style={{ width: 40, height: 40, color: theme.palette.error.main }} />
+              </Box>
+              <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+                Access Denied
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                You don't have permission to access the admin panel.
+                Only administrators can view this page.
+              </Typography>
+              <Button onClick={() => navigate('/')}>
+                Go to Dashboard
+              </Button>
+            </CardContent>
           </Card>
-        </div>
+        </Box>
       </PageLayout>
     );
   }
@@ -254,23 +286,64 @@ export default function AdminPanel() {
       />
 
       {/* Admin Badge */}
-      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 border border-red-500/20 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-            <Crown className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold text-lg">Super Admin Access</div>
-            <div className="text-sm text-muted-foreground">Logged in as {user?.email}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-            <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
+      <Box
+        sx={{
+          mb: 3,
+          p: 2,
+          borderRadius: 3,
+          background: `linear-gradient(to right, ${alpha(theme.palette.error.main, 0.1)}, ${alpha('#f97316', 0.1)}, ${alpha('#eab308', 0.1)})`,
+          border: 1,
+          borderColor: alpha(theme.palette.error.main, 0.2),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 3,
+              background: `linear-gradient(135deg, ${theme.palette.error.main}, #f97316)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Crown style={{ width: 24, height: 24, color: '#fff' }} />
+          </Box>
+          <Box>
+            <Typography fontWeight={600} variant="subtitle1">
+              Super Admin Access
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Logged in as {user?.email}
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Badge variant="outline">
+            <Box
+              component="span"
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: 'success.main',
+                mr: 1,
+                display: 'inline-block',
+                animation: 'pulse 2s infinite',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.5 },
+                },
+              }}
+            />
             System Online
           </Badge>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       <Section>
         <Tabs
@@ -286,525 +359,767 @@ export default function AdminPanel() {
           onChange={setActiveTab}
         />
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             DASHBOARD TAB - Revenue & Analytics
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6 mt-6">
+          <Stack spacing={3} sx={{ mt: 3 }}>
             {/* Period Selector & Refresh */}
-            <div className="flex justify-between items-center">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} />
                 Refresh Data
               </Button>
-              <div className="inline-flex bg-card border border-border rounded-lg p-1">
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  p: 0.5,
+                }}
+              >
                 {['24h', '7d', '30d', '90d'].map(period => (
-                  <button
+                  <Box
                     key={period}
+                    component="button"
                     onClick={() => setSelectedPeriod(period)}
-                    className={cn(
-                      'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                      selectedPeriod === period ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'
-                    )}
+                    sx={{
+                      px: 2,
+                      py: 0.75,
+                      borderRadius: 1.5,
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      bgcolor: selectedPeriod === period ? 'primary.main' : 'transparent',
+                      color: selectedPeriod === period ? 'primary.contrastText' : 'text.secondary',
+                      '&:hover': {
+                        color: selectedPeriod === period ? 'primary.contrastText' : 'text.primary',
+                      },
+                    }}
                   >
                     {period}
-                  </button>
+                  </Box>
                 ))}
-              </div>
-            </div>
+              </Box>
+            </Box>
 
             {/* Revenue Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-green-500" />
-                  </div>
-                  {stats.paidUsers > 0 && <Badge variant="success" className="text-xs">Live</Badge>}
-                </div>
-                <div className="text-2xl font-bold">{stats.paidUsers || 0}</div>
-                <div className="text-sm text-muted-foreground">Paid Users</div>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
+              <motion.div whileHover={{ scale: 1.02 }}>
+                <Card>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <DollarSign style={{ width: 20, height: 20, color: theme.palette.success.main }} />
+                      </Box>
+                      {stats.paidUsers > 0 && <Badge variant="success">Live</Badge>}
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>{stats.paidUsers || 0}</Typography>
+                    <Typography variant="body2" color="text.secondary">Paid Users</Typography>
+                  </CardContent>
+                </Card>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <Badge variant="outline" className="text-xs">Free Access</Badge>
-                </div>
-                <div className="text-2xl font-bold">{stats.freeAccessUsers || 0}</div>
-                <div className="text-sm text-muted-foreground">Free Access Grants</div>
+              <motion.div whileHover={{ scale: 1.02 }}>
+                <Card>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.info.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <CreditCard style={{ width: 20, height: 20, color: theme.palette.info.main }} />
+                      </Box>
+                      <Badge variant="outline">Free Access</Badge>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>{stats.freeAccessUsers || 0}</Typography>
+                    <Typography variant="body2" color="text.secondary">Free Access Grants</Typography>
+                  </CardContent>
+                </Card>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <Crown className="w-5 h-5 text-purple-500" />
-                  </div>
-                  <Badge variant="outline" className="text-xs">Pending</Badge>
-                </div>
-                <div className="text-2xl font-bold">{stats.pendingPayments || 0}</div>
-                <div className="text-sm text-muted-foreground">Pending Payments</div>
+              <motion.div whileHover={{ scale: 1.02 }}>
+                <Card>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Crown style={{ width: 20, height: 20, color: theme.palette.secondary.main }} />
+                      </Box>
+                      <Badge variant="outline">Pending</Badge>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>{stats.pendingPayments || 0}</Typography>
+                    <Typography variant="body2" color="text.secondary">Pending Payments</Typography>
+                  </CardContent>
+                </Card>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.02 }} className="glass-card p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">{(stats.totalUsers || 0).toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Total Users</div>
+              <motion.div whileHover={{ scale: 1.02 }}>
+                <Card>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.primary.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Users style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+                      </Box>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>{(stats.totalUsers || 0).toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Users</Typography>
+                  </CardContent>
+                </Card>
               </motion.div>
-            </div>
+            </Box>
 
             {/* Engagement Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2 }}>
               {[
-                { label: 'Active Users', value: (stats.activeUsers || 0).toLocaleString(), icon: Activity, color: 'text-green-500', bg: 'bg-green-500/20' },
-                { label: 'Total Signals', value: (stats.totalSignals || 0).toLocaleString(), icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/20' },
-                { label: 'Active Signals', value: (stats.activeSignals || 0).toLocaleString(), icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/20' },
-                { label: 'Transactions', value: (stats.totalTransactions || 0).toLocaleString(), icon: CreditCard, color: 'text-purple-500', bg: 'bg-purple-500/20' },
+                { label: 'Active Users', value: (stats.activeUsers || 0).toLocaleString(), icon: Activity, color: theme.palette.success.main },
+                { label: 'Total Signals', value: (stats.totalSignals || 0).toLocaleString(), icon: Zap, color: theme.palette.warning.main },
+                { label: 'Active Signals', value: (stats.activeSignals || 0).toLocaleString(), icon: TrendingUp, color: theme.palette.info.main },
+                { label: 'Transactions', value: (stats.totalTransactions || 0).toLocaleString(), icon: CreditCard, color: theme.palette.secondary.main },
               ].map(stat => (
-                <Card key={stat.label} className="glass-card p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', stat.bg)}>
-                      <stat.icon className={cn('w-5 h-5', stat.color)} />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold">{stat.value}</div>
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
-                    </div>
-                  </div>
+                <Card key={stat.label}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(stat.color, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <stat.icon style={{ width: 20, height: 20, color: stat.color }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>{stat.value}</Typography>
+                        <Typography variant="caption" color="text.secondary">{stat.label}</Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
                 </Card>
               ))}
-            </div>
+            </Box>
 
             {/* Activity Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               {/* Recent Transactions */}
-              <Card className="glass-card">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base">Recent Transactions</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('subscriptions')}>View All</Button>
+              <Card>
+                <CardHeader>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <CardTitle>Recent Transactions</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('subscriptions')}>View All</Button>
+                  </Box>
                 </CardHeader>
                 <CardContent>
                   {transactions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>No pending payments</p>
-                    </div>
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <CreditCard style={{ width: 48, height: 48, margin: '0 auto 8px', opacity: 0.5, color: theme.palette.text.secondary }} />
+                      <Typography color="text.secondary">No pending payments</Typography>
+                    </Box>
                   ) : (
-                    <div className="space-y-3">
+                    <Stack spacing={1.5}>
                       {transactions.slice(0, 4).map(tx => (
-                        <div key={tx._id || tx.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-yellow-500/20">
-                              <Clock className="w-4 h-4 text-yellow-500" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-sm">{tx.email || tx.user}</div>
-                              <div className="text-xs text-muted-foreground">{tx.plan_name || tx.plan_id || tx.plan}</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium text-yellow-500">
+                        <Box
+                          key={tx._id || tx.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 1.5,
+                            borderRadius: 2,
+                            bgcolor: alpha(theme.palette.background.default, 0.5),
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                bgcolor: alpha(theme.palette.warning.main, 0.2),
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Clock style={{ width: 16, height: 16, color: theme.palette.warning.main }} />
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" fontWeight={500}>{tx.email || tx.user}</Typography>
+                              <Typography variant="caption" color="text.secondary">{tx.plan_name || tx.plan_id || tx.plan}</Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="body2" fontWeight={500} sx={{ color: theme.palette.warning.main }}>
                               {formatINR(tx.amount)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{tx.utr_number ? `UTR: ${tx.utr_number}` : tx.date}</div>
-                          </div>
-                        </div>
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {tx.utr_number ? `UTR: ${tx.utr_number}` : tx.date}
+                            </Typography>
+                          </Box>
+                        </Box>
                       ))}
-                    </div>
+                    </Stack>
                   )}
                 </CardContent>
               </Card>
 
               {/* System Status */}
-              <Card className="glass-card">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base">System Status</CardTitle>
-                  <Badge variant="success">All Systems Operational</Badge>
+              <Card>
+                <CardHeader>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <CardTitle>System Status</CardTitle>
+                    <Badge variant="success">All Systems Operational</Badge>
+                  </Box>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <Stack spacing={2}>
                     {[
                       { label: 'API Server', status: 'Operational', icon: Server },
                       { label: 'Database', status: 'Operational', icon: Database },
                       { label: 'WebSocket', status: 'Operational', icon: Globe },
                       { label: 'Payment (UPI)', status: 'Operational', icon: CreditCard },
                     ].map(item => (
-                      <div key={item.label} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <item.icon className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">{item.label}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="w-2 h-2 rounded-full bg-green-500" />
-                        </div>
-                      </div>
+                      <Box
+                        key={item.label}
+                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <item.icon style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+                          <Typography variant="body2">{item.label}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              bgcolor: 'success.main',
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     ))}
-                    
-                    <div className="pt-4 border-t border-border space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Pending Payments</span>
-                        <span className="font-medium">{stats.pendingPayments || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Blocked Users</span>
-                        <span className="font-medium">{stats.blockedUsers || 0}</span>
-                      </div>
-                    </div>
-                  </div>
+
+                    <Divider />
+
+                    <Stack spacing={1.5}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Pending Payments</Typography>
+                        <Typography variant="body2" fontWeight={500}>{stats.pendingPayments || 0}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Blocked Users</Typography>
+                        <Typography variant="body2" fontWeight={500}>{stats.blockedUsers || 0}</Typography>
+                      </Box>
+                    </Stack>
+                  </Stack>
                 </CardContent>
               </Card>
-            </div>
+            </Box>
 
             {/* Quick Actions */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-base">Quick Actions</CardTitle>
+                <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2 }}>
                   {[
-                    { label: 'Broadcast Alert', icon: Bell, color: 'bg-blue-500/20 text-blue-500', action: () => setActiveTab('content') },
-                    { label: 'Generate Signal', icon: Zap, color: 'bg-yellow-500/20 text-yellow-500', action: () => setActiveTab('signals') },
-                    { label: 'Export Data', icon: Download, color: 'bg-green-500/20 text-green-500', action: handleExportData },
-                    { label: 'Clear Cache', icon: RefreshCw, color: 'bg-orange-500/20 text-orange-500', action: handleClearCache },
+                    { label: 'Broadcast Alert', icon: Bell, color: theme.palette.info.main, action: () => setActiveTab('content') },
+                    { label: 'Generate Signal', icon: Zap, color: theme.palette.warning.main, action: () => setActiveTab('signals') },
+                    { label: 'Export Data', icon: Download, color: theme.palette.success.main, action: handleExportData },
+                    { label: 'Clear Cache', icon: RefreshCw, color: '#f97316', action: handleClearCache },
                   ].map(action => (
                     <Button
                       key={action.label}
                       variant="outline"
-                      className="h-auto py-4 flex flex-col gap-2"
                       onClick={action.action}
+                      sx={{
+                        height: 'auto',
+                        py: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                      }}
                     >
-                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', action.color)}>
-                        <action.icon className="w-5 h-5" />
-                      </div>
-                      <span className="text-sm">{action.label}</span>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: alpha(action.color, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <action.icon style={{ width: 20, height: 20, color: action.color }} />
+                      </Box>
+                      <Typography variant="body2">{action.label}</Typography>
                     </Button>
                   ))}
-                </div>
+                </Box>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             USERS TAB - User Management
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'users' && (
-          <div className="space-y-6 mt-6">
+          <Stack spacing={3} sx={{ mt: 3 }}>
             {/* User Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-blue-500">{stats.totalUsers || 0}</div>
-                <div className="text-sm text-muted-foreground">Total Users</div>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2 }}>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.info.main }}>{stats.totalUsers || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Users</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-green-500">{stats.activeUsers || 0}</div>
-                <div className="text-sm text-muted-foreground">Active Users</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.success.main }}>{stats.activeUsers || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Active Users</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-purple-500">{(stats.proMonthly || 0) + (stats.proYearly || 0)}</div>
-                <div className="text-sm text-muted-foreground">Pro Users</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.secondary.main }}>{(stats.proMonthly || 0) + (stats.proYearly || 0)}</Typography>
+                  <Typography variant="body2" color="text.secondary">Pro Users</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-primary">+{stats.newUsersWeek || 0}</div>
-                <div className="text-sm text-muted-foreground">New This Week</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: 'primary.main' }}>+{stats.newUsersWeek || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">New This Week</Typography>
+                </CardContent>
               </Card>
-            </div>
+            </Box>
 
             {/* User Management Table */}
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>User Management</CardTitle>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
+            <Card>
+              <CardHeader>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 2 }}>
+                  <CardTitle>User Management</CardTitle>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <TextField
+                      size="small"
                       placeholder="Search users..."
-                      className="pl-9 w-64"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
+                      sx={{ width: 256 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Search style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+                          </InputAdornment>
+                        ),
+                      }}
                     />
-                  </div>
-                  <Button size="sm" onClick={handleRefresh}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
+                    <Button size="sm" onClick={handleRefresh}>
+                      <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} />
+                      Refresh
+                    </Button>
+                  </Box>
+                </Box>
               </CardHeader>
               <CardContent>
                 {filteredUsers.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">No users found</p>
-                    <p className="text-sm">Users will appear here when they sign in</p>
-                  </div>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <Users style={{ width: 64, height: 64, margin: '0 auto 16px', opacity: 0.5, color: theme.palette.text.secondary }} />
+                    <Typography variant="subtitle1" color="text.secondary">No users found</Typography>
+                    <Typography variant="body2" color="text.secondary">Users will appear here when they sign in</Typography>
+                  </Box>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">User</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Plan</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Last Active</th>
-                          <th className="text-right p-3 text-sm font-medium text-muted-foreground">Revenue</th>
-                          <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>User</TableCell>
+                          <TableCell>Plan</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Last Active</TableCell>
+                          <TableCell align="right">Revenue</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
                         {filteredUsers.map(u => {
                           // Normalize user data (handle both backend and local formats)
                           const userPlan = u.is_paid ? 'pro' : (u.plan || 'free');
                           const userStatus = u.is_blocked ? 'blocked' : (u.status || 'active');
                           const lastActive = u.last_login || u.lastActive;
                           const userName = u.name || u.display_name || u.email?.split('@')[0] || 'Unknown';
-                          
+
                           return (
-                          <tr key={u.id || u.user_id || u.email} className="border-b border-border/50 hover:bg-card/50 transition-colors">
-                            <td className="p-3">
-                              <div className="flex items-center gap-3">
+                          <TableRow key={u.id || u.user_id || u.email}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                 {(u.picture || u.photo_url) ? (
-                                  <img src={u.picture || u.photo_url} alt="" className="w-10 h-10 rounded-full" />
+                                  <Avatar
+                                    src={u.picture || u.photo_url}
+                                    alt=""
+                                    sx={{ width: 40, height: 40 }}
+                                  />
                                 ) : (
-                                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-medium">
+                                  <Avatar
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      bgcolor: alpha(theme.palette.primary.main, 0.2),
+                                      color: 'primary.main',
+                                      fontWeight: 500,
+                                    }}
+                                  >
                                     {(userName || '?').charAt(0).toUpperCase()}
-                                  </div>
+                                  </Avatar>
                                 )}
-                                <div>
-                                  <div className="font-medium">{userName}</div>
-                                  <div className="text-sm text-muted-foreground">{u.email}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-2">
+                                <Box>
+                                  <Typography variant="body2" fontWeight={500}>{userName}</Typography>
+                                  <Typography variant="caption" color="text.secondary">{u.email}</Typography>
+                                </Box>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Badge variant={userPlan === 'pro' ? 'default' : 'secondary'}>
-                                  {userPlan === 'pro' && <Crown className="w-3 h-3 mr-1" />}
+                                  {userPlan === 'pro' && <Crown style={{ width: 12, height: 12, marginRight: 4 }} />}
                                   {userPlan}
                                 </Badge>
                                 {u.billingCycle && (
-                                  <span className="text-xs text-muted-foreground">({u.billingCycle})</span>
+                                  <Typography variant="caption" color="text.secondary">({u.billingCycle})</Typography>
                                 )}
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              <Badge 
-                                variant={userStatus === 'active' ? 'success' : userStatus === 'blocked' ? 'destructive' : 'secondary'}
-                                className="cursor-pointer"
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box
                                 onClick={() => handleToggleUserStatus(u.email, userStatus)}
+                                sx={{ cursor: 'pointer', display: 'inline-block' }}
                               >
-                                {userStatus}
-                              </Badge>
-                            </td>
-                            <td className="p-3 text-sm text-muted-foreground">
-                              {lastActive ? adminService.formatTimeAgo(lastActive) : 'Never'}
-                            </td>
-                            <td className="p-3 text-right font-medium">
-                              {u.revenue > 0 ? formatINR(u.revenue) : '-'}
-                            </td>
-                            <td className="p-3">
-                              <div className="flex justify-end gap-1">
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  className="h-8 w-8 p-0"
+                                <Badge
+                                  variant={userStatus === 'active' ? 'success' : userStatus === 'blocked' ? 'destructive' : 'secondary'}
+                                >
+                                  {userStatus}
+                                </Badge>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {lastActive ? adminService.formatTimeAgo(lastActive) : 'Never'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" fontWeight={500}>
+                                {u.revenue > 0 ? formatINR(u.revenue) : '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
                                   onClick={() => alert(`User: ${userName}\nEmail: ${u.email}\nPlan: ${userPlan}\nJoined: ${u.joinedAt || u.created_at}`)}
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  <Eye style={{ width: 16, height: 16 }} />
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  className="h-8 w-8 p-0 text-red-500"
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  sx={{ color: 'error.main' }}
                                   onClick={() => handleDeleteUser(u.email)}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 style={{ width: 16, height: 16 }} />
                                 </Button>
-                              </div>
-                            </td>
-                          </tr>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
                         )})}
-                      </tbody>
-                    </table>
-                  </div>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             SUBSCRIPTIONS TAB - Revenue & Subscription Management
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'subscriptions' && (
-          <div className="space-y-6 mt-6">
+          <Stack spacing={3} sx={{ mt: 3 }}>
             {/* Subscription Overview */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="glass-card p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-slate-500/20 flex items-center justify-center">
-                    <Users className="w-7 h-7 text-slate-400" />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold">{stats.freeUsers || 0}</div>
-                    <div className="text-muted-foreground">Free Users</div>
-                  </div>
-                </div>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+              <Card>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 3,
+                        bgcolor: alpha(theme.palette.text.secondary, 0.2),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Users style={{ width: 28, height: 28, color: theme.palette.text.secondary }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>{stats.freeUsers || 0}</Typography>
+                      <Typography color="text.secondary">Free Users</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-6 border-primary/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Crown className="w-7 h-7 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold">{stats.proMonthly || 0}</div>
-                    <div className="text-muted-foreground">Pro Monthly</div>
-                    <div className="text-sm text-primary">{formatINR((stats.proMonthly || 0) * 899)}/mo</div>
-                  </div>
-                </div>
+              <Card sx={{ borderColor: alpha(theme.palette.primary.main, 0.3) }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 3,
+                        bgcolor: alpha(theme.palette.primary.main, 0.2),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Crown style={{ width: 28, height: 28, color: theme.palette.primary.main }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>{stats.proMonthly || 0}</Typography>
+                      <Typography color="text.secondary">Pro Monthly</Typography>
+                      <Typography variant="body2" sx={{ color: 'primary.main' }}>{formatINR((stats.proMonthly || 0) * 899)}/mo</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-6 border-yellow-500/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                    <Crown className="w-7 h-7 text-yellow-500" />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold">{stats.proYearly || 0}</div>
-                    <div className="text-muted-foreground">Pro Yearly</div>
-                    <div className="text-sm text-yellow-500">{formatINR((stats.proYearly || 0) * 4999)}/yr</div>
-                  </div>
-                </div>
+              <Card sx={{ borderColor: alpha(theme.palette.warning.main, 0.3) }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 3,
+                        bgcolor: alpha(theme.palette.warning.main, 0.2),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Crown style={{ width: 28, height: 28, color: theme.palette.warning.main }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>{stats.proYearly || 0}</Typography>
+                      <Typography color="text.secondary">Pro Yearly</Typography>
+                      <Typography variant="body2" sx={{ color: theme.palette.warning.main }}>{formatINR((stats.proYearly || 0) * 4999)}/yr</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
               </Card>
-            </div>
+            </Box>
 
             {/* Payment History */}
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Payment History</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleExportData}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
+            <Card>
+              <CardHeader>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <CardTitle>Payment History</CardTitle>
+                  <Button variant="outline" size="sm" onClick={handleExportData}>
+                    <Download style={{ width: 16, height: 16, marginRight: 8 }} />
+                    Export
+                  </Button>
+                </Box>
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CreditCard className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">No transactions yet</p>
-                    <p className="text-sm">Transactions will appear here when users subscribe</p>
-                  </div>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <CreditCard style={{ width: 64, height: 64, margin: '0 auto 16px', opacity: 0.5, color: theme.palette.text.secondary }} />
+                    <Typography variant="subtitle1" color="text.secondary">No transactions yet</Typography>
+                    <Typography variant="body2" color="text.secondary">Transactions will appear here when users subscribe</Typography>
+                  </Box>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">User</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Plan</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Amount</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Payment ID</th>
-                          <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>User</TableCell>
+                          <TableCell>Plan</TableCell>
+                          <TableCell>Amount</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Payment ID</TableCell>
+                          <TableCell>Date</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
                         {transactions.map(tx => (
-                          <tr key={tx.id} className="border-b border-border/50">
-                            <td className="p-3">
-                              <div className="font-medium">{tx.user}</div>
-                              <div className="text-sm text-muted-foreground">{tx.email}</div>
-                            </td>
-                            <td className="p-3">{tx.plan}</td>
-                            <td className="p-3 font-medium">{formatINR(tx.amount)}</td>
-                            <td className="p-3">
-                              <Badge variant={tx.status === 'success' ? 'success' : 'error'}>
+                          <TableRow key={tx.id}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>{tx.user}</Typography>
+                              <Typography variant="caption" color="text.secondary">{tx.email}</Typography>
+                            </TableCell>
+                            <TableCell>{tx.plan}</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>{formatINR(tx.amount)}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={tx.status === 'success' ? 'success' : 'destructive'}>
                                 {tx.status}
                               </Badge>
-                            </td>
-                            <td className="p-3 text-sm text-muted-foreground font-mono">{tx.paymentId}</td>
-                            <td className="p-3 text-sm">{tx.date}</td>
-                          </tr>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{tx.paymentId}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{tx.date}</Typography>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             SIGNALS TAB - Signal Management
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'signals' && (
-          <div className="space-y-6 mt-6">
+          <Stack spacing={3} sx={{ mt: 3 }}>
             {/* Signal Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold">{stats.totalSignals || 0}</div>
-                <div className="text-sm text-muted-foreground">Total Signals</div>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2 }}>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700}>{stats.totalSignals || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Signals</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-green-500">{stats.avgConfidence || 0}%</div>
-                <div className="text-sm text-muted-foreground">Avg Confidence</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.success.main }}>{stats.avgConfidence || 0}%</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg Confidence</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-blue-500">{stats.activeSignals || 0}</div>
-                <div className="text-sm text-muted-foreground">Active Signals</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.info.main }}>{stats.activeSignals || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Active Signals</Typography>
+                </CardContent>
               </Card>
-              <Card className="glass-card p-4">
-                <div className="text-2xl font-bold text-purple-500">{stats.closedSignals || 0}</div>
-                <div className="text-sm text-muted-foreground">Closed Signals</div>
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="h5" fontWeight={700} sx={{ color: theme.palette.secondary.main }}>{stats.closedSignals || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Closed Signals</Typography>
+                </CardContent>
               </Card>
-            </div>
+            </Box>
 
             {/* Active Signals */}
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Signal Management</CardTitle>
-                <Button size="sm" onClick={handleRefresh}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
+            <Card>
+              <CardHeader>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <CardTitle>Signal Management</CardTitle>
+                  <Button size="sm" onClick={handleRefresh}>
+                    <RefreshCw style={{ width: 16, height: 16, marginRight: 8 }} />
+                    Refresh
+                  </Button>
+                </Box>
               </CardHeader>
               <CardContent>
                 {signals.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">No signals generated yet</p>
-                    <p className="text-sm">Use the form below to create your first signal</p>
-                  </div>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <Zap style={{ width: 64, height: 64, margin: '0 auto 16px', opacity: 0.5, color: theme.palette.text.secondary }} />
+                    <Typography variant="subtitle1" color="text.secondary">No signals generated yet</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the form below to create your first signal</Typography>
+                  </Box>
                 ) : (
-                  <div className="space-y-4">
+                  <Stack spacing={2}>
                     {signals.map(signal => (
-                      <div key={signal.id} className="flex items-center justify-between p-4 rounded-lg bg-background/50">
-                        <div className="flex items-center gap-4">
-                          <Badge variant={signal.type === 'BUY' ? 'success' : 'error'} className="w-14 justify-center">
+                      <Box
+                        key={signal.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.background.default, 0.5),
+                          flexWrap: 'wrap',
+                          gap: 1,
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Badge variant={signal.type === 'BUY' ? 'success' : 'destructive'}>
                             {signal.type}
                           </Badge>
-                          <div>
-                            <div className="font-medium">{signal.symbol}</div>
-                            <div className="text-sm text-muted-foreground">
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>{signal.symbol}</Typography>
+                            <Typography variant="caption" color="text.secondary">
                               {signal.createdAt ? adminService.formatTimeAgo(signal.createdAt) : signal.generated}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <div className="font-medium">{signal.confidence}%</div>
-                            <div className="text-xs text-muted-foreground">Confidence</div>
-                          </div>
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" fontWeight={500}>{signal.confidence}%</Typography>
+                            <Typography variant="caption" color="text.secondary">Confidence</Typography>
+                          </Box>
                           {signal.targetPrice && (
-                            <div className="text-center">
-                              <div className="font-medium">₹{signal.targetPrice}</div>
-                              <div className="text-xs text-muted-foreground">Target</div>
-                            </div>
+                            <Box sx={{ textAlign: 'center' }}>
+                              <Typography variant="body2" fontWeight={500}>&#8377;{signal.targetPrice}</Typography>
+                              <Typography variant="caption" color="text.secondary">Target</Typography>
+                            </Box>
                           )}
                           <Badge variant={signal.status === 'active' ? 'default' : 'secondary'}>
                             {signal.status}
@@ -814,486 +1129,652 @@ export default function AdminPanel() {
                               Close
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" className="text-red-500" onClick={() => handleDeleteSignal(signal.id)}>
-                            <Trash2 className="w-4 h-4" />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            sx={{ color: 'error.main' }}
+                            onClick={() => handleDeleteSignal(signal.id)}
+                          >
+                            <Trash2 style={{ width: 16, height: 16 }} />
                           </Button>
-                        </div>
-                      </div>
+                        </Box>
+                      </Box>
                     ))}
-                  </div>
+                  </Stack>
                 )}
               </CardContent>
             </Card>
 
             {/* Manual Signal Generator */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Generate New Signal</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Symbol *</label>
-                    <Input 
-                      placeholder="e.g., NIFTY 22500 CE" 
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Symbol *</Typography>
+                    <Input
+                      placeholder="e.g., NIFTY 22500 CE"
                       value={signalForm.symbol}
                       onChange={e => setSignalForm(f => ({ ...f, symbol: e.target.value }))}
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Type</label>
-                    <select 
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Type</Typography>
+                    <TextField
+                      select
+                      size="small"
+                      fullWidth
                       value={signalForm.type}
                       onChange={e => setSignalForm(f => ({ ...f, type: e.target.value }))}
                     >
-                      <option>BUY</option>
-                      <option>SELL</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Confidence (%)</label>
-                    <Input 
-                      type="number" 
+                      <MenuItem value="BUY">BUY</MenuItem>
+                      <MenuItem value="SELL">SELL</MenuItem>
+                    </TextField>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Confidence (%)</Typography>
+                    <Input
+                      type="number"
                       placeholder="75"
                       value={signalForm.confidence}
                       onChange={e => setSignalForm(f => ({ ...f, confidence: parseInt(e.target.value) || 75 }))}
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Target Price</label>
-                    <Input 
-                      type="number" 
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Target Price</Typography>
+                    <Input
+                      type="number"
                       placeholder="0.00"
                       value={signalForm.targetPrice}
                       onChange={e => setSignalForm(f => ({ ...f, targetPrice: e.target.value }))}
                     />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <label className="text-sm text-muted-foreground block mb-2">Rationale</label>
-                  <textarea 
-                    className="input w-full h-20" 
+                  </Box>
+                </Box>
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Rationale</Typography>
+                  <TextField
+                    multiline
+                    rows={3}
+                    fullWidth
+                    size="small"
                     placeholder="Enter signal rationale..."
                     value={signalForm.rationale}
                     onChange={e => setSignalForm(f => ({ ...f, rationale: e.target.value }))}
                   />
-                </div>
-                <Button className="mt-4" onClick={handleGenerateSignal}>
-                  <Send className="w-4 h-4 mr-2" />
+                </Box>
+                <Button sx={{ mt: 2 }} onClick={handleGenerateSignal}>
+                  <Send style={{ width: 16, height: 16, marginRight: 8 }} />
                   Broadcast Signal
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             CONTENT TAB - Content Management
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'content' && (
-          <div className="space-y-6 mt-6">
-            <Card className="glass-card">
+          <Stack spacing={3} sx={{ mt: 3 }}>
+            <Card>
               <CardHeader>
                 <CardTitle>Content Management</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
                   {[
                     { label: 'Announcements', desc: 'Manage platform announcements', icon: Bell, count: adminService.getAllAnnouncements().length },
                     { label: 'Active Signals', desc: 'Currently broadcasting', icon: Zap, count: signals.filter(s => s.status === 'active').length },
                     { label: 'Total Users', desc: 'Registered users', icon: Users, count: users.length },
                     { label: 'Pro Subscribers', desc: 'Paid members', icon: Crown, count: users.filter(u => u.plan === 'pro').length },
                     { label: 'Transactions', desc: 'Payment history', icon: CreditCard, count: transactions.length },
-                    { label: 'System Config', desc: 'Platform settings', icon: Settings, count: '→' },
+                    { label: 'System Config', desc: 'Platform settings', icon: Settings, count: '\u2192' },
                   ].map(item => (
-                    <div
+                    <Box
                       key={item.label}
-                      className="flex items-center gap-4 p-4 rounded-lg bg-background/50 hover:bg-card cursor-pointer transition-colors"
                       onClick={() => {
                         if (item.label === 'System Config') setActiveTab('settings');
                         else if (item.label === 'Active Signals') setActiveTab('signals');
                         else if (item.label.includes('Users') || item.label.includes('Subscribers')) setActiveTab('users');
                         else if (item.label === 'Transactions') setActiveTab('subscriptions');
                       }}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: alpha(theme.palette.background.default, 0.5),
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          bgcolor: 'background.paper',
+                        },
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
-                        <item.icon className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{item.label}</div>
-                        <div className="text-sm text-muted-foreground">{item.desc}</div>
-                      </div>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.primary.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <item.icon style={{ width: 24, height: 24, color: theme.palette.primary.main }} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>{item.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{item.desc}</Typography>
+                      </Box>
                       <Badge variant="outline">{item.count}</Badge>
-                    </div>
+                    </Box>
                   ))}
-                </div>
+                </Box>
               </CardContent>
             </Card>
 
             {/* Broadcast Message */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Broadcast Message</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Title *</label>
-                    <Input 
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Title *</Typography>
+                    <Input
                       placeholder="Announcement title..."
                       value={broadcastForm.title}
                       onChange={e => setBroadcastForm(f => ({ ...f, title: e.target.value }))}
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Message *</label>
-                    <textarea 
-                      className="input w-full h-32" 
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Message *</Typography>
+                    <TextField
+                      multiline
+                      rows={5}
+                      fullWidth
+                      size="small"
                       placeholder="Write your message..."
                       value={broadcastForm.message}
                       onChange={e => setBroadcastForm(f => ({ ...f, message: e.target.value }))}
                     />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Target Audience</label>
-                      <select 
-                        className="input"
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Target Audience</Typography>
+                      <TextField
+                        select
+                        size="small"
                         value={broadcastForm.audience}
                         onChange={e => setBroadcastForm(f => ({ ...f, audience: e.target.value }))}
+                        sx={{ minWidth: 180 }}
                       >
-                        <option value="all">All Users</option>
-                        <option value="pro">Pro Users Only</option>
-                        <option value="free">Free Users Only</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Priority</label>
-                      <select 
-                        className="input"
+                        <MenuItem value="all">All Users</MenuItem>
+                        <MenuItem value="pro">Pro Users Only</MenuItem>
+                        <MenuItem value="free">Free Users Only</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Priority</Typography>
+                      <TextField
+                        select
+                        size="small"
                         value={broadcastForm.priority}
                         onChange={e => setBroadcastForm(f => ({ ...f, priority: e.target.value }))}
+                        sx={{ minWidth: 150 }}
                       >
-                        <option value="normal">Normal</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                    </div>
-                  </div>
-                  <Button onClick={handleBroadcast}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Broadcast
-                  </Button>
-                </div>
+                        <MenuItem value="normal">Normal</MenuItem>
+                        <MenuItem value="high">High</MenuItem>
+                        <MenuItem value="urgent">Urgent</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Button onClick={handleBroadcast}>
+                      <Send style={{ width: 16, height: 16, marginRight: 8 }} />
+                      Send Broadcast
+                    </Button>
+                  </Box>
+                </Stack>
               </CardContent>
             </Card>
 
             {/* Recent Announcements */}
             {adminService.getAllAnnouncements().length > 0 && (
-              <Card className="glass-card">
+              <Card>
                 <CardHeader>
                   <CardTitle>Recent Announcements</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <Stack spacing={1.5}>
                     {adminService.getAllAnnouncements().slice(0, 5).map(ann => (
-                      <div key={ann.id} className="p-4 rounded-lg bg-background/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium">{ann.title}</div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={ann.priority === 'urgent' ? 'error' : ann.priority === 'high' ? 'default' : 'secondary'}>
+                      <Box
+                        key={ann.id}
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.background.default, 0.5),
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" fontWeight={500}>{ann.title}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Badge variant={ann.priority === 'urgent' ? 'destructive' : ann.priority === 'high' ? 'default' : 'secondary'}>
                               {ann.priority}
                             </Badge>
                             <Badge variant="outline">{ann.audience}</Badge>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{ann.message}</p>
-                        <div className="text-xs text-muted-foreground mt-2">
+                          </Box>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">{ann.message}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                           {adminService.formatTimeAgo(ann.createdAt)}
-                        </div>
-                      </div>
+                        </Typography>
+                      </Box>
                     ))}
-                  </div>
+                  </Stack>
                 </CardContent>
               </Card>
             )}
-          </div>
+          </Stack>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
+        {/* ===============================================================================
             SETTINGS TAB - System Settings & Danger Zone
-        ═══════════════════════════════════════════════════════════════════════════════ */}
+        =============================================================================== */}
         {activeTab === 'settings' && (
-          <div className="space-y-6 mt-6">
+          <Stack spacing={3} sx={{ mt: 3 }}>
             {/* Payment Configuration */}
-            <Card className="glass-card border-primary/20">
+            <Card sx={{ borderColor: alpha(theme.palette.primary.main, 0.2) }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                  Payment Settings
+                <CardTitle>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CreditCard style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+                    Payment Settings
+                  </Box>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-sm">
-                  <strong>💡 Tip:</strong> Configure your payment details here. Users will see these options when subscribing.
-                </div>
-                
-                {/* UPI Settings */}
-                <div className="border border-border rounded-xl p-4">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                      <span className="text-purple-500 font-bold text-sm">UPI</span>
-                    </span>
-                    UPI Payment Details
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">UPI ID</label>
-                      <Input 
-                        placeholder="yourname@paytm or yourname@upi"
-                        value={paymentConfig.upiId || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, upiId: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Merchant Name</label>
-                      <Input 
-                        placeholder="Money Saarthi"
-                        value={paymentConfig.merchantName || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, merchantName: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                </div>
+              <CardContent>
+                <Stack spacing={3}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      border: 1,
+                      borderColor: alpha(theme.palette.primary.main, 0.2),
+                    }}
+                  >
+                    <Typography variant="body2">
+                      <strong>Tip:</strong> Configure your payment details here. Users will see these options when subscribing.
+                    </Typography>
+                  </Box>
 
-                {/* Phone Numbers */}
-                <div className="border border-border rounded-xl p-4">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      📱
-                    </span>
-                    Phone Numbers (for PhonePe, GPay, Paytm)
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">PhonePe Number</label>
-                      <Input 
-                        placeholder="9999999999"
-                        value={paymentConfig.phonepeNumber || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, phonepeNumber: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Google Pay Number</label>
-                      <Input 
-                        placeholder="9999999999"
-                        value={paymentConfig.gpayNumber || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, gpayNumber: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Paytm Number</label>
-                      <Input 
-                        placeholder="9999999999"
-                        value={paymentConfig.paytmNumber || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, paytmNumber: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">WhatsApp Support Number</label>
-                      <Input 
-                        placeholder="919999999999 (with country code)"
-                        value={paymentConfig.whatsappNumber || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, whatsappNumber: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bank Details */}
-                <div className="border border-border rounded-xl p-4">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      🏦
-                    </span>
-                    Bank Account Details (for NEFT/IMPS)
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Account Holder Name</label>
-                      <Input 
-                        placeholder="Account holder name"
-                        value={paymentConfig.bankDetails?.accountName || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), accountName: e.target.value } }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Account Number</label>
-                      <Input 
-                        placeholder="XXXXXXXXXXXX"
-                        value={paymentConfig.bankDetails?.accountNumber || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), accountNumber: e.target.value } }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">IFSC Code</label>
-                      <Input 
-                        placeholder="SBIN0XXXXXX"
-                        value={paymentConfig.bankDetails?.ifscCode || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), ifscCode: e.target.value } }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Bank Name</label>
-                      <Input 
-                        placeholder="State Bank of India"
-                        value={paymentConfig.bankDetails?.bankName || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), bankName: e.target.value } }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Razorpay (Optional) */}
-                <div className="border border-border rounded-xl p-4">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                      💳
-                    </span>
-                    Razorpay (Optional - for Card/Net Banking)
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Razorpay API Key</label>
-                      <Input 
-                        placeholder="rzp_live_XXXXXX"
-                        value={paymentConfig.razorpayKey || ''}
-                        onChange={e => setPaymentConfig(c => ({ ...c, razorpayKey: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground block mb-2">Enable Razorpay</label>
-                      <select 
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={paymentConfig.razorpayEnabled ? 'yes' : 'no'}
-                        onChange={e => setPaymentConfig(c => ({ ...c, razorpayEnabled: e.target.value === 'yes' }))}
+                  {/* UPI Settings */}
+                  <Box
+                    sx={{
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      p: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
                       >
-                        <option value="no">No (Hide Razorpay option)</option>
-                        <option value="yes">Yes (Show Razorpay option)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                        <Typography variant="caption" fontWeight={700} sx={{ color: theme.palette.secondary.main }}>UPI</Typography>
+                      </Box>
+                      <Typography fontWeight={600}>UPI Payment Details</Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>UPI ID</Typography>
+                        <Input
+                          placeholder="yourname@paytm or yourname@upi"
+                          value={paymentConfig.upiId || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, upiId: e.target.value }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Merchant Name</Typography>
+                        <Input
+                          placeholder="Money Saarthi"
+                          value={paymentConfig.merchantName || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, merchantName: e.target.value }))}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
 
-                <Button onClick={handleSavePaymentConfig} className="bg-primary">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Save Payment Settings
-                </Button>
+                  {/* Phone Numbers */}
+                  <Box
+                    sx={{
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      p: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                        }}
+                      >
+                        &#128241;
+                      </Box>
+                      <Typography fontWeight={600}>Phone Numbers (for PhonePe, GPay, Paytm)</Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>PhonePe Number</Typography>
+                        <Input
+                          placeholder="9999999999"
+                          value={paymentConfig.phonepeNumber || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, phonepeNumber: e.target.value }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Google Pay Number</Typography>
+                        <Input
+                          placeholder="9999999999"
+                          value={paymentConfig.gpayNumber || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, gpayNumber: e.target.value }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Paytm Number</Typography>
+                        <Input
+                          placeholder="9999999999"
+                          value={paymentConfig.paytmNumber || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, paytmNumber: e.target.value }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>WhatsApp Support Number</Typography>
+                        <Input
+                          placeholder="919999999999 (with country code)"
+                          value={paymentConfig.whatsappNumber || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, whatsappNumber: e.target.value }))}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Bank Details */}
+                  <Box
+                    sx={{
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      p: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.info.main, 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                        }}
+                      >
+                        &#127974;
+                      </Box>
+                      <Typography fontWeight={600}>Bank Account Details (for NEFT/IMPS)</Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Account Holder Name</Typography>
+                        <Input
+                          placeholder="Account holder name"
+                          value={paymentConfig.bankDetails?.accountName || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), accountName: e.target.value } }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Account Number</Typography>
+                        <Input
+                          placeholder="XXXXXXXXXXXX"
+                          value={paymentConfig.bankDetails?.accountNumber || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), accountNumber: e.target.value } }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>IFSC Code</Typography>
+                        <Input
+                          placeholder="SBIN0XXXXXX"
+                          value={paymentConfig.bankDetails?.ifscCode || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), ifscCode: e.target.value } }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Bank Name</Typography>
+                        <Input
+                          placeholder="State Bank of India"
+                          value={paymentConfig.bankDetails?.bankName || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, bankDetails: { ...(c.bankDetails || {}), bankName: e.target.value } }))}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Razorpay (Optional) */}
+                  <Box
+                    sx={{
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      p: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 2,
+                          bgcolor: alpha('#06b6d4', 0.2),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                        }}
+                      >
+                        &#128179;
+                      </Box>
+                      <Typography fontWeight={600}>Razorpay (Optional - for Card/Net Banking)</Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Razorpay API Key</Typography>
+                        <Input
+                          placeholder="rzp_live_XXXXXX"
+                          value={paymentConfig.razorpayKey || ''}
+                          onChange={e => setPaymentConfig(c => ({ ...c, razorpayKey: e.target.value }))}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Enable Razorpay</Typography>
+                        <TextField
+                          select
+                          size="small"
+                          fullWidth
+                          value={paymentConfig.razorpayEnabled ? 'yes' : 'no'}
+                          onChange={e => setPaymentConfig(c => ({ ...c, razorpayEnabled: e.target.value === 'yes' }))}
+                        >
+                          <MenuItem value="no">No (Hide Razorpay option)</MenuItem>
+                          <MenuItem value="yes">Yes (Show Razorpay option)</MenuItem>
+                        </TextField>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Box>
+                    <Button onClick={handleSavePaymentConfig}>
+                      <CreditCard style={{ width: 16, height: 16, marginRight: 8 }} />
+                      Save Payment Settings
+                    </Button>
+                  </Box>
+                </Stack>
               </CardContent>
             </Card>
 
             {/* System Configuration */}
-            <Card className="glass-card">
+            <Card>
               <CardHeader>
                 <CardTitle>System Configuration</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">API Rate Limit (per min)</label>
-                    <Input 
-                      type="number" 
-                      value={systemConfig.apiRateLimit || 60}
-                      onChange={e => setSystemConfig(c => ({ ...c, apiRateLimit: parseInt(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Cache TTL (seconds)</label>
-                    <Input 
-                      type="number" 
-                      value={systemConfig.cacheTTL || 300}
-                      onChange={e => setSystemConfig(c => ({ ...c, cacheTTL: parseInt(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Max Concurrent Users</label>
-                    <Input 
-                      type="number" 
-                      value={systemConfig.maxConcurrentUsers || 1000}
-                      onChange={e => setSystemConfig(c => ({ ...c, maxConcurrentUsers: parseInt(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground block mb-2">Maintenance Mode</label>
-                    <select 
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      value={systemConfig.maintenanceMode ? 'on' : 'off'}
-                      onChange={e => setSystemConfig(c => ({ ...c, maintenanceMode: e.target.value === 'on' }))}
-                    >
-                      <option value="off">Off</option>
-                      <option value="on">On</option>
-                    </select>
-                  </div>
-                </div>
-                <Button onClick={handleSaveConfig}>Save Configuration</Button>
+              <CardContent>
+                <Stack spacing={3}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>API Rate Limit (per min)</Typography>
+                      <Input
+                        type="number"
+                        value={systemConfig.apiRateLimit || 60}
+                        onChange={e => setSystemConfig(c => ({ ...c, apiRateLimit: parseInt(e.target.value) }))}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Cache TTL (seconds)</Typography>
+                      <Input
+                        type="number"
+                        value={systemConfig.cacheTTL || 300}
+                        onChange={e => setSystemConfig(c => ({ ...c, cacheTTL: parseInt(e.target.value) }))}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Max Concurrent Users</Typography>
+                      <Input
+                        type="number"
+                        value={systemConfig.maxConcurrentUsers || 1000}
+                        onChange={e => setSystemConfig(c => ({ ...c, maxConcurrentUsers: parseInt(e.target.value) }))}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Maintenance Mode</Typography>
+                      <TextField
+                        select
+                        size="small"
+                        fullWidth
+                        value={systemConfig.maintenanceMode ? 'on' : 'off'}
+                        onChange={e => setSystemConfig(c => ({ ...c, maintenanceMode: e.target.value === 'on' }))}
+                      >
+                        <MenuItem value="off">Off</MenuItem>
+                        <MenuItem value="on">On</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Button onClick={handleSaveConfig}>Save Configuration</Button>
+                  </Box>
+                </Stack>
               </CardContent>
             </Card>
 
             {/* Danger Zone */}
-            <Card className="glass-card border-red-500/20">
+            <Card sx={{ borderColor: alpha(theme.palette.error.main, 0.2) }}>
               <CardHeader>
-                <CardTitle className="text-red-500 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Danger Zone
+                <CardTitle>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
+                    <AlertTriangle style={{ width: 20, height: 20 }} />
+                    Danger Zone
+                  </Box>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { label: 'Clear All Cache', desc: 'Remove all cached data', action: 'Clear Cache', onClick: handleClearCache },
-                  { label: 'Export All Data', desc: 'Download backup JSON', action: 'Export', onClick: handleExportData },
-                  { label: 'Reset All Signals', desc: 'Close all active signals', action: 'Reset Signals', onClick: async () => {
-                    const ok = await confirmAction({
-                      title: 'Reset All Signals',
-                      message: 'Close all active signals? This cannot be undone.',
-                      confirmText: 'Reset Signals',
-                      variant: 'destructive',
-                    });
-                    if (ok) {
-                      signals.forEach(s => s.status === 'active' && adminService.updateSignal(s.id, { status: 'closed' }));
-                      loadData();
-                      alert('All signals closed!');
-                    }
-                  }},
-                  { label: 'Clear All Data', desc: 'Remove all stored data (dangerous!)', action: 'Clear All', onClick: async () => {
-                    const ok = await confirmAction({
-                      title: 'Clear ALL Data',
-                      message: 'This will permanently delete ALL stored data. This action cannot be undone. Are you absolutely sure?',
-                      confirmText: 'Delete Everything',
-                      variant: 'destructive',
-                    });
-                    if (ok) {
-                      localStorage.clear();
-                      navigate('/login');
-                    }
-                  }},
-                ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between p-4 rounded-lg border border-red-500/20 bg-red-500/5">
-                    <div>
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-muted-foreground">{item.desc}</div>
-                    </div>
-                    <Button variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={item.onClick}>
-                      {item.action}
-                    </Button>
-                  </div>
-                ))}
+              <CardContent>
+                <Stack spacing={2}>
+                  {[
+                    { label: 'Clear All Cache', desc: 'Remove all cached data', action: 'Clear Cache', onClick: handleClearCache },
+                    { label: 'Export All Data', desc: 'Download backup JSON', action: 'Export', onClick: handleExportData },
+                    { label: 'Reset All Signals', desc: 'Close all active signals', action: 'Reset Signals', onClick: async () => {
+                      const ok = await confirmAction({
+                        title: 'Reset All Signals',
+                        message: 'Close all active signals? This cannot be undone.',
+                        confirmText: 'Reset Signals',
+                        variant: 'destructive',
+                      });
+                      if (ok) {
+                        signals.forEach(s => s.status === 'active' && adminService.updateSignal(s.id, { status: 'closed' }));
+                        loadData();
+                        alert('All signals closed!');
+                      }
+                    }},
+                    { label: 'Clear All Data', desc: 'Remove all stored data (dangerous!)', action: 'Clear All', onClick: async () => {
+                      const ok = await confirmAction({
+                        title: 'Clear ALL Data',
+                        message: 'This will permanently delete ALL stored data. This action cannot be undone. Are you absolutely sure?',
+                        confirmText: 'Delete Everything',
+                        variant: 'destructive',
+                      });
+                      if (ok) {
+                        localStorage.clear();
+                        navigate('/login');
+                      }
+                    }},
+                  ].map(item => (
+                    <Box
+                      key={item.label}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        p: 2,
+                        borderRadius: 2,
+                        border: 1,
+                        borderColor: alpha(theme.palette.error.main, 0.2),
+                        bgcolor: alpha(theme.palette.error.main, 0.05),
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="body2" fontWeight={500}>{item.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{item.desc}</Typography>
+                      </Box>
+                      <Button
+                        variant="outline"
+                        sx={{
+                          color: 'error.main',
+                          borderColor: alpha(theme.palette.error.main, 0.3),
+                          '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) },
+                        }}
+                        onClick={item.onClick}
+                      >
+                        {item.action}
+                      </Button>
+                    </Box>
+                  ))}
+                </Stack>
               </CardContent>
             </Card>
-          </div>
+          </Stack>
         )}
       </Section>
     </PageLayout>
   );
 }
-

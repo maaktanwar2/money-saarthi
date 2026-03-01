@@ -1,11 +1,14 @@
 // AI Agent — Live Event Feed with filter tabs
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import {
   Power, Rocket, Square, Eye, Brain, Zap, Sparkles,
   RotateCw, Shield, AlertCircle, Settings, Clock, XCircle,
   Pause, Play, Terminal, MessageSquare
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui';
-import { cn } from '../../lib/utils';
 
 const EVENT_TYPES = ['ALL', 'THINK', 'ACT', 'REFLECT', 'ADAPT', 'SAFETY', 'ERROR'];
 
@@ -28,68 +31,130 @@ const EVENT_ICONS = {
   RESUME: Play,
 };
 
+const getEventIconColor = (type) => {
+  switch (type) {
+    case 'ERROR': return '#f87171';
+    case 'SAFETY': return '#fbbf24';
+    case 'ACT': return '#34d399';
+    case 'THINK': return '#c084fc';
+    case 'ADAPT': return '#22d3ee';
+    default: return '#64748b';
+  }
+};
+
 const EventFeed = ({ events, filter, setFilter }) => {
   const filtered = filter === 'ALL' ? events : events.filter(e => e.type === filter);
 
   return (
-    <Card className="bg-slate-800/60 border-slate-700/50">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-emerald-400" />
+    <Card>
+      <CardHeader sx={{ pb: 1 }}>
+        <CardTitle sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Terminal style={{ width: 16, height: 16, color: '#34d399' }} />
           Live Feed
-          <span className="text-[10px] text-slate-500 font-normal ml-auto">{filtered.length} events</span>
+          <Typography component="span" sx={{ fontSize: '10px', color: 'text.disabled', fontWeight: 400, ml: 'auto' }}>
+            {filtered.length} events
+          </Typography>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
+      <CardContent sx={{ p: 2, pt: 0 }}>
         {/* Filter tabs */}
-        <div className="flex gap-1 mb-3 flex-wrap">
+        <Box sx={{ display: 'flex', gap: 0.5, mb: 1.5, flexWrap: 'wrap' }}>
           {EVENT_TYPES.map(t => (
-            <button
+            <Box
               key={t}
+              component="button"
               onClick={() => setFilter(t)}
-              className={cn(
-                "text-[10px] px-2 py-1 rounded-md transition-all",
-                filter === t
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-slate-500 hover:text-slate-300"
-              )}
-            >{t}</button>
+              sx={{
+                fontSize: '10px',
+                px: 1,
+                py: 0.5,
+                borderRadius: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: 'inherit',
+                ...(filter === t
+                  ? {
+                      bgcolor: alpha('#a855f7', 0.2),
+                      color: '#d8b4fe',
+                      border: 1,
+                      borderColor: alpha('#a855f7', 0.3),
+                    }
+                  : {
+                      color: '#64748b',
+                      background: 'none',
+                      border: 'none',
+                      '&:hover': { color: '#cbd5e1' },
+                    }),
+              }}
+            >
+              {t}
+            </Box>
           ))}
-        </div>
+        </Box>
 
         {/* Events list */}
-        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+        <Stack spacing={0.5} sx={{ maxHeight: 400, overflowY: 'auto', pr: 0.5 }}>
           {filtered.length === 0 ? (
-            <p className="text-xs text-slate-500 py-4 text-center">No events yet</p>
+            <Typography variant="caption" color="text.disabled" sx={{ py: 2, textAlign: 'center', display: 'block' }}>
+              No events yet
+            </Typography>
           ) : (
             filtered.slice(0, 50).map((evt, i) => {
               const EvtIcon = EVENT_ICONS[evt.type] || MessageSquare;
+              const iconColor = getEventIconColor(evt.type);
               return (
-                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-slate-700/20 last:border-0">
-                  <EvtIcon className={cn("w-3.5 h-3.5 mt-0.5 flex-shrink-0",
-                    evt.type === 'ERROR' ? 'text-red-400' :
-                    evt.type === 'SAFETY' ? 'text-amber-400' :
-                    evt.type === 'ACT' ? 'text-emerald-400' :
-                    evt.type === 'THINK' ? 'text-purple-400' :
-                    evt.type === 'ADAPT' ? 'text-cyan-400' :
-                    'text-slate-500'
-                  )} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-slate-500">
+                <Stack
+                  key={i}
+                  direction="row"
+                  alignItems="flex-start"
+                  spacing={1}
+                  sx={{
+                    py: 0.75,
+                    borderBottom: 1,
+                    borderColor: alpha('#334155', 0.2),
+                    '&:last-child': { borderBottom: 0 },
+                  }}
+                >
+                  <EvtIcon style={{ width: 14, height: 14, marginTop: 2, flexShrink: 0, color: iconColor }} />
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={0.75}>
+                      <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>
                         {evt.time ? new Date(evt.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''}
-                      </span>
-                      <span className="text-[11px] font-medium text-slate-200 truncate">{evt.title}</span>
-                    </div>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: 'text.secondary',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {evt.title}
+                      </Typography>
+                    </Stack>
                     {evt.detail && (
-                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{evt.detail}</p>
+                      <Typography
+                        sx={{
+                          fontSize: '10px',
+                          color: 'text.disabled',
+                          mt: 0.25,
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {evt.detail}
+                      </Typography>
                     )}
-                  </div>
-                </div>
+                  </Box>
+                </Stack>
               );
             })
           )}
-        </div>
+        </Stack>
       </CardContent>
     </Card>
   );

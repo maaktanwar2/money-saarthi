@@ -1,5 +1,10 @@
 // SectorPerformance – 11 NSE F&O Sectoral Index performance (TradeFinder-style)
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import IconButton from '@mui/material/IconButton';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,77 +14,184 @@ import {
   Activity, ExternalLink
 } from 'lucide-react';
 import { PageLayout, PageHeader } from '../components/PageLayout';
-import { Card } from '../components/ui';
+import { Card, Button } from '../components/ui';
 import { SkeletonPage } from '../components/ui/Skeleton';
-import { cn, fetchAPI, formatINR } from '../lib/utils';
-
-// ─── colour helpers ──────────────────────────────────────────
-const statusColor = (status) => {
-  if (status === 'bullish') return { bg: 'bg-green-500/15', text: 'text-green-500', ring: 'ring-green-500/30', bar: 'bg-green-500' };
-  if (status === 'bearish') return { bg: 'bg-red-500/15', text: 'text-red-500', ring: 'ring-red-500/30', bar: 'bg-red-500' };
-  return { bg: 'bg-gray-500/15', text: 'text-gray-500', ring: 'ring-gray-500/30', bar: 'bg-gray-500' };
-};
+import { fetchAPI, formatINR } from '../lib/utils';
 
 // ─── small stat pill ─────────────────────────────────────────
 const Pill = ({ label, value, positive }) => (
-  <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-muted/40">
-    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
-    <span className={cn('text-sm font-bold', positive === true && 'text-green-500', positive === false && 'text-red-500')}>
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      px: 1.5,
+      py: 0.75,
+      borderRadius: 2,
+      bgcolor: (t) => alpha(t.palette.text.primary, 0.04),
+    }}
+  >
+    <Typography
+      sx={{
+        fontSize: '10px',
+        color: 'text.secondary',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+      }}
+    >
+      {label}
+    </Typography>
+    <Typography
+      variant="body2"
+      fontWeight={700}
+      sx={{
+        color: positive === true ? 'success.main' : positive === false ? 'error.main' : 'text.primary',
+      }}
+    >
       {value}
-    </span>
-  </div>
+    </Typography>
+  </Box>
 );
 
 // ═══════════════════════════════════════════════════════════════
 // SECTOR ROW – single sector bar
 // ═══════════════════════════════════════════════════════════════
 const SectorRow = ({ sector, maxAbsChange, isExpanded, onToggle }) => {
-  const c = statusColor(sector.status);
+  const theme = useTheme();
+
+  const getStatusColor = (status) => {
+    if (status === 'bullish') return theme.palette.success.main;
+    if (status === 'bearish') return theme.palette.error.main;
+    return theme.palette.text.secondary;
+  };
+
+  const statusClr = getStatusColor(sector.status);
   const pct = sector.change_percent;
   const barWidth = maxAbsChange > 0 ? Math.min(100, (Math.abs(pct) / maxAbsChange) * 100) : 0;
   const isPos = pct >= 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <Card className={cn('overflow-hidden transition-all duration-200', isExpanded && `ring-1 ${c.ring}`)}>
+      <Card
+        sx={{
+          overflow: 'hidden',
+          transition: 'all 0.2s',
+          ...(isExpanded && {
+            outline: `1px solid ${alpha(statusClr, 0.3)}`,
+          }),
+        }}
+      >
         {/* main clickable row */}
-        <button onClick={onToggle} className="w-full text-left p-3 sm:p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors">
+        <Box
+          component="button"
+          onClick={onToggle}
+          sx={{
+            width: '100%',
+            textAlign: 'left',
+            p: { xs: 1.5, sm: 2 },
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            cursor: 'pointer',
+            bgcolor: 'transparent',
+            border: 'none',
+            color: 'text.primary',
+            '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.03) },
+            transition: 'background-color 0.2s',
+          }}
+        >
           {/* icon */}
-          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', c.bg)}>
-            {sector.status === 'bullish' ? <TrendingUp className={cn('w-4 h-4', c.text)} />
-              : sector.status === 'bearish' ? <TrendingDown className={cn('w-4 h-4', c.text)} />
-              : <Minus className={cn('w-4 h-4', c.text)} />}
-          </div>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              bgcolor: alpha(statusClr, 0.15),
+            }}
+          >
+            {sector.status === 'bullish' ? (
+              <TrendingUp style={{ width: 16, height: 16, color: statusClr }} />
+            ) : sector.status === 'bearish' ? (
+              <TrendingDown style={{ width: 16, height: 16, color: statusClr }} />
+            ) : (
+              <Minus style={{ width: 16, height: 16, color: statusClr }} />
+            )}
+          </Box>
 
-          {/* name + index */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm truncate">{sector.name}</h3>
-              <span className="text-[10px] text-muted-foreground hidden sm:inline">{sector.index_name}</span>
-            </div>
+          {/* name + index + bar */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" fontWeight={700} noWrap>
+                {sector.name}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: { xs: 'none', sm: 'inline' }, fontSize: '10px' }}
+              >
+                {sector.index_name}
+              </Typography>
+            </Stack>
             {/* bar */}
-            <div className="mt-1 h-1.5 w-full rounded-full bg-muted/50 overflow-hidden">
-              <div
-                className={cn('h-full rounded-full transition-all duration-500', c.bar)}
-                style={{ width: `${barWidth}%`, opacity: 0.8 }}
+            <Box
+              sx={{
+                mt: 0.5,
+                height: 6,
+                width: '100%',
+                borderRadius: 3,
+                bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                sx={{
+                  height: '100%',
+                  borderRadius: 3,
+                  bgcolor: statusClr,
+                  opacity: 0.8,
+                  transition: 'width 0.5s',
+                  width: `${barWidth}%`,
+                }}
               />
-            </div>
-          </div>
+            </Box>
+          </Box>
 
           {/* LTP + change */}
-          <div className="text-right shrink-0 min-w-[100px]">
-            <div className="text-sm font-medium">{sector.ltp > 0 ? formatINR(sector.ltp) : '—'}</div>
-            <div className={cn('text-sm font-bold flex items-center justify-end gap-0.5', c.text)}>
-              {isPos ? <ArrowUpRight className="w-3 h-3" /> : pct < 0 ? <ArrowDownRight className="w-3 h-3" /> : null}
-              {isPos ? '+' : ''}{pct.toFixed(2)}%
-            </div>
-          </div>
+          <Box sx={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
+            <Typography variant="body2" fontWeight={500}>
+              {sector.ltp > 0 ? formatINR(sector.ltp) : '\u2014'}
+            </Typography>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="flex-end"
+              spacing={0.25}
+              sx={{ color: statusClr }}
+            >
+              {isPos ? (
+                <ArrowUpRight style={{ width: 12, height: 12 }} />
+              ) : pct < 0 ? (
+                <ArrowDownRight style={{ width: 12, height: 12 }} />
+              ) : null}
+              <Typography variant="body2" fontWeight={700} sx={{ color: 'inherit' }}>
+                {isPos ? '+' : ''}{pct.toFixed(2)}%
+              </Typography>
+            </Stack>
+          </Box>
 
           {/* chevron */}
-          <div className="shrink-0">
-            {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-          </div>
-        </button>
+          <Box sx={{ flexShrink: 0 }}>
+            {isExpanded ? (
+              <ChevronUp style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+            ) : (
+              <ChevronDown style={{ width: 16, height: 16, color: theme.palette.text.secondary }} />
+            )}
+          </Box>
+        </Box>
 
         {/* expanded detail */}
         <AnimatePresence>
@@ -89,61 +201,97 @@ const SectorRow = ({ sector, maxAbsChange, isExpanded, onToggle }) => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+              style={{ overflow: 'hidden' }}
             >
-              <div className="px-4 pb-4 border-t border-border/40 pt-3 space-y-3">
+              <Box sx={{ px: 2, pb: 2, borderTop: 1, borderColor: (t) => alpha(t.palette.divider, 0.4), pt: 1.5 }}>
                 {/* stats row */}
-                <div className="flex flex-wrap gap-2">
-                  <Pill label="Open" value={sector.open > 0 ? formatINR(sector.open) : '—'} />
-                  <Pill label="High" value={sector.high > 0 ? formatINR(sector.high) : '—'} />
-                  <Pill label="Low" value={sector.low > 0 ? formatINR(sector.low) : '—'} />
-                  <Pill label="Prev Close" value={sector.prev_close > 0 ? formatINR(sector.prev_close) : '—'} />
+                <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+                  <Pill label="Open" value={sector.open > 0 ? formatINR(sector.open) : '\u2014'} />
+                  <Pill label="High" value={sector.high > 0 ? formatINR(sector.high) : '\u2014'} />
+                  <Pill label="Low" value={sector.low > 0 ? formatINR(sector.low) : '\u2014'} />
+                  <Pill label="Prev Close" value={sector.prev_close > 0 ? formatINR(sector.prev_close) : '\u2014'} />
                   <Pill label="Advances" value={sector.advances} positive={true} />
                   <Pill label="Declines" value={sector.declines} positive={false} />
                   {sector.pe && <Pill label="P/E" value={sector.pe} />}
                   {sector.pb && <Pill label="P/B" value={sector.pb} />}
-                  {sector.change_30d !== 0 && <Pill label="30D" value={`${sector.change_30d > 0 ? '+' : ''}${sector.change_30d.toFixed(1)}%`} positive={sector.change_30d > 0} />}
-                  {sector.change_365d !== 0 && <Pill label="1Y" value={`${sector.change_365d > 0 ? '+' : ''}${sector.change_365d.toFixed(1)}%`} positive={sector.change_365d > 0} />}
-                </div>
+                  {sector.change_30d !== 0 && (
+                    <Pill label="30D" value={`${sector.change_30d > 0 ? '+' : ''}${sector.change_30d.toFixed(1)}%`} positive={sector.change_30d > 0} />
+                  )}
+                  {sector.change_365d !== 0 && (
+                    <Pill label="1Y" value={`${sector.change_365d > 0 ? '+' : ''}${sector.change_365d.toFixed(1)}%`} positive={sector.change_365d > 0} />
+                  )}
+                </Stack>
 
                 {/* 52-week range */}
                 {sector.year_high > 0 && sector.year_low > 0 && (
-                  <div>
-                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">52-Week Range</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{formatINR(sector.year_low)}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-muted/50 relative">
-                        <div
-                          className="absolute h-3 w-3 rounded-full bg-primary border-2 border-background top-1/2 -translate-y-1/2"
-                          style={{ left: `${Math.min(100, Math.max(0, ((sector.ltp - sector.year_low) / (sector.year_high - sector.year_low)) * 100))}%` }}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography sx={{ fontSize: '10px', color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      52-Week Range
+                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Typography variant="caption" color="text.secondary">{formatINR(sector.year_low)}</Typography>
+                      <Box sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), position: 'relative' }}>
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            height: 12,
+                            width: 12,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.main',
+                            border: 2,
+                            borderColor: 'background.default',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            left: `${Math.min(100, Math.max(0, ((sector.ltp - sector.year_low) / (sector.year_high - sector.year_low)) * 100))}%`,
+                          }}
                         />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{formatINR(sector.year_high)}</span>
-                    </div>
-                  </div>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">{formatINR(sector.year_high)}</Typography>
+                    </Stack>
+                  </Box>
                 )}
 
                 {/* constituent stocks */}
-                <div>
-                  <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider">
+                <Box>
+                  <Typography sx={{ fontSize: '10px', color: 'text.secondary', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Key Stocks ({sector.stocks_count})
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  </Typography>
+                  <Stack direction="row" flexWrap="wrap" gap={0.75}>
                     {(sector.all_stocks || []).map((sym) => (
-                      <a
+                      <Box
                         key={sym}
+                        component="a"
                         href={`https://www.tradingview.com/chart/?symbol=NSE:${sym}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-0.5 px-2 py-1 rounded-md bg-muted/50 text-xs font-medium hover:bg-primary/10 hover:text-primary transition-colors group"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.25,
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1.5,
+                          bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'text.primary',
+                          textDecoration: 'none',
+                          '&:hover': {
+                            bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                            color: 'primary.main',
+                          },
+                          transition: 'all 0.2s',
+                          '& .ext-icon': { opacity: 0, transition: 'opacity 0.2s' },
+                          '&:hover .ext-icon': { opacity: 1 },
+                        }}
                       >
                         {sym}
-                        <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
+                        <ExternalLink className="ext-icon" style={{ width: 10, height: 10 }} />
+                      </Box>
                     ))}
-                  </div>
-                </div>
-              </div>
+                  </Stack>
+                </Box>
+              </Box>
             </motion.div>
           )}
         </AnimatePresence>
@@ -162,6 +310,7 @@ const SectorPerformance = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState(new Set());
   const [sortBy, setSortBy] = useState('change'); // change | name
+  const theme = useTheme();
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -213,115 +362,178 @@ const SectorPerformance = () => {
       <SEO {...getSeoConfig('/sector-performance')} path="/sector-performance" />
       <PageHeader
         title="Sector Performance"
-        subtitle="11 NSE F&O sectoral indices — live index data"
+        description="11 NSE F&O sectoral indices \u2014 live index data"
         icon={BarChart3}
       />
 
-      {/* ── Top summary cards ── */}
+      {/* Top summary cards */}
       {!loading && data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Card className="p-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Sectors</div>
-            <div className="text-xl font-bold">{data.total_sectors}</div>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5, mb: 3 }}>
+          <Card sx={{ p: 1.5 }}>
+            <Typography sx={{ fontSize: '10px', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Sectors
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>{data.total_sectors}</Typography>
           </Card>
-          <Card className="p-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Mood</div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-sm font-bold text-green-500">{mood.bullish || 0}</span>
-              <span className="text-muted-foreground text-xs">/</span>
-              <span className="text-sm font-bold text-red-500">{mood.bearish || 0}</span>
-              <span className="text-muted-foreground text-xs">/</span>
-              <span className="text-sm font-bold text-gray-500">{mood.neutral || 0}</span>
-            </div>
+          <Card sx={{ p: 1.5 }}>
+            <Typography sx={{ fontSize: '10px', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Mood
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.25 }}>
+              <Typography variant="body2" fontWeight={700} color="success.main">{mood.bullish || 0}</Typography>
+              <Typography variant="caption" color="text.secondary">/</Typography>
+              <Typography variant="body2" fontWeight={700} color="error.main">{mood.bearish || 0}</Typography>
+              <Typography variant="caption" color="text.secondary">/</Typography>
+              <Typography variant="body2" fontWeight={700} color="text.secondary">{mood.neutral || 0}</Typography>
+            </Stack>
           </Card>
           {sectors[0] && (
-            <Card className="p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Top Sector</div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-sm font-bold truncate">{sectors[0].name}</span>
-                <span className="text-xs font-bold text-green-500">+{sectors[0].change_percent.toFixed(2)}%</span>
-              </div>
+            <Card sx={{ p: 1.5 }}>
+              <Typography sx={{ fontSize: '10px', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Top Sector
+              </Typography>
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.25 }}>
+                <Typography variant="body2" fontWeight={700} noWrap>{sectors[0].name}</Typography>
+                <Typography variant="caption" fontWeight={700} color="success.main">
+                  +{sectors[0].change_percent.toFixed(2)}%
+                </Typography>
+              </Stack>
             </Card>
           )}
           {sectors.length > 1 && (
-            <Card className="p-3">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Worst Sector</div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-sm font-bold truncate">{sectors[sectors.length - 1].name}</span>
-                <span className="text-xs font-bold text-red-500">
+            <Card sx={{ p: 1.5 }}>
+              <Typography sx={{ fontSize: '10px', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Worst Sector
+              </Typography>
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.25 }}>
+                <Typography variant="body2" fontWeight={700} noWrap>{sectors[sectors.length - 1].name}</Typography>
+                <Typography variant="caption" fontWeight={700} color="error.main">
                   {sectors[sectors.length - 1].change_percent.toFixed(2)}%
-                </span>
-              </div>
+                </Typography>
+              </Stack>
             </Card>
           )}
-        </div>
+        </Box>
       )}
 
-      {/* ── Controls ── */}
+      {/* Controls */}
       {!loading && data && (
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5} sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+              borderRadius: 2,
+              p: 0.25,
+            }}
+          >
             {[
               { key: 'change', label: 'By Change' },
               { key: 'name', label: 'A-Z' },
             ].map((o) => (
-              <button
+              <Box
                 key={o.key}
+                component="button"
                 onClick={() => setSortBy(o.key)}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
-                  sortBy === o.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                )}
+                sx={{
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: 1.5,
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all 0.2s',
+                  ...(sortBy === o.key
+                    ? { bgcolor: 'primary.main', color: 'primary.contrastText' }
+                    : { bgcolor: 'transparent', color: 'text.secondary', '&:hover': { color: 'text.primary' } }),
+                }}
               >
                 {o.label}
-              </button>
+              </Box>
             ))}
-          </div>
+          </Box>
 
-          <div className="flex items-center gap-2">
-            <button
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              component="button"
               onClick={() => setExpanded(new Set(sectors.map((s) => s.id)))}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted/50 hover:bg-muted transition-colors"
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 2,
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                border: 'none',
+                bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                color: 'text.primary',
+                '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.1) },
+                transition: 'background-color 0.2s',
+              }}
             >
               Expand All
-            </button>
-            <button
+            </Box>
+            <Box
+              component="button"
               onClick={() => setExpanded(new Set())}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted/50 hover:bg-muted transition-colors"
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 2,
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                border: 'none',
+                bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                color: 'text.primary',
+                '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.1) },
+                transition: 'background-color 0.2s',
+              }}
             >
               Collapse All
-            </button>
-            <button
+            </Box>
+            <IconButton
               onClick={() => fetchData(true)}
               disabled={refreshing}
-              className="p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              size="small"
+              sx={{
+                bgcolor: (t) => alpha(t.palette.text.primary, 0.06),
+                '&:hover': { bgcolor: (t) => alpha(t.palette.text.primary, 0.1) },
+                ...(refreshing && {
+                  '@keyframes spin': {
+                    from: { transform: 'rotate(0deg)' },
+                    to: { transform: 'rotate(360deg)' },
+                  },
+                  '& svg': { animation: 'spin 1s linear infinite' },
+                }),
+              }}
             >
-              <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-            </button>
-          </div>
-        </div>
+              <RefreshCw style={{ width: 16, height: 16 }} />
+            </IconButton>
+          </Stack>
+        </Stack>
       )}
 
-      {/* ── Loading ── */}
+      {/* Loading */}
       {loading && <SkeletonPage cards={11} cols={4} />}
 
-      {/* ── Error ── */}
+      {/* Error */}
       {error && !loading && (
-        <Card className="p-8 text-center">
-          <Activity className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-          <p className="text-muted-foreground mb-3">{error}</p>
-          <button
-            onClick={() => fetchData()}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
-          >
+        <Card sx={{ p: 4, textAlign: 'center' }}>
+          <Activity style={{ width: 40, height: 40, margin: '0 auto 12px', color: theme.palette.text.secondary }} />
+          <Typography color="text.secondary" sx={{ mb: 1.5 }}>{error}</Typography>
+          <Button onClick={() => fetchData()}>
             Try Again
-          </button>
+          </Button>
         </Card>
       )}
 
-      {/* ── Sector rows ── */}
+      {/* Sector rows */}
       {!loading && !error && sectors.length > 0 && (
-        <div className="space-y-2">
+        <Stack spacing={1}>
           {sectors.map((s) => (
             <SectorRow
               key={s.id}
@@ -331,18 +543,17 @@ const SectorPerformance = () => {
               onToggle={() => toggle(s.id)}
             />
           ))}
-        </div>
+        </Stack>
       )}
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       {!loading && !error && data && (
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Data from NSE sectoral indices • Auto-refreshes every 2 minutes • Click stock to view on TradingView
-        </p>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 3 }}>
+          Data from NSE sectoral indices {'\u2022'} Auto-refreshes every 2 minutes {'\u2022'} Click stock to view on TradingView
+        </Typography>
       )}
     </PageLayout>
   );
 };
 
 export default SectorPerformance;
-

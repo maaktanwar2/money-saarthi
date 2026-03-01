@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Switch from '@mui/material/Switch';
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import { alpha, useTheme } from '@mui/material/styles';
 import SEO from '../components/SEO';
 import { getSeoConfig } from '../lib/seoConfig';
 import { PageLayout, PageHeader, Section } from '../components/PageLayout';
-import { Card, CardContent, Input, Button } from '../components/ui';
+import { Card, CardContent, Button } from '../components/ui';
 import { useConfirm } from '../hooks/useConfirm';
 
 const SETTINGS_KEY = 'ms_settings';
@@ -25,6 +37,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
   const [ConfirmEl, confirm] = useConfirm();
+  const theme = useTheme();
 
   const update = (key, value) => {
     const updated = { ...settings, [key]: value };
@@ -42,204 +55,249 @@ export default function Settings() {
       <SEO {...getSeoConfig('/settings')} path="/settings" />
       <PageHeader
         title="Settings"
-        subtitle="Customize your trading experience"
+        description="Customize your trading experience"
       />
 
       <Section>
         {saved && (
-          <div className="mb-4 p-3 rounded-lg bg-bullish/10 border border-bullish/20 text-bullish text-sm">
-            ✅ Settings saved
-          </div>
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Settings saved
+          </Alert>
         )}
-        <div className="grid lg:grid-cols-4 gap-6">
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 3fr' }, gap: 3 }}>
           {/* Sidebar */}
-          <div className="space-y-2">
+          <List disablePadding>
             {[
-              { id: 'general', label: 'General', icon: '⚙️' },
-              { id: 'notifications', label: 'Notifications', icon: '🔔' },
-              { id: 'api', label: 'Broker', icon: '🔑' },
-              { id: 'display', label: 'Display', icon: '🎨' },
-              { id: 'data', label: 'Data & Privacy', icon: '🔒' },
+              { id: 'general', label: 'General', icon: '\u2699\uFE0F' },
+              { id: 'notifications', label: 'Notifications', icon: '\uD83D\uDD14' },
+              { id: 'api', label: 'Broker', icon: '\uD83D\uDD11' },
+              { id: 'display', label: 'Display', icon: '\uD83C\uDFA8' },
+              { id: 'data', label: 'Data & Privacy', icon: '\uD83D\uDD12' },
             ].map(item => (
-              <button
+              <ListItemButton
                 key={item.id}
+                selected={activeTab === item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all ${
-                  activeTab === item.id
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'hover:bg-card text-muted-foreground hover:text-foreground'
-                }`}
+                sx={{
+                  borderRadius: 2,
+                  mb: 0.5,
+                  ...(activeTab === item.id && {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.main',
+                    border: 1,
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
+                  }),
+                }}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
+                <ListItemIcon sx={{ minWidth: 36, fontSize: '1.25rem' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
             ))}
-          </div>
+          </List>
 
           {/* Content */}
-          <div className="lg:col-span-3">
-            <Card className="glass-card">
-              <CardContent className="p-6">
-                {activeTab === 'general' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">General Settings</h3>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm text-muted-foreground block mb-2">Default Index</label>
-                        <select 
-                          className="input w-full max-w-xs"
-                          value={settings.defaultIndex || 'NIFTY'}
-                          onChange={(e) => update('defaultIndex', e.target.value)}
-                        >
-                          <option>NIFTY</option>
-                          <option>BANKNIFTY</option>
-                          <option>FINNIFTY</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-muted-foreground block mb-2">Default Expiry</label>
-                        <select 
-                          className="input w-full max-w-xs"
-                          value={settings.defaultExpiry || 'Weekly'}
-                          onChange={(e) => update('defaultExpiry', e.target.value)}
-                        >
-                          <option>Weekly</option>
-                          <option>Monthly</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-muted-foreground block mb-2">Timezone</label>
-                        <select className="input w-full max-w-xs" disabled>
-                          <option>Asia/Kolkata (IST)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              {activeTab === 'general' && (
+                <Stack spacing={3}>
+                  <Typography variant="h6">General Settings</Typography>
+                  <Stack spacing={2.5}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Default Index
+                      </Typography>
+                      <TextField
+                        select
+                        size="small"
+                        value={settings.defaultIndex || 'NIFTY'}
+                        onChange={(e) => update('defaultIndex', e.target.value)}
+                        sx={{ maxWidth: 300 }}
+                        fullWidth
+                      >
+                        <MenuItem value="NIFTY">NIFTY</MenuItem>
+                        <MenuItem value="BANKNIFTY">BANKNIFTY</MenuItem>
+                        <MenuItem value="FINNIFTY">FINNIFTY</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Default Expiry
+                      </Typography>
+                      <TextField
+                        select
+                        size="small"
+                        value={settings.defaultExpiry || 'Weekly'}
+                        onChange={(e) => update('defaultExpiry', e.target.value)}
+                        sx={{ maxWidth: 300 }}
+                        fullWidth
+                      >
+                        <MenuItem value="Weekly">Weekly</MenuItem>
+                        <MenuItem value="Monthly">Monthly</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Timezone
+                      </Typography>
+                      <TextField
+                        select
+                        size="small"
+                        value="Asia/Kolkata (IST)"
+                        disabled
+                        sx={{ maxWidth: 300 }}
+                        fullWidth
+                      >
+                        <MenuItem value="Asia/Kolkata (IST)">Asia/Kolkata (IST)</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Stack>
+                </Stack>
+              )}
 
-                {activeTab === 'notifications' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Notification Preferences</h3>
-                    
-                    <div className="space-y-4">
-                      {[
-                        { key: 'notif_signals', label: 'Signal Alerts', desc: 'Get notified when new signals are generated' },
-                        { key: 'notif_price', label: 'Price Alerts', desc: 'Notifications when prices hit your targets' },
-                        { key: 'notif_news', label: 'Market News', desc: 'Breaking news and important updates' },
-                        { key: 'notif_summary', label: 'Daily Summary', desc: 'End of day performance summary' },
-                      ].map(item => (
-                        <div key={item.key} className="flex items-center justify-between p-4 rounded-lg bg-background">
-                          <div>
-                            <div className="font-medium">{item.label}</div>
-                            <div className="text-sm text-muted-foreground">{item.desc}</div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="sr-only peer" 
-                              checked={settings[item.key] !== false}
-                              onChange={() => toggleSetting(item.key)}
-                            />
-                            <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              {activeTab === 'notifications' && (
+                <Stack spacing={3}>
+                  <Typography variant="h6">Notification Preferences</Typography>
+                  <Stack spacing={2}>
+                    {[
+                      { key: 'notif_signals', label: 'Signal Alerts', desc: 'Get notified when new signals are generated' },
+                      { key: 'notif_price', label: 'Price Alerts', desc: 'Notifications when prices hit your targets' },
+                      { key: 'notif_news', label: 'Market News', desc: 'Breaking news and important updates' },
+                      { key: 'notif_summary', label: 'Daily Summary', desc: 'End of day performance summary' },
+                    ].map(item => (
+                      <Box
+                        key={item.key}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: 'background.default',
+                        }}
+                      >
+                        <Box>
+                          <Typography fontWeight={500}>{item.label}</Typography>
+                          <Typography variant="body2" color="text.secondary">{item.desc}</Typography>
+                        </Box>
+                        <Switch
+                          checked={settings[item.key] !== false}
+                          onChange={() => toggleSetting(item.key)}
+                          color="primary"
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
 
-                {activeTab === 'api' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Broker Connection</h3>
-                    
-                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                      <p className="text-sm">
-                        Connect your broker securely from the Algo Trading page. Your access token is stored locally and never shared.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {localStorage.getItem('ms_connected_broker') ? (
-                        <div className="p-4 rounded-lg bg-bullish/10 border border-bullish/20">
-                          <div className="font-medium text-bullish">
-                            ✅ {localStorage.getItem('ms_connected_broker')?.toUpperCase()} Connected
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {localStorage.getItem('ms_is_sandbox') === 'true' ? 'Sandbox Mode' : 'Live Mode'}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-lg bg-background border border-border">
-                          <div className="text-muted-foreground">No broker connected</div>
-                        </div>
-                      )}
-                      
+              {activeTab === 'api' && (
+                <Stack spacing={3}>
+                  <Typography variant="h6">Broker Connection</Typography>
+                  <Alert severity="info">
+                    Connect your broker securely from the Algo Trading page. Your access token is stored locally and never shared.
+                  </Alert>
+                  <Stack spacing={2}>
+                    {localStorage.getItem('ms_connected_broker') ? (
+                      <Alert severity="success">
+                        <Typography fontWeight={500}>
+                          {localStorage.getItem('ms_connected_broker')?.toUpperCase()} Connected
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {localStorage.getItem('ms_is_sandbox') === 'true' ? 'Sandbox Mode' : 'Live Mode'}
+                        </Typography>
+                      </Alert>
+                    ) : (
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+                        <Typography color="text.secondary">No broker connected</Typography>
+                      </Box>
+                    )}
+                    <Box>
                       <Button onClick={() => navigate('/algo')}>
                         {localStorage.getItem('ms_connected_broker') ? 'Manage Connection' : 'Connect Broker'}
                       </Button>
-                    </div>
-                  </div>
-                )}
+                    </Box>
+                  </Stack>
+                </Stack>
+              )}
 
-                {activeTab === 'display' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Display Settings</h3>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm text-muted-foreground block mb-2">Theme</label>
-                        <div className="flex gap-4">
-                          <button 
-                            className={`p-4 rounded-lg border w-24 text-center ${settings.theme !== 'light' ? 'border-primary bg-black text-white' : 'border-border bg-black/50 text-white/50'}`}
-                            onClick={() => update('theme', 'dark')}
-                          >
-                            Dark
-                          </button>
-                          <button 
-                            className={`p-4 rounded-lg border w-24 text-center ${settings.theme === 'light' ? 'border-primary bg-white text-black' : 'border-border bg-white/50 text-black/50'}`}
-                            onClick={() => update('theme', 'light')}
-                          >
-                            Light
-                          </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">Dark theme is recommended for trading</p>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium block">Compact Mode</label>
-                          <p className="text-xs text-muted-foreground">Reduce spacing for more data on screen</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer" 
-                            checked={!!settings.compactMode}
-                            onChange={() => toggleSetting('compactMode')}
-                          />
-                          <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {activeTab === 'display' && (
+                <Stack spacing={3}>
+                  <Typography variant="h6">Display Settings</Typography>
+                  <Stack spacing={2.5}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Theme
+                      </Typography>
+                      <Stack direction="row" spacing={2}>
+                        <Box
+                          onClick={() => update('theme', 'dark')}
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            border: 1,
+                            borderColor: settings.theme !== 'light' ? 'primary.main' : 'divider',
+                            width: 96,
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            bgcolor: '#000',
+                            color: settings.theme !== 'light' ? '#fff' : alpha('#fff', 0.5),
+                          }}
+                        >
+                          Dark
+                        </Box>
+                        <Box
+                          onClick={() => update('theme', 'light')}
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            border: 1,
+                            borderColor: settings.theme === 'light' ? 'primary.main' : 'divider',
+                            width: 96,
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            bgcolor: '#fff',
+                            color: settings.theme === 'light' ? '#000' : alpha('#000', 0.5),
+                          }}
+                        >
+                          Light
+                        </Box>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Dark theme is recommended for trading
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={500}>Compact Mode</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Reduce spacing for more data on screen
+                        </Typography>
+                      </Box>
+                      <Switch
+                        checked={!!settings.compactMode}
+                        onChange={() => toggleSetting('compactMode')}
+                        color="primary"
+                      />
+                    </Box>
+                  </Stack>
+                </Stack>
+              )}
 
-                {activeTab === 'data' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Data & Privacy</h3>
-                    
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-lg bg-background border border-border">
-                        <div className="font-medium mb-1">Your Data</div>
-                        <p className="text-sm text-muted-foreground">
-                          All data is stored locally in your browser. Nothing is sent to external servers except broker API calls you initiate.
-                        </p>
-                      </div>
-                      
-                      <Button 
+              {activeTab === 'data' && (
+                <Stack spacing={3}>
+                  <Typography variant="h6">Data & Privacy</Typography>
+                  <Stack spacing={2}>
+                    <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+                      <Typography fontWeight={500} sx={{ mb: 0.5 }}>Your Data</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        All data is stored locally in your browser. Nothing is sent to external servers except broker API calls you initiate.
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={2}>
+                      <Button
                         variant="outline"
                         onClick={() => {
                           const data = {};
@@ -256,9 +314,13 @@ export default function Settings() {
                       >
                         Export My Data
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        className="text-red-500 border-red-500/20 hover:bg-red-500/10"
+                      <Button
+                        variant="outline"
+                        sx={{
+                          color: 'error.main',
+                          borderColor: alpha(theme.palette.error.main, 0.3),
+                          '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) },
+                        }}
                         onClick={async () => {
                           const ok = await confirm({
                             title: 'Delete All Data',
@@ -280,15 +342,14 @@ export default function Settings() {
                       >
                         Delete All Data
                       </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                    </Stack>
+                  </Stack>
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
       </Section>
     </PageLayout>
   );
 }
-

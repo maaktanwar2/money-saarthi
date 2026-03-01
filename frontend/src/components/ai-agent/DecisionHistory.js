@@ -1,56 +1,115 @@
 // AI Agent — Decision History timeline
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import { STRATEGY_INFO } from './constants';
 import { Lightbulb, Terminal } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui';
-import { cn } from '../../lib/utils';
 
 const DecisionHistory = ({ decisions, onShowThoughts }) => (
-  <Card className="bg-slate-800/60 border-slate-700/50">
-    <CardHeader className="pb-2">
-      <div className="flex justify-between items-center">
-        <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 text-amber-400" />
+  <Card>
+    <CardHeader sx={{ pb: 1 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <CardTitle sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Lightbulb style={{ width: 16, height: 16, color: '#fbbf24' }} />
           Decision History ({decisions.length})
         </CardTitle>
-        <button onClick={onShowThoughts} className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1">
-          <Terminal className="w-3 h-3" /> Full Thought Log
-        </button>
-      </div>
+        <Box
+          component="button"
+          onClick={onShowThoughts}
+          sx={{
+            fontSize: '11px',
+            color: '#c084fc',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            fontFamily: 'inherit',
+            '&:hover': { color: '#d8b4fe' },
+          }}
+        >
+          <Terminal style={{ width: 12, height: 12 }} /> Full Thought Log
+        </Box>
+      </Stack>
     </CardHeader>
-    <CardContent className="p-4 pt-0">
+    <CardContent sx={{ p: 2, pt: 0 }}>
       {decisions.length === 0 ? (
-        <p className="text-xs text-slate-500 py-4 text-center">No decisions yet</p>
+        <Typography variant="caption" color="text.disabled" sx={{ py: 2, textAlign: 'center', display: 'block' }}>
+          No decisions yet
+        </Typography>
       ) : (
-        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+        <Stack spacing={0.75} sx={{ maxHeight: 240, overflowY: 'auto' }}>
           {decisions.map((d, i) => {
             const stratInfo = STRATEGY_INFO[d.strategy] || STRATEGY_INFO.no_trade;
             return (
-              <div key={d.id || i} className="flex items-center gap-3 py-1.5 border-b border-slate-700/30 last:border-0">
-                <span className="text-[10px] text-slate-500 w-14 flex-shrink-0">
+              <Stack
+                key={d.id || i}
+                direction="row"
+                alignItems="center"
+                spacing={1.5}
+                sx={{
+                  py: 0.75,
+                  borderBottom: 1,
+                  borderColor: alpha('#334155', 0.3),
+                  '&:last-child': { borderBottom: 0 },
+                }}
+              >
+                <Typography sx={{ fontSize: '10px', color: 'text.disabled', width: 56, flexShrink: 0 }}>
                   {d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '--'}
-                </span>
-                <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded font-medium w-14 text-center flex-shrink-0",
-                  d.action === 'ENTER' ? 'bg-emerald-500/20 text-emerald-400' :
-                  d.action === 'EXIT' ? 'bg-red-500/20 text-red-400' :
-                  d.action === 'ADJUST' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-slate-500/20 text-slate-400'
-                )}>
+                </Typography>
+                <Box
+                  sx={{
+                    fontSize: '10px',
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 1,
+                    fontWeight: 500,
+                    width: 56,
+                    textAlign: 'center',
+                    flexShrink: 0,
+                    ...(d.action === 'ENTER'
+                      ? { bgcolor: alpha('#10b981', 0.2), color: '#34d399' }
+                      : d.action === 'EXIT'
+                      ? { bgcolor: alpha('#ef4444', 0.2), color: '#f87171' }
+                      : d.action === 'ADJUST'
+                      ? { bgcolor: alpha('#f59e0b', 0.2), color: '#fbbf24' }
+                      : { bgcolor: alpha('#64748b', 0.2), color: '#94a3b8' }),
+                  }}
+                >
                   {d.action}
-                </span>
-                <span className="text-xs text-slate-300 truncate flex-1">
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.75rem',
+                    color: 'text.secondary',
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {stratInfo.icon} {stratInfo.name}
-                </span>
-                <span className={cn(
-                  "text-xs font-medium",
-                  d.confidence_score >= 70 ? 'text-emerald-400' : d.confidence_score >= 50 ? 'text-amber-400' : 'text-slate-500'
-                )}>
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: d.confidence_score >= 70
+                      ? '#34d399'
+                      : d.confidence_score >= 50
+                      ? '#fbbf24'
+                      : '#64748b',
+                  }}
+                >
                   {d.confidence_score?.toFixed(0)}%
-                </span>
-              </div>
+                </Typography>
+              </Stack>
             );
           })}
-        </div>
+        </Stack>
       )}
     </CardContent>
   </Card>

@@ -1,21 +1,38 @@
 // AI Agent — StatCard sub-component
-import { tw } from '../../lib/colorMap';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Card, CardContent } from '../ui';
-import { cn } from '../../lib/utils';
+import { COLOR_MAP } from './constants';
 
-const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
-  <Card className="bg-card/60 border-border/50">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{title}</span>
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", tw(color, 'bg10'))}>
-          <Icon className={cn("w-4 h-4", tw(color, 'text400'))} />
-        </div>
-      </div>
-      <div className={cn("text-2xl font-bold", tw(color, 'text400'))}>{value}</div>
-      {subtitle && <div className="text-[11px] text-muted-foreground/60 mt-1">{subtitle}</div>}
-    </CardContent>
-  </Card>
-);
+const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+  const theme = useTheme();
+  const c = COLOR_MAP[color] || color;
+
+  return (
+    <Card sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6), borderColor: alpha(theme.palette.divider, 0.5) }}>
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography sx={{ fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {title}
+          </Typography>
+          <Box sx={{
+            width: 32, height: 32, borderRadius: 2,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            bgcolor: alpha(c, 0.1),
+          }}>
+            <Icon size={16} color={c} />
+          </Box>
+        </Box>
+        <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: c }}>{value}</Typography>
+        {subtitle && (
+          <Typography sx={{ fontSize: 11, color: alpha(theme.palette.text.secondary, 0.6), mt: 0.5 }}>
+            {subtitle}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default StatCard;

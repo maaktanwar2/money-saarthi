@@ -3,33 +3,30 @@
  * Shows bot events, trades, adjustments, and AI decisions
  */
 import React, { useRef, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import { alpha, useTheme } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import {
-  Play, Square, ArrowUpRight, ArrowDownRight, RefreshCw, 
+  Play, Square, ArrowUpRight, ArrowDownRight, RefreshCw,
   Brain, AlertCircle, Activity
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../ui';
-import { cn, formatINR } from '../../lib/utils';
+import { formatINR } from '../../lib/utils';
 
 const EVENT_TYPES = {
-  bot_start: { icon: Play, color: 'green', label: 'Bot Started' },
-  bot_stop: { icon: Square, color: 'red', label: 'Bot Stopped' },
-  trade_buy: { icon: ArrowUpRight, color: 'green', label: 'Buy' },
-  trade_sell: { icon: ArrowDownRight, color: 'red', label: 'Sell' },
-  adjustment: { icon: RefreshCw, color: 'blue', label: 'Adjustment' },
-  ai_decision: { icon: Brain, color: 'purple', label: 'AI Decision' },
-  alert: { icon: AlertCircle, color: 'amber', label: 'Alert' },
-};
-
-const colorClasses = {
-  green: { bg: 'bg-green-500/20', text: 'text-green-500' },
-  red: { bg: 'bg-red-500/20', text: 'text-red-500' },
-  blue: { bg: 'bg-blue-500/20', text: 'text-blue-500' },
-  purple: { bg: 'bg-purple-500/20', text: 'text-purple-500' },
-  amber: { bg: 'bg-amber-500/20', text: 'text-amber-500' },
+  bot_start: { icon: Play, color: 'success', label: 'Bot Started' },
+  bot_stop: { icon: Square, color: 'error', label: 'Bot Stopped' },
+  trade_buy: { icon: ArrowUpRight, color: 'success', label: 'Buy' },
+  trade_sell: { icon: ArrowDownRight, color: 'error', label: 'Sell' },
+  adjustment: { icon: RefreshCw, color: 'info', label: 'Adjustment' },
+  ai_decision: { icon: Brain, color: 'secondary', label: 'AI Decision' },
+  alert: { icon: AlertCircle, color: 'warning', label: 'Alert' },
 };
 
 const ActivityFeed = ({ events = [], className }) => {
+  const theme = useTheme();
   const scrollRef = useRef(null);
 
   // Auto-scroll to bottom on new events
@@ -41,82 +38,128 @@ const ActivityFeed = ({ events = [], className }) => {
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="w-5 h-5 text-primary" />
-          Activity Feed
-          <Badge variant="secondary" className="ml-auto text-xs">
-            {events.length} events
-          </Badge>
+      <CardHeader sx={{ pb: 1 }}>
+        <CardTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1rem' }}>
+            <Activity style={{ width: 20, height: 20, color: theme.palette.primary.main }} />
+            Activity Feed
+            <Badge variant="secondary" sx={{ ml: 'auto' }}>
+              {events.length} events
+            </Badge>
+          </Box>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div ref={scrollRef} className="max-h-[350px] overflow-y-auto pr-2">
+        <Box ref={scrollRef} sx={{ maxHeight: 350, overflowY: 'auto', pr: 1 }}>
           {events.length === 0 ? (
-            <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
-              <div className="text-center">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p>No activity yet</p>
-                <p className="text-xs mt-1">Events will appear here when bots are running</p>
-              </div>
-            </div>
+            <Box
+              sx={{
+                height: 128,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              <Box sx={{ textAlign: 'center' }}>
+                <Activity style={{ width: 32, height: 32, margin: '0 auto 8px', opacity: 0.3, color: theme.palette.text.secondary }} />
+                <Typography variant="body2">No activity yet</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  Events will appear here when bots are running
+                </Typography>
+              </Box>
+            </Box>
           ) : (
-            <div className="relative pl-8">
+            <Box sx={{ position: 'relative', pl: 4 }}>
               {/* Vertical timeline line */}
-              <div className="absolute left-3 top-0 bottom-0 w-px bg-border" />
-              
+              <Divider
+                orientation="vertical"
+                sx={{
+                  position: 'absolute',
+                  left: 12,
+                  top: 0,
+                  bottom: 0,
+                  borderColor: 'divider',
+                }}
+              />
+
               {events.map((event, i) => {
                 const config = EVENT_TYPES[event.type] || EVENT_TYPES.alert;
                 const Icon = config.icon;
-                const colors = colorClasses[config.color] || colorClasses.amber;
-                
+                const paletteColor = config.color;
+
                 return (
                   <motion.div
                     key={event.id || i}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: Math.min(i * 0.03, 0.5) }}
-                    className="relative mb-3 last:mb-0"
+                    style={{ position: 'relative', marginBottom: 12 }}
                   >
                     {/* Timeline dot */}
-                    <div className={cn(
-                      "absolute -left-5 w-6 h-6 rounded-full flex items-center justify-center",
-                      colors.bg
-                    )}>
-                      <Icon className={cn("w-3 h-3", colors.text)} />
-                    </div>
-                    
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: -20,
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: (t) => alpha(t.palette[paletteColor].main, 0.2),
+                      }}
+                    >
+                      <Icon style={{ width: 12, height: 12, color: theme.palette[paletteColor].main }} />
+                    </Box>
+
                     {/* Event content */}
-                    <div className="bg-muted/30 rounded-lg p-3 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium">{config.label}</span>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {event.timestamp 
-                            ? new Date(event.timestamp).toLocaleTimeString('en-IN', { 
-                                hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                              }) 
+                    <Box
+                      sx={{
+                        bgcolor: (t) => alpha(t.palette.action.hover, 0.06),
+                        borderRadius: 2,
+                        p: 1.5,
+                        transition: 'background-color 0.2s',
+                        '&:hover': {
+                          bgcolor: (t) => alpha(t.palette.action.hover, 0.12),
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>{config.label}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: '0.625rem' }}>
+                          {event.timestamp
+                            ? new Date(event.timestamp).toLocaleTimeString('en-IN', {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                              })
                             : ''
                           }
-                        </span>
-                      </div>
+                        </Typography>
+                      </Box>
                       {event.message && (
-                        <p className="text-xs text-muted-foreground mt-1">{event.message}</p>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                          {event.message}
+                        </Typography>
                       )}
                       {event.pnl !== undefined && (
-                        <span className={cn(
-                          "text-xs font-mono font-medium",
-                          event.pnl >= 0 ? "text-green-500" : "text-red-500"
-                        )}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 500,
+                            color: event.pnl >= 0 ? 'success.main' : 'error.main',
+                          }}
+                        >
                           {event.pnl >= 0 ? '+' : ''}{formatINR(event.pnl)}
-                        </span>
+                        </Typography>
                       )}
-                    </div>
+                    </Box>
                   </motion.div>
                 );
               })}
-            </div>
+            </Box>
           )}
-        </div>
+        </Box>
       </CardContent>
     </Card>
   );
