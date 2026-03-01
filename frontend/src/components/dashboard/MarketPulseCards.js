@@ -101,8 +101,7 @@ const MarketPulseCards = () => {
       }
     };
     fetchPulse();
-    const interval = setInterval(() => { if (!document.hidden) fetchPulse(); }, 60000);
-    return () => clearInterval(interval);
+    // Remove manual polling - let React Query handle refetching
   }, []);
 
   if (loading) {

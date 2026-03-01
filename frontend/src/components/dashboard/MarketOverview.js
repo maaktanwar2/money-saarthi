@@ -1,38 +1,27 @@
 // Dashboard — Market Overview (Index Cards)
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Zap, AlertCircle } from 'lucide-react';
 import { Card } from '../ui';
 import { cn, formatNumber, fetchAPI } from '../../lib/utils';
+import { useMarketStats } from '../../hooks/useScannerDataEnhanced';
 
 const MarketOverview = () => {
   const [indices, setIndices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: marketStats, isLoading: loading, error } = useMarketStats({ autoRefresh: true });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetchAPI('/nse/indices');
-        const indicesArray = response?.all_indices || response?.data || [];
-        if (indicesArray && indicesArray.length > 0) {
-          const keySymbols = ['NIFTY 50', 'NIFTY BANK', 'NIFTY MIDCAP 50', 'NIFTY FIN SERVICE', 'INDIA VIX', 'SENSEX'];
-          const keyIndices = keySymbols.map(sym =>
-            indicesArray.find(idx => idx.symbol === sym || idx.name === sym)
-          ).filter(Boolean);
-          setIndices(keyIndices.length > 0 ? keyIndices : indicesArray.slice(0, 6));
-        }
-      } catch (error) {
-        console.error('Market Overview fetch error:', error);
-        setIndices([]);
-      } finally {
-        setLoading(false);
+    if (marketStats) {
+      const indicesArray = marketStats?.all_indices || marketStats?.data || [];
+      if (indicesArray && indicesArray.length > 0) {
+        const keySymbols = ['NIFTY 50', 'NIFTY BANK', 'NIFTY MIDCAP 50', 'NIFTY FIN SERVICE', 'INDIA VIX', 'SENSEX'];
+        const keyIndices = keySymbols.map(sym =>
+          indicesArray.find(idx => idx.symbol === sym || idx.name === sym)
+        ).filter(Boolean);
+        setIndices(keyIndices.length > 0 ? keyIndices : indicesArray.slice(0, 6));
       }
-    };
-
-    fetchData();
-    const interval = setInterval(() => { if (!document.hidden) fetchData(); }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [marketStats]);
 
   // Is this VIX?
   const isVIX = (sym) => (sym || '').toUpperCase().includes('VIX');
@@ -43,6 +32,28 @@ const MarketOverview = () => {
         {[...Array(6)].map((_, i) => (
           <div key={i} className="h-[90px] skeleton rounded-xl" />
         ))}
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <div>
+          <div className="text-sm font-medium">Market data unavailable</div>
+          <div className="text-xs opacity-75">{error?.message || 'Failed to load market indices'}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!indices.length) {
+    return (
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50 text-muted-foreground">
+        <Zap className="w-4 h-4" />
+        <span className="text-sm">No market data available</span>
       </div>
     );
   }

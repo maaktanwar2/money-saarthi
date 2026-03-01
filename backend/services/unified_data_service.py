@@ -39,7 +39,7 @@ NSE_BASE_URL = "https://www.nseindia.com"
 NSE_API_URL = "https://www.nseindia.com/api"
 
 # Data refresh configuration (in-memory only, no file persistence)
-DATA_REFRESH_MINUTES = 3
+DATA_REFRESH_MINUTES = 10
 
 # Thread pool for blocking operations
 executor = ThreadPoolExecutor(max_workers=10)

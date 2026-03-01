@@ -388,7 +388,7 @@ export default function Login() {
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-1.5">
-                    {['#10b981','#3b82f6','#f59e0b','#ef4444'].map((c, i) => (
+                    {['hsl(160,84%,39%)','hsl(217,91%,60%)','hsl(38,92%,50%)','hsl(0,84%,60%)'].map((c, i) => (
                       <div key={i} className="w-6 h-6 rounded-full border-2 border-background" style={{ background: c }} />
                     ))}
                   </div>

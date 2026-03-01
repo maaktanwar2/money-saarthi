@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 import { cn, fetchAPI } from '../../lib/utils';
+import { CHART_COLORS } from '../../lib/chartTheme';
 
 const OIScans = () => {
   const [stocks, setStocks] = useState([]);
@@ -21,8 +22,7 @@ const OIScans = () => {
       }
     };
     fetchOI();
-    const interval = setInterval(() => { if (!document.hidden) fetchOI(); }, 180000);
-    return () => clearInterval(interval);
+    // Remove manual polling - let React Query handle refetching
   }, []);
 
   const oiUp = [...stocks].filter(s => (s.oi_change ?? 0) > 0).sort((a, b) => (b.oi_change ?? 0) - (a.oi_change ?? 0)).slice(0, 5);
@@ -41,7 +41,7 @@ const OIScans = () => {
   const OIPanel = ({ title, items, type }) => {
     const isUp = type === 'up';
     const glowColor = isUp ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)';
-    const accentHex = isUp ? '#10b981' : '#f43f5e';
+    const accentHex = isUp ? CHART_COLORS.bullish : CHART_COLORS.bearish;
     const maxOI = Math.max(...items.map(s => Math.abs(s.oi_change ?? 0)), 1);
 
     return (

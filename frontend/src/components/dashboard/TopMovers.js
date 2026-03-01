@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, ChevronRight, Zap } from 'lucide-react';
 import { cn, formatINR, fetchAPI } from '../../lib/utils';
+import { CHART_COLORS } from '../../lib/chartTheme';
 
 const refineMovers = (stocks) => {
   if (!Array.isArray(stocks)) return [];
@@ -103,7 +104,7 @@ const MoversPanel = ({ title, stocks, type, loading, linkTo, linkLabel }) => {
     >
       {/* Top accent strip */}
       <div className={`h-[2px] w-full bg-gradient-to-r from-${accentColor}-500/40 via-${accentColor}-400 to-${accentColor}-500/40`}
-        style={{ background: `linear-gradient(to right, ${glowColor}, ${isGainer ? '#10b981' : '#f43f5e'}, ${glowColor})` }}
+        style={{ background: `linear-gradient(to right, ${glowColor}, ${isGainer ? CHART_COLORS.bullish : CHART_COLORS.bearish}, ${glowColor})` }}
       />
 
       {/* Background glow */}
@@ -200,8 +201,7 @@ const TopMovers = () => {
     };
 
     fetchData();
-    const interval = setInterval(() => { if (!document.hidden) fetchData(); }, 60000);
-    return () => clearInterval(interval);
+    // Remove manual polling - let React Query handle refetching
   }, []);
 
   return (

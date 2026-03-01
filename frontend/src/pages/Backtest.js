@@ -6,6 +6,7 @@ import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import { TradingAreaChart, TradingBarChart } from '../components/ui/Charts';
 import { formatINR } from '../lib/utils';
+import { CHART_COLORS } from '../lib/chartTheme';
 import { SkeletonChart, SkeletonTable, SkeletonPage } from '../components/ui/Skeleton';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'https://moneysaarthi-backend-517321998192.asia-south1.run.app';
@@ -349,7 +350,7 @@ export default function Backtest() {
                         data={s.equity_curve || []}
                         dataKey="value"
                         xKey="date"
-                        color={s.total_pnl >= 0 ? '#10b981' : '#ef4444'}
+                        color={s.total_pnl >= 0 ? CHART_COLORS.bullish : CHART_COLORS.bearish}
                         gradientId={`eq-${s.key}`}
                       />
                     </div>
@@ -596,7 +597,7 @@ export default function Backtest() {
                           data={s.equity_curve || []}
                           dataKey="value"
                           xKey="date"
-                          color={s.total_pnl >= 0 ? '#10b981' : '#ef4444'}
+                          color={s.total_pnl >= 0 ? CHART_COLORS.bullish : CHART_COLORS.bearish}
                           gradientId={`detail-${s.key}`}
                         />
                       </div>

@@ -77,9 +77,10 @@ const createScannerHook = (scannerName, endpoint, defaultOptions = {}) => {
           throw error;
         }
       },
-      staleTime: defaultOptions.staleTime || 30000,
-      cacheTime: defaultOptions.cacheTime || 5 * 60 * 1000,
-      refetchInterval: shouldRefetch ? (defaultOptions.refetchInterval || 30000) : false,
+      staleTime: defaultOptions.staleTime || 60000, // 1 minute
+      gcTime: defaultOptions.gcTime || 10 * 60 * 1000, // 10 minutes (garbage collection time)
+      refetchInterval: shouldRefetch ? (defaultOptions.refetchInterval || 60000) : false, // 1 minute interval
+      refetchOnWindowFocus: true, // Re-fetch when user returns to tab
       retry: 2,
       enabled: filters.enabled !== false,
       // Use stored data as placeholder while fetching
@@ -157,9 +158,10 @@ export const useMarketStats = (options = {}) => {
       setMarketStats(data);
       return data;
     },
-    staleTime: 15000,
-    cacheTime: 60000,
-    refetchInterval: shouldRefetch ? 15000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -178,8 +180,8 @@ export const useFnoStocks = (options = {}) => {
       setFnoStocks(data);
       return data;
     },
-    staleTime: 5 * 60 * 1000, // FNO list doesn't change often
-    cacheTime: 30 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes (FNO list doesn't change often)
+    gcTime: 1 * 60 * 60 * 1000, // 1 hour
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -197,9 +199,10 @@ export const useSectorInsights = (options = {}) => {
     queryFn: async () => {
       return fetchWithError('/api/sector-insights');
     },
-    staleTime: 60000,
-    cacheTime: 5 * 60 * 1000,
-    refetchInterval: shouldRefetch ? 60000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -220,9 +223,10 @@ export const usePositionalBuildups = (buildupType = 'long_buildup', options = {}
       setScannerData('positionalBuildups', data);
       return data;
     },
-    staleTime: 30000,
-    cacheTime: 2 * 60 * 1000,
-    refetchInterval: shouldRefetch ? 30000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -243,9 +247,10 @@ export const useOptionApex = (options = {}) => {
       setScannerData('optionApex', data);
       return data;
     },
-    staleTime: 30000,
-    cacheTime: 2 * 60 * 1000,
-    refetchInterval: shouldRefetch ? 30000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -266,9 +271,10 @@ export const useSectorRotation = (options = {}) => {
       setScannerData('sectorRotation', data);
       return data;
     },
-    staleTime: 60000,
-    cacheTime: 5 * 60 * 1000,
-    refetchInterval: shouldRefetch ? 60000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -298,9 +304,10 @@ export const useOICompass = (options = {}) => {
       setOIData({ [options.symbol?.toLowerCase() || 'nifty']: data });
       return data;
     },
-    staleTime: 10000,
-    cacheTime: 60000,
-    refetchInterval: shouldRefetch ? 10000 : false,
+    staleTime: 30000, // 30 seconds (volatile data)
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: shouldRefetch ? 30000 : false, // 30 seconds
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -324,9 +331,10 @@ export const useTradeSignals = (options = {}) => {
       
       return fetchWithError(`/api/tools/trade-signals?${params.toString()}`);
     },
-    staleTime: 30000,
-    cacheTime: 2 * 60 * 1000,
-    refetchInterval: shouldRefetch ? 30000 : false,
+    staleTime: 60000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: shouldRefetch ? 60000 : false, // 1 minute
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false,
   });
@@ -348,9 +356,10 @@ export const useMarketQuote = (instruments, options = {}) => {
         body: JSON.stringify({ instruments }),
       });
     },
-    staleTime: 5000,
-    cacheTime: 30000,
-    refetchInterval: shouldRefetch ? 5000 : false,
+    staleTime: 10000, // 10 seconds (real-time data)
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: shouldRefetch ? 10000 : false,
+    refetchOnWindowFocus: true,
     retry: 1,
     enabled: options.enabled !== false && Object.keys(instruments || {}).length > 0,
   });
@@ -383,9 +392,10 @@ export const useOptionChain = (underlyingId, expiryDate, options = {}) => {
       }
       return data;
     },
-    staleTime: 10000,
-    cacheTime: 60000,
-    refetchInterval: shouldRefetch ? 10000 : false,
+    staleTime: 30000, // 30 seconds (volatile data)
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: shouldRefetch ? 30000 : false, // 30 seconds
+    refetchOnWindowFocus: true,
     retry: 2,
     enabled: options.enabled !== false && !!underlyingId && !!expiryDate,
   });
@@ -410,8 +420,8 @@ export const useHistoricalData = (securityId, exchange, fromDate, toDate, interv
         }),
       });
     },
-    staleTime: interval === 'D' ? 5 * 60 * 1000 : 60000,
-    cacheTime: 30 * 60 * 1000,
+    staleTime: interval === 'D' ? 10 * 60 * 1000 : 5 * 60 * 1000, // Longer for daily data
+    gcTime: 1 * 60 * 60 * 1000, // 1 hour (historical data doesn't change)
     retry: 2,
     enabled: options.enabled !== false && !!securityId,
   });

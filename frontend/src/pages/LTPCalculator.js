@@ -10,6 +10,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { CHART_COLORS as THEME_COLORS } from '../lib/chartTheme';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LTP CALCULATOR - Advanced P&L Calculator + Live Option Chain + COA + Trade Finder
@@ -92,11 +93,11 @@ const COA2_SCENARIOS = [
 // CHART THEME
 // ═══════════════════════════════════════════════════════════════════════════════
 const CHART_COLORS = {
-  callOI: '#ef4444', putOI: '#22c55e', callIV: '#f59e0b', putIV: '#8b5cf6',
-  grid: '#374151', text: '#9ca3af', spot: '#f97316',
+  callOI: THEME_COLORS.bearish, putOI: THEME_COLORS.bullish, callIV: THEME_COLORS.warning, putIV: '#8b5cf6',
+  grid: THEME_COLORS.grid, text: THEME_COLORS.axis, spot: THEME_COLORS.spot,
 };
 const ChartTooltipStyle = {
-  backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#e5e7eb', fontSize: '12px',
+  backgroundColor: THEME_COLORS.bg, border: `1px solid ${THEME_COLORS.grid}`, borderRadius: '8px', color: THEME_COLORS.text, fontSize: '12px',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -993,10 +994,10 @@ export default function LTPCalculator() {
                           <XAxis dataKey="idx" hide />
                           <YAxis domain={[effectiveLevels.priceMin, effectiveLevels.priceMax]} tick={{ fill: CHART_COLORS.text, fontSize: 10 }} tickFormatter={(v) => v.toFixed(0)} width={55} />
                           <ReferenceLine y={spotPrice} stroke={CHART_COLORS.spot} strokeWidth={2.5} strokeDasharray="6 3" label={{ value: `CMP ${spotPrice.toFixed(0)}`, position: 'right', fill: CHART_COLORS.spot, fontSize: 11, fontWeight: 700 }} />
-                          <ReferenceLine y={effectiveLevels.EOS} stroke="#22c55e" strokeWidth={2} label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }} />
-                          <ReferenceLine y={effectiveLevels.EOR} stroke="#ef4444" strokeWidth={2} label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }} />
+                          <ReferenceLine y={effectiveLevels.EOS} stroke={CHART_COLORS.putOI} strokeWidth={2} label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: CHART_COLORS.putOI, fontSize: 11, fontWeight: 600 }} />
+                          <ReferenceLine y={effectiveLevels.EOR} stroke={CHART_COLORS.callOI} strokeWidth={2} label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: CHART_COLORS.callOI, fontSize: 11, fontWeight: 600 }} />
                           {effectiveLevels.diversions.map((level, idx) => (
-                            <ReferenceLine key={idx} y={level} stroke="#eab308" strokeDasharray="4 4" strokeWidth={1.2} label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: '#eab308', fontSize: 10 }} />
+                            <ReferenceLine key={idx} y={level} stroke={CHART_COLORS.callIV} strokeDasharray="4 4" strokeWidth={1.2} label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: CHART_COLORS.callIV, fontSize: 10 }} />
                           ))}
                           <Line type="monotone" dataKey="price" stroke="transparent" dot={false} />
                         </LineChart>
@@ -1262,11 +1263,11 @@ export default function LTPCalculator() {
                           {effectiveLevels.eosExt && (
                             <ReferenceLine
                               y={effectiveLevels.eosExt}
-                              stroke="#22c55e"
+                              stroke={CHART_COLORS.putOI}
                               strokeDasharray="8 4"
                               strokeWidth={1}
                               strokeOpacity={0.5}
-                              label={{ value: `EOS-1 ${effectiveLevels.eosExt}`, position: 'left', fill: '#22c55e', fontSize: 9, fillOpacity: 0.6 }}
+                              label={{ value: `EOS-1 ${effectiveLevels.eosExt}`, position: 'left', fill: CHART_COLORS.putOI, fontSize: 9, fillOpacity: 0.6 }}
                             />
                           )}
 
@@ -1274,11 +1275,11 @@ export default function LTPCalculator() {
                           {effectiveLevels.eorExt && (
                             <ReferenceLine
                               y={effectiveLevels.eorExt}
-                              stroke="#ef4444"
+                              stroke={CHART_COLORS.callOI}
                               strokeDasharray="8 4"
                               strokeWidth={1}
                               strokeOpacity={0.5}
-                              label={{ value: `EOR+1 ${effectiveLevels.eorExt}`, position: 'left', fill: '#ef4444', fontSize: 9, fillOpacity: 0.6 }}
+                              label={{ value: `EOR+1 ${effectiveLevels.eorExt}`, position: 'left', fill: CHART_COLORS.callOI, fontSize: 9, fillOpacity: 0.6 }}
                             />
                           )}
 
@@ -1294,17 +1295,17 @@ export default function LTPCalculator() {
                           {/* EOS (Support) */}
                           <ReferenceLine
                             y={effectiveLevels.EOS}
-                            stroke="#22c55e"
+                            stroke={CHART_COLORS.putOI}
                             strokeWidth={2}
-                            label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: '#22c55e', fontSize: 11, fontWeight: 600 }}
+                            label={{ value: `EOS ${effectiveLevels.EOS}`, position: 'right', fill: CHART_COLORS.putOI, fontSize: 11, fontWeight: 600 }}
                           />
 
                           {/* EOR (Resistance) */}
                           <ReferenceLine
                             y={effectiveLevels.EOR}
-                            stroke="#ef4444"
+                            stroke={CHART_COLORS.callOI}
                             strokeWidth={2}
-                            label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: '#ef4444', fontSize: 11, fontWeight: 600 }}
+                            label={{ value: `EOR ${effectiveLevels.EOR}`, position: 'right', fill: CHART_COLORS.callOI, fontSize: 11, fontWeight: 600 }}
                           />
 
                           {/* Diversions: D1, D2, D3... */}
@@ -1312,10 +1313,10 @@ export default function LTPCalculator() {
                             <ReferenceLine
                               key={idx}
                               y={level}
-                              stroke="#eab308"
+                              stroke={CHART_COLORS.callIV}
                               strokeDasharray="4 4"
                               strokeWidth={1.2}
-                              label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: '#eab308', fontSize: 10 }}
+                              label={{ value: `D${idx + 1} ${Math.round(level)}`, position: 'right', fill: CHART_COLORS.callIV, fontSize: 10 }}
                             />
                           ))}
 

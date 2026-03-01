@@ -6,6 +6,7 @@ import { PageLayout, PageHeader, Section } from '../components/PageLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui';
 import { fetchAPI, isMarketHours } from '../lib/utils';
 import { tw } from '../lib/colorMap';
+import { CHART_COLORS } from '../lib/chartTheme';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -25,8 +26,8 @@ const TABS = [
 ];
 
 const ChartTooltipStyle = {
-  backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px',
-  color: '#e5e7eb', fontSize: '12px',
+  backgroundColor: CHART_COLORS.bg, border: `1px solid ${CHART_COLORS.grid}`, borderRadius: '8px',
+  color: CHART_COLORS.text, fontSize: '12px',
 };
 
 // ─── Small reusable cards ───────────────────────────────────────────────────
@@ -412,9 +413,9 @@ export default function TradeFinder() {
                     <div style={{ minHeight: 288 }}>
                       <ResponsiveContainer width="100%" height={288} minWidth={0} minHeight={0}>
                         <BarChart data={oiChangeChart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="strike" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                          <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                          <XAxis dataKey="strike" tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} />
+                          <YAxis tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} />
                           <Tooltip contentStyle={ChartTooltipStyle} />
                           <Bar dataKey="Call OI Chg" fill="#ef4444" radius={[3, 3, 0, 0]} />
                           <Bar dataKey="Put OI Chg" fill="#22c55e" radius={[3, 3, 0, 0]} />
@@ -540,14 +541,14 @@ export default function TradeFinder() {
                     <div style={{ minHeight: 320 }}>
                       <ResponsiveContainer width="100%" height={320} minWidth={0} minHeight={0}>
                         <BarChart data={blocksChart} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} interval="preserveStartEnd" />
-                          <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                          <XAxis dataKey="time" tick={{ fill: CHART_COLORS.axis, fontSize: 9 }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} />
                           <Tooltip contentStyle={ChartTooltipStyle} />
-                          <ReferenceLine y={0} stroke="#6b7280" />
+                          <ReferenceLine y={0} stroke={CHART_COLORS.axis} />
                           <Bar dataKey="change" radius={[2, 2, 0, 0]}>
                             {blocksChart.map((entry, i) => (
-                              <Cell key={i} fill={entry.type === 'bullish' ? '#22c55e' : entry.type === 'bearish' ? '#ef4444' : '#6b7280'} />
+                              <Cell key={i} fill={entry.type === 'bullish' ? CHART_COLORS.bullish : entry.type === 'bearish' ? CHART_COLORS.bearish : CHART_COLORS.axis} />
                             ))}
                           </Bar>
                         </BarChart>

@@ -121,8 +121,7 @@ const MarketHeatmap = () => {
       }
     };
     fetchHeatmap();
-    const interval = setInterval(() => { if (!document.hidden) fetchHeatmap(); }, 180000);
-    return () => clearInterval(interval);
+    // Remove manual polling - let React Query handle refetching
   }, []);
 
   /* Sort by day performance — top movers first based on market direction */

@@ -20,8 +20,7 @@ const AdvanceDeclineBar = () => {
       }
     };
     fetchBreadth();
-    const interval = setInterval(() => { if (!document.hidden) fetchBreadth(); }, 60000);
-    return () => clearInterval(interval);
+    // Let React Query handle refetching via useMarketStats hook instead of manual polling
   }, []);
 
   if (loading) return <div className="h-[88px] skeleton rounded-2xl" />;

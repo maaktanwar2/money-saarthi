@@ -211,7 +211,27 @@ const AlgoTrading = () => {
     loadBalance();
   }, []);
   
-  const deductBotTokens = async (action = 'bot_start', cost = 15) => {
+  // Check if user has enough tokens (pre-flight, no deduction)
+  const checkBotTokens = async (cost = 15) => {
+    if (isAdminUser) return true;
+    try {
+      const res = await getTokenBalance();
+      const balance = res.balance || 0;
+      setTokenBalance(balance);
+      if (balance < cost) {
+        toast({ title: 'Insufficient Tokens', description: `You need ${cost} tokens to start this bot. Current balance: ${balance}. Go to Profile → AI Tokens to recharge.`, variant: 'destructive' });
+        return false;
+      }
+      return true;
+    } catch (e) {
+      toast({ title: 'Token Check Failed', description: 'Could not verify token balance. Please check your connection and try again.', variant: 'destructive' });
+      return false;
+    }
+  };
+
+  // Deduct tokens AFTER successful bot start
+  const deductBotTokens = async (action = 'bot_start') => {
+    if (isAdminUser) return;
     try {
       const userId = JSON.parse(localStorage.getItem('ms_user') || '{}').email || 'anonymous';
       const res = await fetchAPI('/ai/tokens/use', {
@@ -219,21 +239,9 @@ const AlgoTrading = () => {
         headers: { 'X-User-Id': userId },
         body: JSON.stringify({ action })
       });
-      if (res.success) {
-        setTokenBalance(res.remaining_balance);
-        return true;
-      } else {
-        toast({ title: 'Insufficient Tokens', description: `You need ${cost} tokens to start this bot. Current balance: ${res.available || tokenBalance}. Go to Profile → AI Tokens to recharge.`, variant: 'destructive' });
-        return false;
-      }
+      if (res.success) setTokenBalance(res.remaining_balance);
     } catch (e) {
       console.error('Token deduction failed:', e);
-      toast({
-        title: 'Token Check Failed',
-        description: 'Could not verify token balance. Please check your connection and try again.',
-        variant: 'destructive'
-      });
-      return false;
     }
   };
   
@@ -321,38 +329,35 @@ const AlgoTrading = () => {
   
   const fetchBotStatuses = useCallback(async () => {
     if (!brokerConnected) return;
-    
+
     let vwapData = {};
     let strangleData = {};
     let deltaData = {};
-    
+
     try {
-      // Fetch VWAP Bot Status
-      const vwapRes = await fetchWithAuth('/trade-algo/vwap-bot/status');
-      if (vwapRes.ok) {
-        vwapData = await vwapRes.json();
-        setVwapBot(prev => ({
-          ...prev,
-          running: vwapData.status === 'running',
-          status: vwapData
-        }));
+      // Parallel fetch all bot statuses
+      const [vwapRes, strangleRes, deltaRes] = await Promise.allSettled([
+        fetchWithAuth('/trade-algo/vwap-bot/status'),
+        fetchWithAuth('/trade-algo/ai-delta-strangle/status'),
+        fetchWithAuth('/trade-algo/delta-neutral/status'),
+      ]);
+
+      if (vwapRes.status === 'fulfilled' && vwapRes.value.ok) {
+        vwapData = await vwapRes.value.json();
+        setVwapBot(prev => ({ ...prev, running: vwapData.status === 'running', status: vwapData }));
       }
-      
-      // Fetch AI Delta Strangle Bot Status (QuantStrangle AI)
-      const strangleRes = await fetchWithAuth('/trade-algo/ai-delta-strangle/status');
-      if (strangleRes.ok) {
-        strangleData = await strangleRes.json();
+
+      if (strangleRes.status === 'fulfilled' && strangleRes.value.ok) {
+        strangleData = await strangleRes.value.json();
         setStrangleBot(prev => ({
           ...prev,
           running: strangleData.bot_status === 'running' || strangleData.status === 'active',
           status: strangleData
         }));
       }
-      
-      // Fetch Delta Neutral Bot Status
-      const deltaRes = await fetchWithAuth('/trade-algo/delta-neutral/status');
-      if (deltaRes.ok) {
-        deltaData = await deltaRes.json();
+
+      if (deltaRes.status === 'fulfilled' && deltaRes.value.ok) {
+        deltaData = await deltaRes.value.json();
         setDeltaBot(prev => ({
           ...prev,
           running: deltaData.is_running || deltaData.running || deltaData.status === 'active',
@@ -396,7 +401,10 @@ const AlgoTrading = () => {
       };
       setPnlHistory(prev => {
         const updated = [...prev, newPoint].slice(-100); // Keep last 100 points
-        try { localStorage.setItem('ms_pnl_history', JSON.stringify(updated)); } catch {}
+        // Persist to localStorage at most every 30 seconds
+        if (updated.length % 6 === 0) {
+          try { localStorage.setItem('ms_pnl_history', JSON.stringify(updated)); } catch {}
+        }
         return updated;
       });
       
@@ -428,11 +436,19 @@ const AlgoTrading = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // BOT CONTROLS
   // ─────────────────────────────────────────────────────────────────────────────
-  
-  const startVwapBot = async () => {
+
+  // Shared helper — reads broker connection state from storage
+  const getBrokerContext = () => {
     const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
     const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
     const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
+    const token = sessionStorage.getItem('ms_broker_token');
+    const clientIdVal = localStorage.getItem('ms_client_id') || 'default';
+    return { isSandboxMode, connectedBroker, brokerName, token, clientIdVal };
+  };
+
+  const startVwapBot = async () => {
+    const { isSandboxMode, connectedBroker, brokerName, token, clientIdVal } = getBrokerContext();
     const confirmed = await confirm({
       title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
       message: `You are about to start VWAP Momentum Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
@@ -443,20 +459,20 @@ const AlgoTrading = () => {
       variant: isSandboxMode ? 'default' : 'destructive',
     });
     if (!confirmed) return;
-    
-    // Check & deduct tokens (VWAP = basic, 15 tokens)
-    const hasTokens = await deductBotTokens(BOT_CONFIGS.vwap.tokenAction, BOT_CONFIGS.vwap.tokenCost);
+
+    // Pre-flight token check (no deduction yet)
+    const hasTokens = await checkBotTokens(BOT_CONFIGS.vwap.tokenCost);
     if (!hasTokens) return;
-    
+
     setVwapBot(prev => ({ ...prev, loading: true }));
     try {
       const response = await fetchWithAuth('/trade-algo/vwap-bot/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          broker_token: sessionStorage.getItem('ms_broker_token'),
+          broker_token: token,
           broker: connectedBroker,
-          user_id: localStorage.getItem('ms_client_id') || 'default',
+          user_id: clientIdVal,
           mock_mode: isSandboxMode,
           scenario: 'random',
           config: {
@@ -472,6 +488,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.status === 'success' || data.status === 'running') {
         setVwapBot(prev => ({ ...prev, running: true }));
+        await deductBotTokens(BOT_CONFIGS.vwap.tokenAction);
         toast({ title: '🚀 Bot Started', description: `VWAP Momentum Bot is now active${isSandboxMode ? ' [SANDBOX]' : ''}` });
         addActivityEvent('bot_start', `VWAP Momentum Bot started${isSandboxMode ? ' (Sandbox)' : ''}`);
       } else {
@@ -504,9 +521,7 @@ const AlgoTrading = () => {
   };
   
   const startStrangleBot = async () => {
-    const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
-    const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
-    const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
+    const { isSandboxMode, connectedBroker, brokerName, token } = getBrokerContext();
     const confirmed = await confirm({
       title: `${isSandboxMode ? 'SANDBOX' : 'LIVE'} Trading Confirmation`,
       message: `You are about to start QuantStrangle AI Bot${isSandboxMode ? ' in SANDBOX mode' : ' with REAL MONEY'}!\n\n` +
@@ -519,18 +534,18 @@ const AlgoTrading = () => {
       variant: isSandboxMode ? 'default' : 'destructive',
     });
     if (!confirmed) return;
-    
-    // Check & deduct tokens (QuantStrangle AI = 60 tokens)
-    const hasTokens = await deductBotTokens(BOT_CONFIGS.strangle.tokenAction, BOT_CONFIGS.strangle.tokenCost);
-    if (!hasTokens) { return; }
-    
+
+    // Pre-flight token check (no deduction yet)
+    const hasTokens = await checkBotTokens(BOT_CONFIGS.strangle.tokenCost);
+    if (!hasTokens) return;
+
     setStrangleBot(prev => ({ ...prev, loading: true }));
     try {
       const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          access_token: sessionStorage.getItem('ms_broker_token'),
+          access_token: token,
           broker: connectedBroker,
           underlying: strangleConfig.underlying,
           num_lots: strangleConfig.numLots,
@@ -547,6 +562,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.status === 'success') {
         setStrangleBot(prev => ({ ...prev, running: true, status: data }));
+        await deductBotTokens(BOT_CONFIGS.strangle.tokenAction);
         toast({ title: '🤖 QuantStrangle AI Started', description: data.message || 'Bot is now monitoring positions' });
         addActivityEvent('bot_start', 'QuantStrangle AI Bot started');
       } else {
@@ -585,29 +601,22 @@ const AlgoTrading = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) {
+        toast({ title: 'Scan Failed', description: `Server returned ${response.status}`, variant: 'destructive' });
+        return;
+      }
       const data = await response.json();
       setStrangleBot(prev => ({ ...prev, status: data }));
       if (data.action_taken) {
-        toast({ 
-          title: '🔄 Action Taken', 
+        toast({
+          title: '🔄 Action Taken',
           description: `${data.action_taken.reason}: ${data.action_taken.trigger || ''}`
         });
       }
       return data;
     } catch (error) {
       console.error('Scan error:', error);
-    }
-  };
-  
-  // Get strangle bot status
-  const getStrangleBotStatus = async () => {
-    try {
-      const response = await fetchWithAuth('/trade-algo/ai-delta-strangle/status');
-      const data = await response.json();
-      setStrangleBot(prev => ({ ...prev, status: data, running: data.is_running }));
-      return data;
-    } catch (error) {
-      console.error('Status error:', error);
+      toast({ title: 'Scan Error', description: error.message, variant: 'destructive' });
     }
   };
   
@@ -625,9 +634,7 @@ const AlgoTrading = () => {
   };
   
   const startDeltaBot = async () => {
-    const isSandboxMode = localStorage.getItem('ms_is_sandbox') === 'true';
-    const connectedBroker = localStorage.getItem('ms_connected_broker') || 'dhan';
-    const brokerName = connectedBroker === 'upstox' ? 'Upstox' : 'Dhan';
+    const { isSandboxMode, connectedBroker, brokerName, token } = getBrokerContext();
     const strategyLabel = STRATEGY_LABELS[deltaConfig.strategyMode] || deltaConfig.strategyMode;
     const timeframeLabel = TIMEFRAME_LABELS[deltaConfig.timeframe] || deltaConfig.timeframe;
     const isDefinedRisk = ['iron_condor', 'iron_butterfly'].includes(deltaConfig.strategyMode);
@@ -644,18 +651,18 @@ const AlgoTrading = () => {
       variant: isSandboxMode ? 'default' : 'destructive',
     });
     if (!confirmed) return;
-    
-    // Check & deduct tokens (Delta Neutral with auto hedging = 40 tokens)
-    const hasTokens = await deductBotTokens(BOT_CONFIGS.delta.tokenAction, BOT_CONFIGS.delta.tokenCost);
+
+    // Pre-flight token check (no deduction yet)
+    const hasTokens = await checkBotTokens(BOT_CONFIGS.delta.tokenCost);
     if (!hasTokens) return;
-    
+
     setDeltaBot(prev => ({ ...prev, loading: true }));
     try {
       const response = await fetchWithAuth('/trade-algo/delta-neutral/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          access_token: sessionStorage.getItem('ms_broker_token'),
+          access_token: token,
           broker: connectedBroker,
           underlying: deltaConfig.underlying,
           lot_size: deltaConfig.lotSize,
@@ -664,7 +671,7 @@ const AlgoTrading = () => {
           adjustment_interval: 60,
           stop_loss_percent: 2.0,
           target_profit_percent: 1.0,
-          mock_mode: isSandbox,
+          mock_mode: isSandboxMode,
           // ── New strategy params ──
           strategy_mode: deltaConfig.strategyMode,
           timeframe: deltaConfig.timeframe,
@@ -679,6 +686,7 @@ const AlgoTrading = () => {
       const data = await response.json();
       if (data.success || data.status === 'success') {
         setDeltaBot(prev => ({ ...prev, running: true }));
+        await deductBotTokens(BOT_CONFIGS.delta.tokenAction);
         toast({ title: '🛡️ Bot Started', description: data.message || `${strategyLabel} bot is now active` });
         addActivityEvent('bot_start', `Delta Neutral (${strategyLabel}) Bot started`);
       } else {
@@ -1114,14 +1122,25 @@ const AlgoTrading = () => {
   // RENDER - BOT CONFIGS
   // ─────────────────────────────────────────────────────────────────────────────
   
+  const clampVwap = (key, min, max) => {
+    setVwapConfig(prev => {
+      const v = Number(prev[key]);
+      if (isNaN(v) || v < min) return { ...prev, [key]: min };
+      if (v > max) return { ...prev, [key]: max };
+      return prev;
+    });
+  };
+
   const renderVwapConfig = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       <div>
         <label className="text-xs text-muted-foreground">Capital (₹)</label>
         <Input
           type="number"
+          min={10000} max={50000000}
           value={vwapConfig.capital}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, capital: Number(e.target.value) }))}
+          onBlur={() => clampVwap('capital', 10000, 50000000)}
           className="mt-1"
         />
       </div>
@@ -1129,8 +1148,10 @@ const AlgoTrading = () => {
         <label className="text-xs text-muted-foreground">Risk per Trade (%)</label>
         <Input
           type="number"
+          min={0.1} max={5} step={0.1}
           value={vwapConfig.riskPerTrade}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, riskPerTrade: Number(e.target.value) }))}
+          onBlur={() => clampVwap('riskPerTrade', 0.1, 5)}
           className="mt-1"
         />
       </div>
@@ -1138,8 +1159,10 @@ const AlgoTrading = () => {
         <label className="text-xs text-muted-foreground">Max Positions</label>
         <Input
           type="number"
+          min={1} max={10}
           value={vwapConfig.maxPositions}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, maxPositions: Number(e.target.value) }))}
+          onBlur={() => clampVwap('maxPositions', 1, 10)}
           className="mt-1"
         />
       </div>
@@ -1147,8 +1170,10 @@ const AlgoTrading = () => {
         <label className="text-xs text-muted-foreground">Target (%)</label>
         <Input
           type="number"
+          min={0.5} max={10} step={0.5}
           value={vwapConfig.targetPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, targetPercent: Number(e.target.value) }))}
+          onBlur={() => clampVwap('targetPercent', 0.5, 10)}
           className="mt-1"
         />
       </div>
@@ -1156,8 +1181,10 @@ const AlgoTrading = () => {
         <label className="text-xs text-muted-foreground">Stop Loss (%)</label>
         <Input
           type="number"
+          min={0.5} max={5} step={0.5}
           value={vwapConfig.stopLossPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, stopLossPercent: Number(e.target.value) }))}
+          onBlur={() => clampVwap('stopLossPercent', 0.5, 5)}
           className="mt-1"
         />
       </div>
@@ -1165,8 +1192,10 @@ const AlgoTrading = () => {
         <label className="text-xs text-muted-foreground">Trailing SL (%)</label>
         <Input
           type="number"
+          min={0.1} max={3} step={0.1}
           value={vwapConfig.trailingStopPercent}
           onChange={(e) => setVwapConfig(prev => ({ ...prev, trailingStopPercent: Number(e.target.value) }))}
+          onBlur={() => clampVwap('trailingStopPercent', 0.1, 3)}
           className="mt-1"
         />
       </div>

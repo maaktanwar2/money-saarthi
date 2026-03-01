@@ -10,6 +10,7 @@ import {
 import { Shield, Brain, TrendingUp, Zap, ChevronDown } from 'lucide-react';
 import { Card, CardContent, Badge } from '../ui';
 import { cn } from '../../lib/utils';
+import { CHART_COLORS } from '../../lib/chartTheme';
 
 const STRATEGIES = [
   {
@@ -79,7 +80,7 @@ const STRATEGIES = [
 ];
 
 const colorMap = {
-  emerald: { stroke: '#10B981', bg: 'bg-emerald-500/20', text: 'text-emerald-500', fill: '#10B981' },
+  emerald: { stroke: CHART_COLORS.bullish, bg: 'bg-emerald-500/20', text: 'text-emerald-500', fill: CHART_COLORS.bullish },
   purple: { stroke: '#A855F7', bg: 'bg-purple-500/20', text: 'text-purple-500', fill: '#A855F7' },
   blue: { stroke: '#3B82F6', bg: 'bg-blue-500/20', text: 'text-blue-500', fill: '#3B82F6' },
   cyan: { stroke: '#06B6D4', bg: 'bg-cyan-500/20', text: 'text-cyan-500', fill: '#06B6D4' },

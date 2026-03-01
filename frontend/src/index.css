@@ -16,10 +16,25 @@
     --brand-tertiary: 199 89% 48%;
     
     /* ═══ SEMANTIC COLORS ═══ */
-    --bullish: 142 76% 36%;
+    --bullish: 160 84% 39%;
+    --bullish-light: 160 67% 52%;
     --bearish: 0 84% 60%;
-    --neutral: 220 9% 46%;
+    --bearish-light: 0 91% 71%;
+    --neutral: 239 84% 67%;
+    --neutral-light: 234 89% 74%;
     --warning: 38 92% 50%;
+
+    /* ═══ CHART COLORS (hex for Recharts/SVG) ═══ */
+    --chart-bullish: #10b981;
+    --chart-bearish: #ef4444;
+    --chart-neutral: #6366f1;
+    --chart-warning: #f59e0b;
+    --chart-axis: #6b7280;
+    --chart-grid: #374151;
+    --chart-bg: #1f2937;
+    --chart-text: #e5e7eb;
+    --chart-secondary: #14b8a6;
+    --chart-spot: #f97316;
     
     /* ═══ BACKGROUND SYSTEM ═══ */
     --background: 240 10% 4%;
@@ -29,7 +44,7 @@
     /* ═══ FOREGROUND SYSTEM ═══ */
     --foreground: 0 0% 98%;
     --foreground-secondary: 240 5% 65%;
-    --foreground-muted: 240 4% 46%;
+    --foreground-muted: 240 5% 64.9%;
     
     /* ═══ SURFACE COLORS ═══ */
     --card: 240 6% 10%;
@@ -78,7 +93,7 @@
     --background-tertiary: 210 40% 96%;
     --foreground: 222 84% 5%;
     --foreground-secondary: 215 16% 47%;
-    --foreground-muted: 215 16% 57%;
+    --foreground-muted: 215 20% 43%;
     --card: 0 0% 100%;
     --card-foreground: 222 84% 5%;
     --popover: 0 0% 100%;
@@ -89,14 +104,35 @@
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 20% 43%;
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 160 84% 39%;
+
+    /* ═══ TRADING COLORS (light mode) ═══ */
+    --bullish: 160 84% 32%;
+    --bullish-light: 160 84% 39%;
+    --bearish: 0 72% 51%;
+    --bearish-light: 0 84% 60%;
+    --neutral: 239 84% 60%;
+    --neutral-light: 239 84% 67%;
+    --warning: 38 92% 44%;
+
+    /* ═══ CHART COLORS (light mode) ═══ */
+    --chart-bullish: #059669;
+    --chart-bearish: #dc2626;
+    --chart-neutral: #4f46e5;
+    --chart-warning: #d97706;
+    --chart-axis: #6b7280;
+    --chart-grid: #e5e7eb;
+    --chart-bg: #f9fafb;
+    --chart-text: #374151;
+    --chart-secondary: #0d9488;
+    --chart-spot: #ea580c;
   }
 }
 
@@ -135,10 +171,10 @@
 .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400; }
 
 /* ═══ TRADING COLORS ═══ */
-.text-bullish { @apply text-green-500; }
-.text-bearish { @apply text-red-500; }
-.bg-bullish-subtle { @apply bg-green-500/10; }
-.bg-bearish-subtle { @apply bg-red-500/10; }
+.text-bullish { color: hsl(var(--bullish)); }
+.text-bearish { color: hsl(var(--bearish)); }
+.bg-bullish-subtle { background-color: hsl(var(--bullish) / 0.1); }
+.bg-bearish-subtle { background-color: hsl(var(--bearish) / 0.1); }
 
 /* ═══ ANIMATIONS ═══ */
 @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

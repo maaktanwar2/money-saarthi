@@ -6,6 +6,7 @@ import {
   Legend, ReferenceLine, ComposedChart
 } from 'recharts';
 import { cn, formatINR, formatNumber, formatPercent } from '../../lib/utils';
+import { CHART_COLORS } from '../../lib/chartTheme';
 
 // Custom Tooltip
 const CustomTooltip = ({ active, payload, label, formatter }) => {
@@ -30,15 +31,8 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
   );
 };
 
-// Color definitions
-const CHART_COLORS = {
-  primary: '#10b981',
-  secondary: '#14b8a6',
-  bullish: '#22c55e',
-  bearish: '#ef4444',
-  neutral: '#6b7280',
-  area: 'url(#primaryGradient)',
-};
+// Re-export with area gradient alias
+const COLORS = { ...CHART_COLORS, area: 'url(#primaryGradient)' };
 
 // Area Chart with gradient
 export const TradingAreaChart = ({
@@ -52,7 +46,7 @@ export const TradingAreaChart = ({
   formatter,
   className,
 }) => {
-  const chartColor = CHART_COLORS[color] || color;
+  const chartColor = COLORS[color] || color;
   
   return (
     <div className={cn('w-full', className)}>
@@ -75,12 +69,12 @@ export const TradingAreaChart = ({
                 dataKey={xAxisKey}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: COLORS.axis, fontSize: 12 }}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: COLORS.axis, fontSize: 12 }}
                 tickFormatter={formatter}
               />
             </>
@@ -104,7 +98,7 @@ export const TradingAreaChart = ({
 // Line Chart for multiple series
 export const TradingLineChart = ({
   data = [],
-  series = [], // [{ dataKey: 'value', name: 'Price', color: '#10b981' }]
+  series = [], // [{ dataKey: 'value', name: 'Price', color: COLORS.primary }]
   xAxisKey = 'date',
   height = 300,
   showGrid = true,
@@ -123,12 +117,12 @@ export const TradingLineChart = ({
           dataKey={xAxisKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
           tickFormatter={formatter}
         />
         
@@ -142,7 +136,7 @@ export const TradingLineChart = ({
             type="monotone"
             dataKey={s.dataKey}
             name={s.name || s.dataKey}
-            stroke={s.color || CHART_COLORS.primary}
+            stroke={s.color || COLORS.primary}
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
@@ -175,12 +169,12 @@ export const TradingBarChart = ({
           dataKey={xAxisKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
           tickFormatter={formatter}
         />
         
@@ -189,7 +183,7 @@ export const TradingBarChart = ({
         <Bar
           dataKey={dataKey}
           radius={[4, 4, 0, 0]}
-          fill={CHART_COLORS.primary}
+          fill={COLORS.primary}
         />
       </BarChart>
     </ResponsiveContainer>
@@ -210,7 +204,7 @@ export const Sparkline = ({
     return data[data.length - 1]?.[dataKey] >= data[0]?.[dataKey];
   }, [data, dataKey]);
   
-  const lineColor = color || (isPositive ? CHART_COLORS.bullish : CHART_COLORS.bearish);
+  const lineColor = color || (isPositive ? COLORS.bullish : COLORS.bearish);
   
   return (
     <div className={cn('inline-block', className)} style={{ width, height }}>
@@ -245,13 +239,13 @@ export const CandlestickChart = ({
           dataKey="date"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
         />
         <YAxis 
           yAxisId="price"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
           domain={['auto', 'auto']}
         />
         {showVolume && (
@@ -260,7 +254,7 @@ export const CandlestickChart = ({
             orientation="right"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tick={{ fill: COLORS.axis, fontSize: 12 }}
           />
         )}
         
@@ -271,7 +265,7 @@ export const CandlestickChart = ({
           yAxisId="price"
           dataKey="range"
           fill="transparent"
-          stroke={(entry) => entry.close >= entry.open ? CHART_COLORS.bullish : CHART_COLORS.bearish}
+          stroke={(entry) => entry.close >= entry.open ? COLORS.bullish : COLORS.bearish}
         />
         
         {/* Close Line */}
@@ -279,7 +273,7 @@ export const CandlestickChart = ({
           yAxisId="price"
           type="monotone"
           dataKey="close"
-          stroke={CHART_COLORS.primary}
+          stroke={COLORS.primary}
           strokeWidth={2}
           dot={false}
         />
@@ -289,7 +283,7 @@ export const CandlestickChart = ({
           <Bar
             yAxisId="volume"
             dataKey="volume"
-            fill={CHART_COLORS.primary}
+            fill={COLORS.primary}
             opacity={0.3}
             radius={[2, 2, 0, 0]}
           />
@@ -310,12 +304,12 @@ export const PnLChart = ({
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="pnlGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+            <stop offset="0%" stopColor={COLORS.bullish} stopOpacity={0.3} />
+            <stop offset="100%" stopColor={COLORS.bullish} stopOpacity={0} />
           </linearGradient>
           <linearGradient id="pnlRed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ef4444" stopOpacity={0} />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
+            <stop offset="0%" stopColor={COLORS.bearish} stopOpacity={0} />
+            <stop offset="100%" stopColor={COLORS.bearish} stopOpacity={0.3} />
           </linearGradient>
         </defs>
         
@@ -325,23 +319,23 @@ export const PnLChart = ({
           dataKey="date"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
         />
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
+          tick={{ fill: COLORS.axis, fontSize: 12 }}
           tickFormatter={(v) => formatINR(v, { compact: true })}
         />
         
-        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+        <ReferenceLine y={0} stroke={COLORS.axis} strokeDasharray="3 3" />
         
         <Tooltip content={<CustomTooltip formatter={(v) => formatINR(v)} />} />
         
         <Area
           type="monotone"
           dataKey="pnl"
-          stroke="#22c55e"
+          stroke={COLORS.bullish}
           fill="url(#pnlGreen)"
         />
       </AreaChart>

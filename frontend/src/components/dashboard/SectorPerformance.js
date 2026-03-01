@@ -32,8 +32,7 @@ const SectorPerformance = () => {
       }
     };
     fetchSectors();
-    const interval = setInterval(() => { if (!document.hidden) fetchSectors(); }, 60000);
-    return () => clearInterval(interval);
+    // Remove manual polling - let React Query handle refetching
   }, []);
 
   const handleSectorClick = useCallback(async (sector) => {

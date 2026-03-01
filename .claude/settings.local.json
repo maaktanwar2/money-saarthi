@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push origin master)",
+      "Bash(gcloud builds log 2109c706-d3d4-4cdb-86db-cf49ca8349dc --region=asia-south1)",
+      "Bash(gcloud run revisions list --service=moneysaarthi-backend --region=asia-south1 --format=\"table\\(name,status.conditions[0].status\\)\" --limit=3)",
+      "Bash(gcloud run services describe moneysaarthi-backend --region=asia-south1 --format=\"yaml\\(spec.template.spec.containers[0].env\\)\")",
+      "Bash(gcloud auth list --format=\"value\\(account\\)\")"
+    ]
+  }
+}

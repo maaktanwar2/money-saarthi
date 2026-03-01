@@ -66,24 +66,21 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
-  			// Custom Trading Colors
+  			// Trading Colors — driven by CSS custom properties
   			bullish: {
-  				DEFAULT: '#10b981',
-  				light: '#34d399',
-  				dark: '#059669',
-  				muted: 'rgba(16, 185, 129, 0.15)'
+  				DEFAULT: 'hsl(var(--bullish))',
+  				light: 'hsl(var(--bullish-light))',
+  				muted: 'hsl(var(--bullish) / 0.15)'
   			},
   			bearish: {
-  				DEFAULT: '#ef4444',
-  				light: '#f87171',
-  				dark: '#dc2626',
-  				muted: 'rgba(239, 68, 68, 0.15)'
+  				DEFAULT: 'hsl(var(--bearish))',
+  				light: 'hsl(var(--bearish-light))',
+  				muted: 'hsl(var(--bearish) / 0.15)'
   			},
   			neutral: {
-  				DEFAULT: '#6366f1',
-  				light: '#818cf8',
-  				dark: '#4f46e5',
-  				muted: 'rgba(99, 102, 241, 0.15)'
+  				DEFAULT: 'hsl(var(--neutral))',
+  				light: 'hsl(var(--neutral-light))',
+  				muted: 'hsl(var(--neutral) / 0.15)'
   			}
   		},
   		fontFamily: {

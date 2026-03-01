@@ -266,8 +266,8 @@ class DhanUnifiedService:
                     await asyncio.sleep(delay)
                 self._last_quote_time = time.time()
     
-    def _get_cache(self, key: str, max_age: int = 30) -> Optional[Any]:
-        """Get from cache if not expired"""
+    def _get_cache(self, key: str, max_age: int = 300) -> Optional[Any]:
+        """Get from cache if not expired (default 5 minutes)"""
         import time
         if key in self._cache:
             if time.time() - self._cache_expiry.get(key, 0) < max_age:

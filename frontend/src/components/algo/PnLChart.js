@@ -9,6 +9,7 @@ import {
 import { TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui';
 import { formatINR } from '../../lib/utils';
+import { CHART_COLORS } from '../../lib/chartTheme';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -65,8 +66,8 @@ const PnLChart = ({ data = [], className }) => {
             <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="vwapGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
@@ -77,20 +78,20 @@ const PnLChart = ({ data = [], className }) => {
                   <stop offset="95%" stopColor="#A855F7" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="deltaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  <stop offset="5%" stopColor={CHART_COLORS.bullish} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={CHART_COLORS.bullish} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 4%, 16%)" />
-              <XAxis 
-                dataKey="time" 
-                stroke="hsl(240, 5%, 65%)" 
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+              <XAxis
+                dataKey="time"
+                stroke={CHART_COLORS.axis}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
-                stroke="hsl(240, 5%, 65%)" 
+              <YAxis
+                stroke={CHART_COLORS.axis}
                 fontSize={11}
                 tickFormatter={(v) => `₹${v >= 1000 ? `${(v/1000).toFixed(1)}K` : v}`}
                 tickLine={false}
@@ -124,7 +125,7 @@ const PnLChart = ({ data = [], className }) => {
                   type="monotone" 
                   dataKey="delta" 
                   name="Delta Bot"
-                  stroke="#10B981" 
+                  stroke={CHART_COLORS.bullish}
                   fill="url(#deltaGradient)" 
                   strokeWidth={1.5}
                   dot={false}
@@ -134,7 +135,7 @@ const PnLChart = ({ data = [], className }) => {
                 type="monotone" 
                 dataKey="pnl" 
                 name="Total P&L"
-                stroke="hsl(160, 84%, 39%)" 
+                stroke={CHART_COLORS.primary}
                 fill="url(#pnlGradient)" 
                 strokeWidth={2}
                 dot={false}
